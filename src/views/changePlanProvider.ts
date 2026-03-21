@@ -63,6 +63,7 @@ class AnnotationNode extends vscode.TreeItem {
       case 'hallucination': return 'list.errorForeground';
       case 'intent': return 'charts.purple';
       case 'accepted': return 'disabledForeground';
+      case 'ai_prompt': return 'editorInfo.foreground';
     }
   }
 }

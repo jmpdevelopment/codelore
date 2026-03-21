@@ -6,7 +6,11 @@ export const ANNOTATION_CATEGORIES = [
   'hallucination',
   'intent',
   'accepted',
+  'ai_prompt',
 ] as const;
+
+/** Categories excluded from PR export — ephemeral working notes */
+export const EPHEMERAL_CATEGORIES: ReadonlySet<AnnotationCategory> = new Set(['ai_prompt']);
 
 export type AnnotationCategory = (typeof ANNOTATION_CATEGORIES)[number];
 
@@ -68,5 +72,11 @@ export const CATEGORY_META: Record<AnnotationCategory, { label: string; icon: st
     icon: '$(thumbsup)',
     color: '#9e9e9e',
     description: 'Reviewed, acceptable without changes',
+  },
+  ai_prompt: {
+    label: 'AI Prompt',
+    icon: '$(robot)',
+    color: '#00bcd4',
+    description: 'Quick note for AI agent — ephemeral, excluded from export',
   },
 };

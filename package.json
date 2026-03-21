@@ -140,6 +140,21 @@
         "command": "codediary.removeCritical",
         "title": "CodeDiary: Remove Critical Flag",
         "icon": "$(trash)"
+      },
+      {
+        "command": "codediary.quickNote",
+        "title": "CodeDiary: Quick AI Note (Ephemeral)",
+        "icon": "$(robot)"
+      },
+      {
+        "command": "codediary.copyAnnotationsForFile",
+        "title": "CodeDiary: Copy Annotations for Current File",
+        "icon": "$(copy)"
+      },
+      {
+        "command": "codediary.generateAgentInstructions",
+        "title": "CodeDiary: Generate Agent Instruction Files",
+        "icon": "$(file-code)"
       }
     ],
     "keybindings": [
@@ -153,6 +168,12 @@
         "command": "codediary.markReviewed",
         "key": "ctrl+shift+k",
         "mac": "cmd+shift+k",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "codediary.quickNote",
+        "key": "ctrl+shift+l",
+        "mac": "cmd+shift+l",
         "when": "editorTextFocus"
       }
     ],
@@ -199,6 +220,14 @@
         {
           "command": "codediary.removeCritical",
           "group": "critical@3"
+        },
+        {
+          "command": "codediary.quickNote",
+          "group": "annotation@2"
+        },
+        {
+          "command": "codediary.copyAnnotationsForFile",
+          "group": "annotation@3"
         }
       ],
       "view/title": [

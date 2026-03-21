@@ -1,9 +1,9 @@
 import { DiaryStore } from '../storage/diaryStore';
-import { CATEGORY_META } from '../models/annotation';
+import { CATEGORY_META, EPHEMERAL_CATEGORIES } from '../models/annotation';
 import { countUniqueLines } from '../utils/validation';
 
 export function generateMarkdown(store: DiaryStore): string {
-  const annotations = store.getAnnotations();
+  const annotations = store.getAnnotations().filter(a => !EPHEMERAL_CATEGORIES.has(a.category));
   const markers = store.getReviewMarkers();
   const criticalFlags = store.getCriticalFlags();
   const narrative = store.getNarrative();

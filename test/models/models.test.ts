@@ -10,8 +10,8 @@ import type { ReviewMarker } from '../../src/models/reviewMarker';
 import type { CriticalFlag, CriticalSeverity } from '../../src/models/criticalFlag';
 
 describe('Annotation model', () => {
-  it('has exactly 7 categories', () => {
-    expect(ANNOTATION_CATEGORIES).toHaveLength(7);
+  it('has exactly 8 categories', () => {
+    expect(ANNOTATION_CATEGORIES).toHaveLength(8);
   });
 
   it('all categories have metadata', () => {
@@ -28,7 +28,7 @@ describe('Annotation model', () => {
   it('categories are the expected set', () => {
     expect(ANNOTATION_CATEGORIES).toEqual([
       'verified', 'needs_review', 'modified', 'confused',
-      'hallucination', 'intent', 'accepted',
+      'hallucination', 'intent', 'accepted', 'ai_prompt',
     ]);
   });
 

@@ -187,4 +187,26 @@ describe('generateMarkdown', () => {
     expect(md).not.toContain('critical regions reviewed');
     store.dispose();
   });
+
+  it('excludes ephemeral ai_prompt annotations from export', () => {
+    const store = new DiaryStore();
+    store.addAnnotation(makeAnnotation({ id: 'a1', category: 'verified', text: 'Looks good' }));
+    store.addAnnotation(makeAnnotation({ id: 'a2', category: 'ai_prompt', text: 'Refactor this please' }));
+    const md = generateMarkdown(store);
+    expect(md).toContain('Looks good');
+    expect(md).not.toContain('Refactor this please');
+    expect(md).toContain('**1** annotations across **1** files');
+    store.dispose();
+  });
+
+  it('excludes all ephemeral annotations even when mixed with regular ones', () => {
+    const store = new DiaryStore();
+    store.addAnnotation(makeAnnotation({ id: 'a1', file: 'src/foo.ts', category: 'needs_review', text: 'Check this' }));
+    store.addAnnotation(makeAnnotation({ id: 'a2', file: 'src/foo.ts', category: 'ai_prompt', text: 'AI note' }));
+    store.addAnnotation(makeAnnotation({ id: 'a3', file: 'src/bar.ts', category: 'ai_prompt', text: 'Another AI note' }));
+    const md = generateMarkdown(store);
+    expect(md).toContain('**1** annotations across **1** files');
+    expect(md).not.toContain('AI note');
+    store.dispose();
+  });
 });

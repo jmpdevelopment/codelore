@@ -11,6 +11,8 @@ import { registerReviewCommands } from './commands/markReviewed';
 import { registerCriticalCommands } from './commands/markCritical';
 import { registerExportCommands } from './commands/exportPR';
 import { registerSearchCommands } from './commands/search';
+import { registerQuickNoteCommands } from './commands/quickNote';
+import { registerAgentInstructionCommands } from './commands/agentInstructions';
 import { ANNOTATION_CATEGORIES, CATEGORY_META, AnnotationCategory } from './models/annotation';
 import { CriticalSeverity } from './models/criticalFlag';
 import { LmService } from './ai/lmService';
@@ -46,6 +48,8 @@ export function activate(context: vscode.ExtensionContext): void {
   registerCriticalCommands(context, store);
   registerExportCommands(context, store);
   registerSearchCommands(context, store);
+  registerQuickNoteCommands(context, store);
+  registerAgentInstructionCommands(context, store);
 
   // Filter command
   context.subscriptions.push(
