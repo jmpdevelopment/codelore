@@ -3,6 +3,7 @@ import { DiaryStore } from './storage/diaryStore';
 import { AnnotationDecorator } from './providers/annotationDecorator';
 import { ReviewMarkerDecorator } from './providers/reviewMarkerDecorator';
 import { CriticalDecorator } from './providers/criticalDecorator';
+import { KnowledgeNotifier } from './providers/knowledgeNotifier';
 import { ChangePlanProvider } from './views/changePlanProvider';
 import { CriticalQueueProvider } from './views/criticalQueueProvider';
 import { PreCommitBriefProvider } from './views/preCommitBriefProvider';
@@ -32,7 +33,8 @@ export function activate(context: vscode.ExtensionContext): void {
   const annotationDecorator = new AnnotationDecorator(store);
   const reviewMarkerDecorator = new ReviewMarkerDecorator(store);
   const criticalDecorator = new CriticalDecorator(store);
-  context.subscriptions.push(annotationDecorator, reviewMarkerDecorator, criticalDecorator);
+  const knowledgeNotifier = new KnowledgeNotifier(store);
+  context.subscriptions.push(annotationDecorator, reviewMarkerDecorator, criticalDecorator, knowledgeNotifier);
 
   // Sidebar views
   const changePlanProvider = new ChangePlanProvider(store);
