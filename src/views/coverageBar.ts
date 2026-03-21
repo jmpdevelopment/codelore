@@ -1,11 +1,11 @@
 import * as vscode from 'vscode';
-import { YamlStore } from '../storage/yamlStore';
+import { DiaryStore } from '../storage/diaryStore';
 
 export class CoverageBar implements vscode.Disposable {
   private statusBarItem: vscode.StatusBarItem;
   private disposables: vscode.Disposable[] = [];
 
-  constructor(private store: YamlStore) {
+  constructor(private store: DiaryStore) {
     this.statusBarItem = vscode.window.createStatusBarItem(
       vscode.StatusBarAlignment.Left,
       50,

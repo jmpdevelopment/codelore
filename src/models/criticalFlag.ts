@@ -7,4 +7,7 @@ export interface CriticalFlag {
   severity: CriticalSeverity;
   description?: string;
   human_reviewed: boolean;
+  resolved_by?: string;
+  resolved_at?: string;
+  resolution_comment?: string;
 }

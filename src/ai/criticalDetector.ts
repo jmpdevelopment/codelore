@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { LmService } from './lmService';
-import { YamlStore } from '../storage/yamlStore';
+import { DiaryStore } from '../storage/diaryStore';
 import { CriticalFlag, CriticalSeverity } from '../models/criticalFlag';
 
 const DIFF_SYSTEM_PROMPT = `You are a code safety reviewer. Given a code diff, identify regions that are high-risk and should not be shipped without careful human review.
@@ -70,7 +70,7 @@ interface DetectedRegion {
 export class CriticalDetector {
   constructor(
     private lm: LmService,
-    private store: YamlStore,
+    private store: DiaryStore,
   ) {}
 
   async scanCurrentFile(editor: vscode.TextEditor): Promise<void> {

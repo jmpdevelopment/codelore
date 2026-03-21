@@ -1,7 +1,7 @@
-import { YamlStore } from '../storage/yamlStore';
+import { DiaryStore } from '../storage/diaryStore';
 import { CATEGORY_META } from '../models/annotation';
 
-export function generateMarkdown(store: YamlStore): string {
+export function generateMarkdown(store: DiaryStore): string {
   const annotations = store.getAnnotations();
   const markers = store.getReviewMarkers();
   const criticalFlags = store.getCriticalFlags();

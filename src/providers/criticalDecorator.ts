@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { YamlStore } from '../storage/yamlStore';
+import { DiaryStore } from '../storage/diaryStore';
 import { CriticalSeverity } from '../models/criticalFlag';
 
 const SEVERITY_COLORS: Record<CriticalSeverity, string> = {
@@ -13,7 +13,7 @@ export class CriticalDecorator implements vscode.Disposable {
   private reviewedDecoration: vscode.TextEditorDecorationType;
   private disposables: vscode.Disposable[] = [];
 
-  constructor(private store: YamlStore) {
+  constructor(private store: DiaryStore) {
     this.unreviewedDecoration = vscode.window.createTextEditorDecorationType({
       isWholeLine: true,
       overviewRulerColor: '#f44336',
@@ -39,16 +39,30 @@ export class CriticalDecorator implements vscode.Disposable {
 
     this.disposables.push(
       vscode.window.onDidChangeActiveTextEditor(() => this.update()),
+      vscode.window.onDidChangeVisibleTextEditors(() => this.updateAll()),
+      vscode.workspace.onDidOpenTextDocument(() => {
+        setTimeout(() => this.update(), 100);
+      }),
       vscode.workspace.onDidChangeTextDocument(() => this.update()),
-      store.onDidChange(() => this.update()),
+      store.onDidChange(() => this.updateAll()),
     );
 
-    this.update();
+    setTimeout(() => this.updateAll(), 200);
+  }
+
+  updateAll(): void {
+    for (const editor of vscode.window.visibleTextEditors) {
+      this.updateEditor(editor);
+    }
   }
 
   update(): void {
     const editor = vscode.window.activeTextEditor;
     if (!editor) { return; }
+    this.updateEditor(editor);
+  }
+
+  private updateEditor(editor: vscode.TextEditor): void {
 
     const filePath = this.getRelativePath(editor.document.uri);
     if (!filePath) { return; }

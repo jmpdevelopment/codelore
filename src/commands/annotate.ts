@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { v4 as uuidv4 } from 'uuid';
-import { YamlStore } from '../storage/yamlStore';
+import { DiaryStore, Scope } from '../storage/diaryStore';
 import { Annotation, ANNOTATION_CATEGORIES, CATEGORY_META, AnnotationCategory } from '../models/annotation';
 
 function getGitUser(): string {
@@ -18,7 +18,29 @@ function getRelativePath(uri: vscode.Uri): string | undefined {
   return vscode.workspace.asRelativePath(uri, false);
 }
 
-export function registerAnnotateCommands(context: vscode.ExtensionContext, store: YamlStore): void {
+async function pickScope(store: DiaryStore): Promise<Scope | undefined> {
+  const defaultScope = store.getDefaultScope();
+  const items = [
+    {
+      label: '$(globe) Share with team',
+      description: defaultScope === 'shared' ? '(default)' : '',
+      detail: 'Saved to .codediary/ — visible to everyone via git',
+      scope: 'shared' as Scope,
+    },
+    {
+      label: '$(lock) Just for me',
+      description: defaultScope === 'personal' ? '(default)' : '',
+      detail: 'Saved to .vscode/ — only visible to you',
+      scope: 'personal' as Scope,
+    },
+  ];
+  const picked = await vscode.window.showQuickPick(items, {
+    placeHolder: 'Who should see this annotation?',
+  });
+  return picked?.scope;
+}
+
+export function registerAnnotateCommands(context: vscode.ExtensionContext, store: DiaryStore): void {
   context.subscriptions.push(
     vscode.commands.registerCommand('codediary.addAnnotation', async () => {
       const editor = vscode.window.activeTextEditor;
@@ -50,6 +72,10 @@ export function registerAnnotateCommands(context: vscode.ExtensionContext, store
       });
       if (text === undefined) { return; }
 
+      // Pick scope
+      const scope = await pickScope(store);
+      if (!scope) { return; }
+
       const annotation: Annotation = {
         id: uuidv4(),
         file: filePath,
@@ -62,9 +88,10 @@ export function registerAnnotateCommands(context: vscode.ExtensionContext, store
         author: getGitUser(),
       };
 
-      store.addAnnotation(annotation);
+      store.addAnnotation(annotation, scope);
+      const scopeLabel = scope === 'shared' ? 'shared' : 'personal';
       vscode.window.showInformationMessage(
-        `CodeDiary: ${CATEGORY_META[picked.category].label} annotation added`,
+        `CodeDiary: ${CATEGORY_META[picked.category].label} annotation added (${scopeLabel})`,
       );
     }),
 

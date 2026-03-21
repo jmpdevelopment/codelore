@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { LmService } from './lmService';
-import { YamlStore } from '../storage/yamlStore';
+import { DiaryStore } from '../storage/diaryStore';
 import { Annotation, AnnotationCategory } from '../models/annotation';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -40,7 +40,7 @@ function getGitUser(): string {
 export class DiaryGenerator {
   constructor(
     private lm: LmService,
-    private store: YamlStore,
+    private store: DiaryStore,
   ) {}
 
   async suggestForFile(editor: vscode.TextEditor): Promise<void> {

@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
-import { YamlStore } from '../storage/yamlStore';
+import { DiaryStore } from '../storage/diaryStore';
 import { generateMarkdown } from '../export/markdownExport';
 
-export function registerExportCommands(context: vscode.ExtensionContext, store: YamlStore): void {
+export function registerExportCommands(context: vscode.ExtensionContext, store: DiaryStore): void {
   context.subscriptions.push(
     vscode.commands.registerCommand('codediary.exportPR', async () => {
       const markdown = generateMarkdown(store);

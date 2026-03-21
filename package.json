@@ -10,7 +10,7 @@
   },
   "categories": ["Other"],
   "keywords": ["code diary", "AI code review", "diff annotation", "pre-PR review", "code journal"],
-  "activationEvents": [],
+  "activationEvents": ["onStartupFinished"],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
@@ -96,6 +96,16 @@
       {
         "command": "codediary.changeModel",
         "title": "CodeDiary: Change AI Model"
+      },
+      {
+        "command": "codediary.resolveCritical",
+        "title": "CodeDiary: Resolve Critical Flag",
+        "icon": "$(check)"
+      },
+      {
+        "command": "codediary.removeCritical",
+        "title": "CodeDiary: Remove Critical Flag",
+        "icon": "$(trash)"
       }
     ],
     "keybindings": [
@@ -147,6 +157,14 @@
         {
           "command": "codediary.scanFile",
           "group": "ai@3"
+        },
+        {
+          "command": "codediary.resolveCritical",
+          "group": "critical@2"
+        },
+        {
+          "command": "codediary.removeCritical",
+          "group": "critical@3"
         }
       ],
       "view/title": [
@@ -175,6 +193,16 @@
         {
           "command": "codediary.deleteAnnotation",
           "when": "view == codediary.changePlan && viewItem == annotation",
+          "group": "inline@2"
+        },
+        {
+          "command": "codediary.resolveCritical",
+          "when": "view == codediary.criticalQueue && viewItem == criticalFlag",
+          "group": "inline@1"
+        },
+        {
+          "command": "codediary.removeCritical",
+          "when": "view == codediary.criticalQueue && viewItem == criticalFlag",
           "group": "inline@2"
         }
       ]
@@ -218,6 +246,12 @@
           "type": "boolean",
           "default": true,
           "description": "Highlight unreviewed changed lines with a warm background tint."
+        },
+        "codediary.defaultScope": {
+          "type": "string",
+          "enum": ["shared", "personal"],
+          "default": "shared",
+          "description": "Default scope for new annotations and review markers. 'shared' commits to .codediary/ (visible to team), 'personal' stays in .vscode/ (just for you)."
         }
       }
     }

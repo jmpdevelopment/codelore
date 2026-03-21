@@ -1,6 +1,15 @@
 import * as vscode from 'vscode';
-import { YamlStore } from '../storage/yamlStore';
+import { DiaryStore, Scope } from '../storage/diaryStore';
 import { CriticalFlag, CriticalSeverity } from '../models/criticalFlag';
+
+function getGitUser(): string {
+  try {
+    const cp = require('child_process');
+    return cp.execSync('git config user.name', { encoding: 'utf8' }).trim();
+  } catch {
+    return 'unknown';
+  }
+}
 
 function getRelativePath(uri: vscode.Uri): string | undefined {
   const folder = vscode.workspace.getWorkspaceFolder(uri);
@@ -8,7 +17,7 @@ function getRelativePath(uri: vscode.Uri): string | undefined {
   return vscode.workspace.asRelativePath(uri, false);
 }
 
-export function registerCriticalCommands(context: vscode.ExtensionContext, store: YamlStore): void {
+export function registerCriticalCommands(context: vscode.ExtensionContext, store: DiaryStore): void {
   context.subscriptions.push(
     vscode.commands.registerCommand('codediary.markCritical', async () => {
       const editor = vscode.window.activeTextEditor;
@@ -36,6 +45,27 @@ export function registerCriticalCommands(context: vscode.ExtensionContext, store
         placeHolder: 'e.g., "Payment logic — verify amount calculation"',
       });
 
+      // Critical flags default to shared — the whole point is team visibility
+      const defaultScope = store.getDefaultScope();
+      const scopeItems = [
+        {
+          label: '$(globe) Share with team',
+          description: defaultScope === 'shared' ? '(default)' : '',
+          detail: 'Team sees this critical region',
+          scope: 'shared' as Scope,
+        },
+        {
+          label: '$(lock) Just for me',
+          description: defaultScope === 'personal' ? '(default)' : '',
+          detail: 'Personal tracking only',
+          scope: 'personal' as Scope,
+        },
+      ];
+      const scopePick = await vscode.window.showQuickPick(scopeItems, {
+        placeHolder: 'Who should see this critical flag?',
+      });
+      if (!scopePick) { return; }
+
       const flag: CriticalFlag = {
         file: filePath,
         line_start: lineStart,
@@ -45,10 +75,92 @@ export function registerCriticalCommands(context: vscode.ExtensionContext, store
         human_reviewed: false,
       };
 
-      store.addCriticalFlag(flag);
+      store.addCriticalFlag(flag, scopePick.scope);
+      const scopeLabel = scopePick.scope === 'shared' ? 'shared' : 'personal';
       vscode.window.showInformationMessage(
-        `CodeDiary: Lines ${lineStart}-${lineEnd} marked as ${severityPick.severity}`,
+        `CodeDiary: Lines ${lineStart}-${lineEnd} marked as ${severityPick.severity} (${scopeLabel})`,
       );
+    }),
+
+    vscode.commands.registerCommand('codediary.resolveCritical', async (file?: string, lineStart?: number) => {
+      // Can be called from sidebar (with args) or from cursor
+      if (!file || lineStart === undefined) {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) { return; }
+        file = getRelativePath(editor.document.uri);
+        if (!file) { return; }
+        const line = editor.selection.active.line + 1;
+        const flags = store.getCriticalFlagsForFile(file)
+          .filter(f => line >= f.line_start && line <= f.line_end);
+        if (flags.length === 0) {
+          vscode.window.showInformationMessage('CodeDiary: No critical flag at cursor.');
+          return;
+        }
+        if (flags.length === 1) {
+          lineStart = flags[0].line_start;
+        } else {
+          const pick = await vscode.window.showQuickPick(
+            flags.map(f => ({
+              label: `${f.severity}: ${f.description || 'No description'}`,
+              description: `L${f.line_start}-${f.line_end}`,
+              lineStart: f.line_start,
+            })),
+            { placeHolder: 'Select which critical flag to resolve' },
+          );
+          if (!pick) { return; }
+          lineStart = pick.lineStart;
+        }
+      }
+
+      const comment = await vscode.window.showInputBox({
+        prompt: 'Resolution comment — why is this resolved or not an issue?',
+        placeHolder: 'e.g., "Verified the auth check covers all roles" or "False positive — this is test code"',
+      });
+      if (comment === undefined) { return; }
+
+      store.updateCriticalFlag(file, lineStart, {
+        human_reviewed: true,
+        resolved_by: getGitUser(),
+        resolved_at: new Date().toISOString(),
+        resolution_comment: comment || undefined,
+      });
+
+      vscode.window.showInformationMessage('CodeDiary: Critical flag resolved');
+    }),
+
+    vscode.commands.registerCommand('codediary.removeCritical', async (file?: string, lineStart?: number, lineEnd?: number) => {
+      if (!file || lineStart === undefined || lineEnd === undefined) {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) { return; }
+        file = getRelativePath(editor.document.uri);
+        if (!file) { return; }
+        const line = editor.selection.active.line + 1;
+        const flags = store.getCriticalFlagsForFile(file)
+          .filter(f => line >= f.line_start && line <= f.line_end);
+        if (flags.length === 0) {
+          vscode.window.showInformationMessage('CodeDiary: No critical flag at cursor.');
+          return;
+        }
+        if (flags.length === 1) {
+          lineStart = flags[0].line_start;
+          lineEnd = flags[0].line_end;
+        } else {
+          const pick = await vscode.window.showQuickPick(
+            flags.map(f => ({
+              label: `${f.severity}: ${f.description || 'No description'}`,
+              description: `L${f.line_start}-${f.line_end}`,
+              flag: f,
+            })),
+            { placeHolder: 'Select which critical flag to remove' },
+          );
+          if (!pick) { return; }
+          lineStart = pick.flag.line_start;
+          lineEnd = pick.flag.line_end;
+        }
+      }
+
+      store.removeCriticalFlag(file, lineStart, lineEnd);
+      vscode.window.showInformationMessage('CodeDiary: Critical flag removed');
     }),
   );
 }

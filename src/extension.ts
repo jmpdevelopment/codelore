@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { YamlStore } from './storage/yamlStore';
+import { DiaryStore } from './storage/diaryStore';
 import { AnnotationDecorator } from './providers/annotationDecorator';
 import { ReviewMarkerDecorator } from './providers/reviewMarkerDecorator';
 import { CriticalDecorator } from './providers/criticalDecorator';
@@ -16,7 +16,7 @@ import { DiaryGenerator } from './ai/diaryGenerator';
 import { CriticalDetector } from './ai/criticalDetector';
 
 export function activate(context: vscode.ExtensionContext): void {
-  const store = new YamlStore();
+  const store = new DiaryStore();
   const lm = new LmService();
   const diaryGenerator = new DiaryGenerator(lm, store);
   const criticalDetector = new CriticalDetector(lm, store);

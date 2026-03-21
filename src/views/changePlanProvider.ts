@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { YamlStore } from '../storage/yamlStore';
+import { DiaryStore } from '../storage/diaryStore';
 import { Annotation, CATEGORY_META, AnnotationCategory } from '../models/annotation';
 
 type TreeItem = FileNode | AnnotationNode;
@@ -17,13 +17,14 @@ class FileNode extends vscode.TreeItem {
 }
 
 class AnnotationNode extends vscode.TreeItem {
-  constructor(public readonly annotation: Annotation) {
+  constructor(public readonly annotation: Annotation, scope: 'shared' | 'personal') {
     super(
       `${CATEGORY_META[annotation.category].label}: ${annotation.text.split('\n')[0].substring(0, 60)}`,
       vscode.TreeItemCollapsibleState.None,
     );
     const meta = CATEGORY_META[annotation.category];
-    this.description = `L${annotation.line_start}-${annotation.line_end}`;
+    const scopeIcon = scope === 'shared' ? '$(globe)' : '$(lock)';
+    this.description = `${scopeIcon} L${annotation.line_start}-${annotation.line_end}`;
     this.tooltip = new vscode.MarkdownString(
       `**${meta.label}**\n\n${annotation.text}\n\n*${annotation.author || 'unknown'} — ${new Date(annotation.created_at).toLocaleString()}*`,
     );
@@ -71,7 +72,7 @@ export class ChangePlanProvider implements vscode.TreeDataProvider<TreeItem> {
 
   private filterCategory: AnnotationCategory | undefined;
 
-  constructor(private store: YamlStore) {
+  constructor(private store: DiaryStore) {
     store.onDidChange(() => this.refresh());
   }
 
@@ -110,7 +111,10 @@ export class ChangePlanProvider implements vscode.TreeDataProvider<TreeItem> {
     }
 
     if (element instanceof FileNode) {
-      return element.annotations.map(a => new AnnotationNode(a));
+      return element.annotations.map(a => {
+        const scope = this.store.getAnnotationScope(a.id);
+        return new AnnotationNode(a, scope);
+      });
     }
 
     return [];

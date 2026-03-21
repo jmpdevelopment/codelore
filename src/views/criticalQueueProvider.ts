@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { YamlStore } from '../storage/yamlStore';
+import { DiaryStore } from '../storage/diaryStore';
 import { CriticalFlag, CriticalSeverity } from '../models/criticalFlag';
 
 const SEVERITY_ORDER: Record<CriticalSeverity, number> = {
@@ -16,9 +16,23 @@ class CriticalNode extends vscode.TreeItem {
     );
 
     this.description = flag.severity;
-    this.tooltip = new vscode.MarkdownString(
-      `**${flag.severity.toUpperCase()}** — ${flag.description || 'Manually flagged'}\n\n${flag.human_reviewed ? '✅ Reviewed' : '⚠ Not yet reviewed'}`,
-    );
+    this.contextValue = 'criticalFlag';
+
+    const tooltipParts = [
+      `**${flag.severity.toUpperCase()}** — ${flag.description || 'Manually flagged'}`,
+    ];
+    if (flag.human_reviewed) {
+      tooltipParts.push(`\n\n✅ **Resolved** by ${flag.resolved_by || 'unknown'}`);
+      if (flag.resolved_at) {
+        tooltipParts.push(` on ${new Date(flag.resolved_at).toLocaleString()}`);
+      }
+      if (flag.resolution_comment) {
+        tooltipParts.push(`\n\n> ${flag.resolution_comment}`);
+      }
+    } else {
+      tooltipParts.push('\n\n⚠ Not yet reviewed');
+    }
+    this.tooltip = new vscode.MarkdownString(tooltipParts.join(''));
 
     if (flag.human_reviewed) {
       this.iconPath = new vscode.ThemeIcon('shield', new vscode.ThemeColor('testing.iconPassed'));
@@ -47,7 +61,7 @@ export class CriticalQueueProvider implements vscode.TreeDataProvider<CriticalNo
   private _onDidChangeTreeData = new vscode.EventEmitter<CriticalNode | undefined>();
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
-  constructor(private store: YamlStore) {
+  constructor(private store: DiaryStore) {
     store.onDidChange(() => this.refresh());
   }
 
