@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { DiaryStore, Scope } from '../storage/diaryStore';
 import { Annotation, ANNOTATION_CATEGORIES, CATEGORY_META, AnnotationCategory } from '../models/annotation';
 import { getGitUser, getRelativePath } from '../utils/git';
+import { computeContentHash } from '../utils/anchorEngine';
 
 async function pickScope(store: DiaryStore): Promise<Scope | undefined> {
   const defaultScope = store.getDefaultScope();
@@ -81,6 +82,10 @@ export function registerAnnotateCommands(context: vscode.ExtensionContext, store
       const scope = await pickScope(store);
       if (!scope) { return; }
 
+      // Compute content anchor from current file content
+      const fileLines = editor.document.getText().split('\n');
+      const contentHash = computeContentHash(fileLines, lineStart, lineEnd);
+
       const annotation: Annotation = {
         id: uuidv4(),
         file: filePath,
@@ -91,6 +96,7 @@ export function registerAnnotateCommands(context: vscode.ExtensionContext, store
         source: 'manual',
         created_at: new Date().toISOString(),
         author: getGitUser(),
+        anchor: { content_hash: contentHash, stale: false },
       };
 
       store.addAnnotation(annotation, scope);

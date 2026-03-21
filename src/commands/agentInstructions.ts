@@ -12,7 +12,8 @@ const INSTRUCTION_TEXT = `When modifying files in this project, check for CodeDi
 3. Each annotation has: line range, category (verified, needs_review, modified, confused, hallucination, intent, accepted), and text.
 4. Critical flags mark security-sensitive or high-risk regions — respect these and do not modify flagged code without explicit instruction.
 5. If you add or change code in an annotated region, mention the existing annotation context in your response.
-6. After making changes, suggest the developer add CodeDiary annotations for the modified regions.`;
+6. **Re-anchoring**: When you move, rename, or refactor code that has annotations, update the \`line_start\` and \`line_end\` fields in the corresponding \`.codediary/\` YAML file to match the new line positions. Also update \`anchor.content_hash\` if you change the content — the hash is a truncated SHA-256 of the trimmed non-empty lines joined by newlines.
+7. After making changes, suggest the developer add CodeDiary annotations for the modified regions.`;
 
 interface AgentFile {
   label: string;

@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { DiaryStore, Scope } from '../storage/diaryStore';
 import { CriticalFlag, CriticalSeverity } from '../models/criticalFlag';
 import { getGitUser, getRelativePath } from '../utils/git';
+import { computeContentHash } from '../utils/anchorEngine';
 
 export function registerCriticalCommands(context: vscode.ExtensionContext, store: DiaryStore): void {
   context.subscriptions.push(
@@ -71,6 +72,10 @@ export function registerCriticalCommands(context: vscode.ExtensionContext, store
       });
       if (!scopePick) { return; }
 
+      // Compute content anchor from current file content
+      const fileLines = editor.document.getText().split('\n');
+      const contentHash = computeContentHash(fileLines, lineStart, lineEnd);
+
       const flag: CriticalFlag = {
         file: filePath,
         line_start: lineStart,
@@ -78,6 +83,7 @@ export function registerCriticalCommands(context: vscode.ExtensionContext, store
         severity: severityPick.severity,
         description: description || undefined,
         human_reviewed: false,
+        anchor: { content_hash: contentHash, stale: false },
       };
 
       store.addCriticalFlag(flag, scopePick.scope);

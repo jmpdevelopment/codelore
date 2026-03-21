@@ -13,6 +13,7 @@ import { registerExportCommands } from './commands/exportPR';
 import { registerSearchCommands } from './commands/search';
 import { registerQuickNoteCommands } from './commands/quickNote';
 import { registerAgentInstructionCommands } from './commands/agentInstructions';
+import { registerReanchorCommands } from './commands/reanchor';
 import { ANNOTATION_CATEGORIES, CATEGORY_META, AnnotationCategory } from './models/annotation';
 import { CriticalSeverity } from './models/criticalFlag';
 import { LmService } from './ai/lmService';
@@ -50,6 +51,7 @@ export function activate(context: vscode.ExtensionContext): void {
   registerSearchCommands(context, store);
   registerQuickNoteCommands(context, store);
   registerAgentInstructionCommands(context, store);
+  registerReanchorCommands(context, store);
 
   // Filter command
   context.subscriptions.push(

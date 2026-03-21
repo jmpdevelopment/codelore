@@ -1,3 +1,5 @@
+import { ContentAnchor } from './annotation';
+
 export type CriticalSeverity = 'critical' | 'high' | 'medium';
 
 export interface CriticalFlag {
@@ -10,4 +12,5 @@ export interface CriticalFlag {
   resolved_by?: string;
   resolved_at?: string;
   resolution_comment?: string;
+  anchor?: ContentAnchor;
 }

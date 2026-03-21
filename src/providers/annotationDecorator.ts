@@ -1,12 +1,22 @@
 import * as vscode from 'vscode';
 import { DiaryStore } from '../storage/diaryStore';
 import { CATEGORY_META, AnnotationCategory } from '../models/annotation';
+import { verifyAnchor } from '../utils/anchorEngine';
 
 export class AnnotationDecorator implements vscode.Disposable {
   private decorationTypes: Map<AnnotationCategory, vscode.TextEditorDecorationType> = new Map();
+  private staleDecorationType: vscode.TextEditorDecorationType;
   private disposables: vscode.Disposable[] = [];
 
   constructor(private store: DiaryStore) {
+    this.staleDecorationType = vscode.window.createTextEditorDecorationType({
+      isWholeLine: true,
+      backgroundColor: '#ff980020',
+      after: {
+        color: '#ff9800',
+        fontStyle: 'italic',
+      },
+    });
     this.createDecorationTypes();
 
     this.disposables.push(
@@ -61,15 +71,40 @@ export class AnnotationDecorator implements vscode.Disposable {
     if (!filePath) { return; }
 
     const annotations = this.store.getAnnotationsForFile(filePath);
+    const fileLines = editor.document.getText().split('\n');
 
     // Clear all decorations first
     for (const type of this.decorationTypes.values()) {
       editor.setDecorations(type, []);
     }
+    editor.setDecorations(this.staleDecorationType, []);
 
-    // Group by category
+    // Group by category, separating stale annotations
     const byCategory = new Map<AnnotationCategory, vscode.DecorationOptions[]>();
+    const staleDecorations: vscode.DecorationOptions[] = [];
+
     for (const ann of annotations) {
+      // Check if anchor is stale
+      const isStale = ann.anchor?.content_hash
+        ? !verifyAnchor(fileLines, ann.line_start, ann.line_end, ann.anchor.content_hash)
+        : false;
+
+      if (isStale) {
+        staleDecorations.push({
+          range: new vscode.Range(
+            Math.max(0, ann.line_start - 1), 0,
+            Math.max(0, ann.line_end - 1), Number.MAX_SAFE_INTEGER,
+          ),
+          renderOptions: {
+            after: {
+              contentText: `  ⚠ STALE: ${CATEGORY_META[ann.category].icon} ${ann.text.split('\n')[0]}`,
+            },
+          },
+          hoverMessage: this.buildStaleHover(ann.category, ann.text, ann.author, ann.created_at),
+        });
+        continue;
+      }
+
       const options: vscode.DecorationOptions = {
         range: new vscode.Range(
           Math.max(0, ann.line_start - 1), 0,
@@ -95,6 +130,8 @@ export class AnnotationDecorator implements vscode.Disposable {
         editor.setDecorations(type, options);
       }
     }
+
+    editor.setDecorations(this.staleDecorationType, staleDecorations);
   }
 
   private buildHover(category: AnnotationCategory, text: string, author?: string, createdAt?: string): vscode.MarkdownString {
@@ -103,6 +140,19 @@ export class AnnotationDecorator implements vscode.Disposable {
     md.appendMarkdown(`**${meta.label}**\n\n`);
     md.appendMarkdown(text + '\n\n');
     if (author) { md.appendMarkdown(`*— ${author}*`); }
+    if (createdAt) { md.appendMarkdown(` • ${new Date(createdAt).toLocaleString()}`); }
+    return md;
+  }
+
+  private buildStaleHover(category: AnnotationCategory, text: string, author?: string, createdAt?: string): vscode.MarkdownString {
+    const meta = CATEGORY_META[category];
+    const md = new vscode.MarkdownString();
+    md.isTrusted = true;
+    md.appendMarkdown(`**⚠ STALE — ${meta.label}**\n\n`);
+    md.appendMarkdown(text + '\n\n');
+    md.appendMarkdown('*The code at this location has changed since this annotation was created.*\n\n');
+    md.appendMarkdown('[Re-anchor annotations](command:codediary.reanchor)');
+    if (author) { md.appendMarkdown(`\n\n*— ${author}*`); }
     if (createdAt) { md.appendMarkdown(` • ${new Date(createdAt).toLocaleString()}`); }
     return md;
   }
@@ -117,6 +167,7 @@ export class AnnotationDecorator implements vscode.Disposable {
     for (const type of this.decorationTypes.values()) {
       type.dispose();
     }
+    this.staleDecorationType.dispose();
     for (const d of this.disposables) {
       d.dispose();
     }

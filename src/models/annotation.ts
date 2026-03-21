@@ -16,6 +16,11 @@ export type AnnotationCategory = (typeof ANNOTATION_CATEGORIES)[number];
 
 export type AnnotationSource = 'manual' | 'ai_suggested' | 'ai_accepted';
 
+export interface ContentAnchor {
+  content_hash: string;
+  stale: boolean;
+}
+
 export interface Annotation {
   id: string;
   file: string;
@@ -28,6 +33,7 @@ export interface Annotation {
   commit_hash?: string;
   created_at: string;
   author?: string;
+  anchor?: ContentAnchor;
 }
 
 export const CATEGORY_META: Record<AnnotationCategory, { label: string; icon: string; color: string; description: string }> = {

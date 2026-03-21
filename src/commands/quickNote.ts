@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { DiaryStore } from '../storage/diaryStore';
 import { Annotation } from '../models/annotation';
 import { getGitUser, getRelativePath } from '../utils/git';
+import { computeContentHash } from '../utils/anchorEngine';
 
 export function registerQuickNoteCommands(context: vscode.ExtensionContext, store: DiaryStore): void {
   context.subscriptions.push(
@@ -23,6 +24,9 @@ export function registerQuickNoteCommands(context: vscode.ExtensionContext, stor
       });
       if (text === undefined || text.trim() === '') { return; }
 
+      const fileLines = editor.document.getText().split('\n');
+      const contentHash = computeContentHash(fileLines, lineStart, lineEnd);
+
       const annotation: Annotation = {
         id: uuidv4(),
         file: filePath,
@@ -33,6 +37,7 @@ export function registerQuickNoteCommands(context: vscode.ExtensionContext, stor
         source: 'manual',
         created_at: new Date().toISOString(),
         author: getGitUser(),
+        anchor: { content_hash: contentHash, stale: false },
       };
 
       store.addAnnotation(annotation, 'personal');

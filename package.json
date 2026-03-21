@@ -155,6 +155,16 @@
         "command": "codediary.generateAgentInstructions",
         "title": "CodeDiary: Generate Agent Instruction Files",
         "icon": "$(file-code)"
+      },
+      {
+        "command": "codediary.reanchor",
+        "title": "CodeDiary: Re-anchor Stale Annotations",
+        "icon": "$(pin)"
+      },
+      {
+        "command": "codediary.verifyAnchors",
+        "title": "CodeDiary: Verify Annotation Anchors",
+        "icon": "$(verified)"
       }
     ],
     "keybindings": [
