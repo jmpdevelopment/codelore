@@ -160,4 +160,101 @@ describe('CriticalQueueProvider', () => {
     expect((nodes[0] as any).command.command).toBe('vscode.open');
     store.dispose();
   });
+
+  it('filters by file path', () => {
+    const store = new DiaryStore();
+    store.addCriticalFlag(makeFlag({ file: 'src/auth/login.ts', line_start: 1, line_end: 5 }));
+    store.addCriticalFlag(makeFlag({ file: 'src/billing/charge.ts', line_start: 10, line_end: 20 }));
+    store.addCriticalFlag(makeFlag({ file: 'src/auth/tokens.ts', line_start: 30, line_end: 40 }));
+    const provider = new CriticalQueueProvider(store);
+
+    provider.setPathFilter('src/auth');
+    const filtered = provider.getChildren();
+    expect(filtered).toHaveLength(2);
+    store.dispose();
+  });
+
+  it('path filter is case insensitive', () => {
+    const store = new DiaryStore();
+    store.addCriticalFlag(makeFlag({ file: 'src/Auth/Login.ts' }));
+    const provider = new CriticalQueueProvider(store);
+
+    provider.setPathFilter('auth');
+    expect(provider.getChildren()).toHaveLength(1);
+    store.dispose();
+  });
+
+  it('clears path filter with undefined', () => {
+    const store = new DiaryStore();
+    store.addCriticalFlag(makeFlag({ file: 'src/auth/login.ts', line_start: 1, line_end: 5 }));
+    store.addCriticalFlag(makeFlag({ file: 'src/billing/charge.ts', line_start: 10, line_end: 20 }));
+    const provider = new CriticalQueueProvider(store);
+
+    provider.setPathFilter('auth');
+    expect(provider.getChildren()).toHaveLength(1);
+
+    provider.setPathFilter(undefined);
+    expect(provider.getChildren()).toHaveLength(2);
+    store.dispose();
+  });
+
+  it('filters by severity', () => {
+    const store = new DiaryStore();
+    store.addCriticalFlag(makeFlag({ severity: 'critical', file: 'a.ts', line_start: 1, line_end: 5 }));
+    store.addCriticalFlag(makeFlag({ severity: 'high', file: 'b.ts', line_start: 1, line_end: 5 }));
+    store.addCriticalFlag(makeFlag({ severity: 'critical', file: 'c.ts', line_start: 1, line_end: 5 }));
+    const provider = new CriticalQueueProvider(store);
+
+    provider.setSeverityFilter('critical');
+    expect(provider.getChildren()).toHaveLength(2);
+
+    provider.setSeverityFilter('high');
+    expect(provider.getChildren()).toHaveLength(1);
+
+    provider.setSeverityFilter(undefined);
+    expect(provider.getChildren()).toHaveLength(3);
+    store.dispose();
+  });
+
+  it('combines path and severity filters', () => {
+    const store = new DiaryStore();
+    store.addCriticalFlag(makeFlag({ file: 'src/auth/login.ts', severity: 'critical', line_start: 1, line_end: 5 }));
+    store.addCriticalFlag(makeFlag({ file: 'src/auth/tokens.ts', severity: 'medium', line_start: 10, line_end: 20 }));
+    store.addCriticalFlag(makeFlag({ file: 'src/billing/charge.ts', severity: 'critical', line_start: 30, line_end: 40 }));
+    const provider = new CriticalQueueProvider(store);
+
+    provider.setPathFilter('src/auth');
+    provider.setSeverityFilter('critical');
+    expect(provider.getChildren()).toHaveLength(1);
+    expect((provider.getChildren()[0] as any).flag.file).toBe('src/auth/login.ts');
+    store.dispose();
+  });
+
+  it('getActiveFilters returns current filter state', () => {
+    const store = new DiaryStore();
+    const provider = new CriticalQueueProvider(store);
+
+    expect(provider.getActiveFilters()).toEqual({ path: undefined, severity: undefined });
+
+    provider.setPathFilter('src/auth');
+    provider.setSeverityFilter('critical');
+    expect(provider.getActiveFilters()).toEqual({ path: 'src/auth', severity: 'critical' });
+    store.dispose();
+  });
+
+  it('maintains sort order with filters applied', () => {
+    const store = new DiaryStore();
+    store.addCriticalFlag(makeFlag({ file: 'src/auth/a.ts', severity: 'medium', human_reviewed: false, line_start: 1, line_end: 5 }));
+    store.addCriticalFlag(makeFlag({ file: 'src/auth/b.ts', severity: 'critical', human_reviewed: false, line_start: 1, line_end: 5 }));
+    store.addCriticalFlag(makeFlag({ file: 'src/auth/c.ts', severity: 'high', human_reviewed: true, line_start: 1, line_end: 5 }));
+    const provider = new CriticalQueueProvider(store);
+
+    provider.setPathFilter('src/auth');
+    const nodes = provider.getChildren();
+    // Unreviewed first (critical, medium), then reviewed (high)
+    expect((nodes[0] as any).flag.severity).toBe('critical');
+    expect((nodes[1] as any).flag.severity).toBe('medium');
+    expect((nodes[2] as any).flag.severity).toBe('high');
+    store.dispose();
+  });
 });

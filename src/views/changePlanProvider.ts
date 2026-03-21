@@ -72,6 +72,7 @@ export class ChangePlanProvider implements vscode.TreeDataProvider<TreeItem> {
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
   private filterCategory: AnnotationCategory | undefined;
+  private filterPath: string | undefined;
 
   constructor(private store: DiaryStore) {
     store.onDidChange(() => this.refresh());
@@ -86,6 +87,15 @@ export class ChangePlanProvider implements vscode.TreeDataProvider<TreeItem> {
     this.refresh();
   }
 
+  setPathFilter(pathFilter: string | undefined): void {
+    this.filterPath = pathFilter;
+    this.refresh();
+  }
+
+  getActiveFilters(): { category?: AnnotationCategory; path?: string } {
+    return { category: this.filterCategory, path: this.filterPath };
+  }
+
   getTreeItem(element: TreeItem): vscode.TreeItem {
     return element;
   }
@@ -96,6 +106,10 @@ export class ChangePlanProvider implements vscode.TreeDataProvider<TreeItem> {
       let annotations = this.store.getAnnotations();
       if (this.filterCategory) {
         annotations = annotations.filter(a => a.category === this.filterCategory);
+      }
+      if (this.filterPath) {
+        const pathLower = this.filterPath.toLowerCase();
+        annotations = annotations.filter(a => a.file.toLowerCase().includes(pathLower));
       }
 
       const byFile = new Map<string, Annotation[]>();

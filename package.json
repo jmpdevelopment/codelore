@@ -1,7 +1,7 @@
 {
   "name": "codediary",
   "displayName": "CodeDiary",
-  "description": "Reflect before you ship. A pre-PR review diary for AI-generated code.",
+  "description": "Institutional knowledge capture for large codebases undergoing AI-accelerated development. Annotate, review, and build shared understanding as AI agents modify your code.",
   "version": "0.1.0",
   "publisher": "codediary",
   "license": "MIT",
@@ -12,11 +12,15 @@
     "Other"
   ],
   "keywords": [
-    "code diary",
+    "code knowledge",
     "AI code review",
-    "diff annotation",
-    "pre-PR review",
-    "code journal"
+    "code annotation",
+    "legacy codebase",
+    "institutional knowledge",
+    "code documentation",
+    "AI development",
+    "team knowledge sharing",
+    "code diary"
   ],
   "activationEvents": [
     "onStartupFinished"
@@ -108,6 +112,26 @@
         "title": "CodeDiary: Change AI Model"
       },
       {
+        "command": "codediary.searchAnnotations",
+        "title": "CodeDiary: Search Annotations",
+        "icon": "$(search)"
+      },
+      {
+        "command": "codediary.filterByPath",
+        "title": "CodeDiary: Filter by File/Folder Path",
+        "icon": "$(folder)"
+      },
+      {
+        "command": "codediary.filterBySeverity",
+        "title": "CodeDiary: Filter Critical by Severity",
+        "icon": "$(shield)"
+      },
+      {
+        "command": "codediary.clearFilters",
+        "title": "CodeDiary: Clear All Filters",
+        "icon": "$(clear-all)"
+      },
+      {
         "command": "codediary.resolveCritical",
         "title": "CodeDiary: Resolve Critical Flag",
         "icon": "$(check)"
@@ -189,9 +213,24 @@
           "group": "navigation@2"
         },
         {
-          "command": "codediary.refreshSidebar",
+          "command": "codediary.filterByPath",
           "when": "view == codediary.changePlan || view == codediary.criticalQueue",
           "group": "navigation@3"
+        },
+        {
+          "command": "codediary.filterBySeverity",
+          "when": "view == codediary.criticalQueue",
+          "group": "navigation@2"
+        },
+        {
+          "command": "codediary.clearFilters",
+          "when": "view == codediary.changePlan || view == codediary.criticalQueue",
+          "group": "navigation@4"
+        },
+        {
+          "command": "codediary.refreshSidebar",
+          "when": "view == codediary.changePlan || view == codediary.criticalQueue",
+          "group": "navigation@5"
         }
       ],
       "view/item/context": [

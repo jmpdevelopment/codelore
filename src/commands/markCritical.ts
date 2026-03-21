@@ -31,24 +31,43 @@ export function registerCriticalCommands(context: vscode.ExtensionContext, store
         placeHolder: 'e.g., "Payment logic — verify amount calculation"',
       });
 
+      // Check for overlapping critical flags
+      const overlapping = store.findOverlappingCriticalFlags(filePath, lineStart, lineEnd);
+      if (overlapping.length > 0) {
+        const overlapItems = [
+          { label: '$(add) Keep both', id: 'keep' as const },
+          { label: '$(replace) Replace existing', id: 'replace' as const },
+          { label: '$(close) Cancel', id: 'cancel' as const },
+        ];
+        const choice = await vscode.window.showQuickPick(overlapItems, {
+          placeHolder: `${overlapping.length} existing critical flag(s) overlap this range. What do you want to do?`,
+        });
+        if (!choice || choice.id === 'cancel') { return; }
+        if (choice.id === 'replace') {
+          for (const f of overlapping) {
+            store.removeCriticalFlag(filePath, f.line_start, f.line_end);
+          }
+        }
+      }
+
       // Critical flags default to shared — the whole point is team visibility
       const defaultScope = store.getDefaultScope();
       const scopeItems = [
         {
-          label: '$(globe) Share with team',
+          label: '$(globe) Team knowledge (persists)',
           description: defaultScope === 'shared' ? '(default)' : '',
-          detail: 'Team sees this critical region',
+          detail: 'Team sees this critical region — committed to git',
           scope: 'shared' as Scope,
         },
         {
-          label: '$(lock) Just for me',
+          label: '$(note) Working notes (cleared on export)',
           description: defaultScope === 'personal' ? '(default)' : '',
-          detail: 'Personal tracking only',
+          detail: 'Personal tracking only — cleared when you export to PR',
           scope: 'personal' as Scope,
         },
       ];
       const scopePick = await vscode.window.showQuickPick(scopeItems, {
-        placeHolder: 'Who should see this critical flag?',
+        placeHolder: 'Will this outlive your current work session?',
       });
       if (!scopePick) { return; }
 
@@ -62,7 +81,7 @@ export function registerCriticalCommands(context: vscode.ExtensionContext, store
       };
 
       store.addCriticalFlag(flag, scopePick.scope);
-      const scopeLabel = scopePick.scope === 'shared' ? 'shared' : 'personal';
+      const scopeLabel = scopePick.scope === 'shared' ? 'team' : 'working notes';
       vscode.window.showInformationMessage(
         `CodeDiary: Lines ${lineStart}-${lineEnd} marked as ${severityPick.severity} (${scopeLabel})`,
       );

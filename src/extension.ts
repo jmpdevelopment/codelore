@@ -10,7 +10,9 @@ import { registerAnnotateCommands } from './commands/annotate';
 import { registerReviewCommands } from './commands/markReviewed';
 import { registerCriticalCommands } from './commands/markCritical';
 import { registerExportCommands } from './commands/exportPR';
+import { registerSearchCommands } from './commands/search';
 import { ANNOTATION_CATEGORIES, CATEGORY_META, AnnotationCategory } from './models/annotation';
+import { CriticalSeverity } from './models/criticalFlag';
 import { LmService } from './ai/lmService';
 import { DiaryGenerator } from './ai/diaryGenerator';
 import { CriticalDetector } from './ai/criticalDetector';
@@ -43,6 +45,7 @@ export function activate(context: vscode.ExtensionContext): void {
   registerReviewCommands(context, store);
   registerCriticalCommands(context, store);
   registerExportCommands(context, store);
+  registerSearchCommands(context, store);
 
   // Filter command
   context.subscriptions.push(
@@ -60,6 +63,42 @@ export function activate(context: vscode.ExtensionContext): void {
       if (picked !== undefined) {
         changePlanProvider.setFilter(picked.category);
       }
+    }),
+
+    vscode.commands.registerCommand('codediary.filterByPath', async () => {
+      const current = changePlanProvider.getActiveFilters().path;
+      const input = await vscode.window.showInputBox({
+        prompt: 'Filter by file/folder path (leave empty to clear)',
+        placeHolder: 'e.g. src/auth or middleware.ts',
+        value: current || '',
+      });
+      if (input === undefined) { return; }
+      const pathFilter = input.trim() || undefined;
+      changePlanProvider.setPathFilter(pathFilter);
+      criticalQueueProvider.setPathFilter(pathFilter);
+    }),
+
+    vscode.commands.registerCommand('codediary.filterBySeverity', async () => {
+      const items: Array<{ label: string; severity: CriticalSeverity | undefined }> = [
+        { label: '$(close) Clear Filter', severity: undefined },
+        { label: '$(error) Critical', severity: 'critical' },
+        { label: '$(warning) High', severity: 'high' },
+        { label: '$(info) Medium', severity: 'medium' },
+      ];
+      const picked = await vscode.window.showQuickPick(items, {
+        placeHolder: 'Filter critical flags by severity',
+      });
+      if (picked !== undefined) {
+        criticalQueueProvider.setSeverityFilter(picked.severity);
+      }
+    }),
+
+    vscode.commands.registerCommand('codediary.clearFilters', () => {
+      changePlanProvider.setFilter(undefined);
+      changePlanProvider.setPathFilter(undefined);
+      criticalQueueProvider.setPathFilter(undefined);
+      criticalQueueProvider.setSeverityFilter(undefined);
+      vscode.window.showInformationMessage('CodeDiary: All filters cleared');
     }),
 
     vscode.commands.registerCommand('codediary.refreshSidebar', () => {

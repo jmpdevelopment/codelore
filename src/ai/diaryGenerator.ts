@@ -1,17 +1,22 @@
 import * as vscode from 'vscode';
 import { LmService } from './lmService';
 import { DiaryStore } from '../storage/diaryStore';
-import { Annotation, AnnotationCategory } from '../models/annotation';
+import { Annotation, AnnotationCategory, CATEGORY_META } from '../models/annotation';
 import { v4 as uuidv4 } from 'uuid';
 import { getGitUser, getRelativePath, getWorkspaceCwd, gitDiff, gitDiffAll } from '../utils/git';
 import { validLineRange, isValidCategory } from '../utils/validation';
 
-const SYSTEM_PROMPT = `You are CodeDiary, an assistant that helps developers journal their AI-assisted code changes.
+const SYSTEM_PROMPT = `You are CodeDiary, an assistant that helps developers build institutional knowledge about their codebase during AI-assisted development.
 
-Given a code diff, generate structured diary entries that capture:
+Given a code diff (and any existing annotations/critical flags for this file), generate structured diary entries that capture:
 1. What changed and why it likely changed
 2. What the developer should verify or pay attention to
 3. Any potential risks or concerns
+
+IMPORTANT: If existing annotations or critical flags are provided, use them as context:
+- Do NOT duplicate information already captured in existing annotations
+- Reference existing knowledge when relevant (e.g., "existing annotation notes an intentional off-by-one here — verify it was preserved")
+- Focus new entries on what the existing annotations DON'T already cover
 
 Respond with a JSON array of entries. Each entry has:
 - "category": one of "verified", "needs_review", "modified", "confused", "hallucination", "intent", "accepted"
@@ -61,7 +66,8 @@ export class DiaryGenerator {
         try {
           progress.report({ message: 'Connecting to language model...' });
 
-          const prompt = `<file path="${filePath}">\n<diff>\n${diff}\n</diff>\n<content>\n${this.numberLines(fileContent)}\n</content>\n</file>`;
+          const existingContext = this.formatExistingKnowledge(filePath);
+          const prompt = `<file path="${filePath}">\n<diff>\n${diff}\n</diff>\n<content>\n${this.numberLines(fileContent)}\n</content>\n</file>${existingContext}`;
           const result = await this.lm.generate(SYSTEM_PROMPT, prompt, token);
           if (!result || token.isCancellationRequested) { return; }
 
@@ -144,28 +150,46 @@ export class DiaryGenerator {
   }
 
   private async presentSuggestions(filePath: string, entries: SuggestedEntry[], modelName: string): Promise<void> {
-    // Show quick pick with all suggestions, let user accept/dismiss each
-    const items = entries.map((entry) => ({
-      label: `${entry.text.substring(0, 70)}`,
-      description: `L${entry.line_start}-${entry.line_end} · ${entry.category}`,
-      picked: true,
-      entry,
-    }));
+    // Show quick pick with all suggestions, marking overlaps
+    const items = entries.map((entry) => {
+      const overlapping = this.store.findOverlapping(filePath, entry.line_start, entry.line_end);
+      const overlapNote = overlapping.length > 0
+        ? ` (replaces ${overlapping.length} existing)`
+        : '';
+      return {
+        label: `${entry.text.substring(0, 70)}`,
+        description: `L${entry.line_start}-${entry.line_end} · ${entry.category}${overlapNote}`,
+        picked: overlapping.length === 0, // Don't pre-select entries that would replace existing ones
+        entry,
+        overlapping,
+      };
+    });
 
     const selected = await vscode.window.showQuickPick(items, {
       canPickMany: true,
-      placeHolder: 'Select diary entries to keep (uncheck to dismiss)',
+      placeHolder: 'Select diary entries to keep (uncheck to dismiss). Overlapping entries replace existing.',
       title: `${entries.length} suggested entries for ${filePath} — ${modelName}`,
     });
 
     if (!selected || selected.length === 0) { return; }
 
+    let added = 0;
+    let replaced = 0;
     for (const item of selected) {
+      // Remove overlapping AI-generated annotations before adding new one
+      for (const existing of item.overlapping) {
+        if (existing.source !== 'manual') {
+          this.store.deleteAnnotation(existing.id);
+          replaced++;
+        }
+      }
       this.addAsSuggested(filePath, item.entry);
+      added++;
     }
 
+    const replaceMsg = replaced > 0 ? ` (replaced ${replaced} older entries)` : '';
     vscode.window.showInformationMessage(
-      `CodeDiary: ${selected.length} diary entries added.`,
+      `CodeDiary: ${added} diary entries added${replaceMsg}.`,
     );
   }
 
@@ -233,6 +257,35 @@ export class DiaryGenerator {
     } catch {
       return [];
     }
+  }
+
+  formatExistingKnowledge(filePath: string): string {
+    const annotations = this.store.getAnnotationsForFile(filePath);
+    const criticalFlags = this.store.getCriticalFlagsForFile(filePath);
+
+    if (annotations.length === 0 && criticalFlags.length === 0) {
+      return '';
+    }
+
+    const parts: string[] = ['\n\n<existing_knowledge>'];
+
+    if (annotations.length > 0) {
+      parts.push('Existing annotations for this file:');
+      for (const a of annotations) {
+        parts.push(`- L${a.line_start}-${a.line_end} [${CATEGORY_META[a.category].label}]: ${a.text}`);
+      }
+    }
+
+    if (criticalFlags.length > 0) {
+      parts.push('Existing critical flags for this file:');
+      for (const f of criticalFlags) {
+        const status = f.human_reviewed ? 'reviewed' : 'unreviewed';
+        parts.push(`- L${f.line_start}-${f.line_end} [${f.severity}, ${status}]: ${f.description || 'No description'}`);
+      }
+    }
+
+    parts.push('</existing_knowledge>');
+    return parts.join('\n');
   }
 
   private numberLines(content: string): string {

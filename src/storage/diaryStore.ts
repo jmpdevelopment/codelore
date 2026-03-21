@@ -1,11 +1,27 @@
 import * as vscode from 'vscode';
-import { Annotation } from '../models/annotation';
+import { Annotation, AnnotationCategory, CATEGORY_META } from '../models/annotation';
 import { ReviewMarker } from '../models/reviewMarker';
 import { CriticalFlag } from '../models/criticalFlag';
 import { YamlStore } from './yamlStore';
 import { SharedStore } from './sharedStore';
 
 export type Scope = 'shared' | 'personal';
+
+export interface SearchFilter {
+  text?: string;
+  category?: AnnotationCategory;
+  file?: string;
+}
+
+export interface SearchResult {
+  type: 'annotation' | 'critical_flag';
+  file: string;
+  line_start: number;
+  line_end: number;
+  label: string;
+  detail: string;
+  scope: Scope;
+}
 
 /**
  * Facade over SharedStore (.codediary/, committed) and YamlStore (.vscode/, personal).
@@ -146,6 +162,79 @@ export class DiaryStore {
   removeCriticalFlag(file: string, lineStart: number, lineEnd: number): void {
     this.shared.removeCriticalFlag(file, lineStart, lineEnd);
     this.personal.removeCriticalFlag(file, lineStart, lineEnd);
+  }
+
+  // --- Overlap Detection ---
+
+  findOverlapping(file: string, lineStart: number, lineEnd: number): Annotation[] {
+    return this.getAnnotationsForFile(file).filter(
+      a => a.line_end >= lineStart && a.line_start <= lineEnd,
+    );
+  }
+
+  findOverlappingCriticalFlags(file: string, lineStart: number, lineEnd: number): CriticalFlag[] {
+    return this.getCriticalFlagsForFile(file).filter(
+      f => f.line_end >= lineStart && f.line_start <= lineEnd,
+    );
+  }
+
+  // --- Search ---
+
+  search(filter: SearchFilter): SearchResult[] {
+    const results: SearchResult[] = [];
+    const textLower = filter.text?.toLowerCase();
+
+    const matchesFile = (file: string) =>
+      !filter.file || file.includes(filter.file);
+
+    const matchesText = (text: string) =>
+      !textLower || text.toLowerCase().includes(textLower);
+
+    // Search annotations
+    const addAnnotations = (annotations: Annotation[], scope: Scope) => {
+      for (const a of annotations) {
+        if (!matchesFile(a.file)) { continue; }
+        if (filter.category && a.category !== filter.category) { continue; }
+        if (!matchesText(a.text)) { continue; }
+        results.push({
+          type: 'annotation',
+          file: a.file,
+          line_start: a.line_start,
+          line_end: a.line_end,
+          label: `${CATEGORY_META[a.category].icon} ${a.text}`,
+          detail: `${a.file}:${a.line_start} · ${CATEGORY_META[a.category].label}${a.author ? ` · ${a.author}` : ''}`,
+          scope,
+        });
+      }
+    };
+
+    addAnnotations(this.shared.getAnnotations(), 'shared');
+    addAnnotations(this.personal.getAnnotations(), 'personal');
+
+    // Search critical flags (when no category filter, or user explicitly wants them)
+    if (!filter.category) {
+      const addFlags = (flags: CriticalFlag[], scope: Scope) => {
+        for (const f of flags) {
+          if (!matchesFile(f.file)) { continue; }
+          if (!matchesText(f.description || '')) { continue; }
+          const status = f.human_reviewed ? 'resolved' : 'unreviewed';
+          results.push({
+            type: 'critical_flag',
+            file: f.file,
+            line_start: f.line_start,
+            line_end: f.line_end,
+            label: `$(shield) [${f.severity}] ${f.description || 'Critical region'}`,
+            detail: `${f.file}:${f.line_start} · ${status}`,
+            scope,
+          });
+        }
+      };
+
+      addFlags(this.shared.getCriticalFlags(), 'shared');
+      addFlags(this.personal.getCriticalFlags(), 'personal');
+    }
+
+    return results;
   }
 
   // --- Bulk ---

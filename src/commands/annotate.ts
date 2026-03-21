@@ -8,20 +8,20 @@ async function pickScope(store: DiaryStore): Promise<Scope | undefined> {
   const defaultScope = store.getDefaultScope();
   const items = [
     {
-      label: '$(globe) Share with team',
+      label: '$(globe) Team knowledge (persists)',
       description: defaultScope === 'shared' ? '(default)' : '',
-      detail: 'Saved to .codediary/ — visible to everyone via git',
+      detail: 'Saved to .codediary/ — committed to git, survives PR export',
       scope: 'shared' as Scope,
     },
     {
-      label: '$(lock) Just for me',
+      label: '$(note) Working notes (cleared on export)',
       description: defaultScope === 'personal' ? '(default)' : '',
-      detail: 'Saved to .vscode/ — only visible to you',
+      detail: 'Saved to .vscode/ — private scratchpad, cleared when you export to PR',
       scope: 'personal' as Scope,
     },
   ];
   const picked = await vscode.window.showQuickPick(items, {
-    placeHolder: 'Who should see this annotation?',
+    placeHolder: 'Will this outlive your current work session?',
   });
   return picked?.scope;
 }
@@ -58,6 +58,25 @@ export function registerAnnotateCommands(context: vscode.ExtensionContext, store
       });
       if (text === undefined) { return; }
 
+      // Check for overlapping annotations
+      const overlapping = store.findOverlapping(filePath, lineStart, lineEnd);
+      if (overlapping.length > 0) {
+        const overlapItems = [
+          { label: '$(add) Keep both', id: 'keep' as const },
+          { label: '$(replace) Replace existing', id: 'replace' as const },
+          { label: '$(close) Cancel', id: 'cancel' as const },
+        ];
+        const choice = await vscode.window.showQuickPick(overlapItems, {
+          placeHolder: `${overlapping.length} existing annotation(s) overlap this range. What do you want to do?`,
+        });
+        if (!choice || choice.id === 'cancel') { return; }
+        if (choice.id === 'replace') {
+          for (const a of overlapping) {
+            store.deleteAnnotation(a.id);
+          }
+        }
+      }
+
       // Pick scope
       const scope = await pickScope(store);
       if (!scope) { return; }
@@ -75,7 +94,7 @@ export function registerAnnotateCommands(context: vscode.ExtensionContext, store
       };
 
       store.addAnnotation(annotation, scope);
-      const scopeLabel = scope === 'shared' ? 'shared' : 'personal';
+      const scopeLabel = scope === 'shared' ? 'team' : 'working notes';
       vscode.window.showInformationMessage(
         `CodeDiary: ${CATEGORY_META[picked.category].label} annotation added (${scopeLabel})`,
       );

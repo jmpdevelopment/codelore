@@ -1,8 +1,28 @@
 # CodeDiary — Implementation Guide
 
-A VSCode extension for journaling AI-assisted code changes. Captures intent, decision-making, and implementation journey before PR.
+Institutional knowledge capture for large codebases undergoing AI-accelerated development. A VSCode extension that builds a living knowledge layer — capturing what developers discover, decide, and verify as AI agents modify code at scale.
 
-**Tagline:** "Reflect before you ship."
+**Tagline:** "Know what changed and why."
+
+## Why CodeDiary Exists
+
+AI coding assistants generate changes at unprecedented speed, but on large, mature codebases the bottleneck isn't writing code — it's **comprehension**. When an AI agent modifies a module last touched years ago, the annotation explaining what was discovered and verified is often more valuable than the code change itself.
+
+Existing tools address AI code generation (Cursor, Claude Code, Copilot) and AI code review (CodeRabbit, Copilot Review). Nothing addresses the gap between those stages: **human knowledge capture during AI-driven development**. Developers learn things about the codebase as they work — what a module actually does, why a quirk exists, which regions are dangerous — and that knowledge dies in Slack threads, forgotten PR comments, or tribal memory that walks out the door.
+
+CodeDiary captures the signal and makes it persist.
+
+### Why Not Inline Comments?
+
+Comments pollute the source, have no structure, no lifecycle, no audit trail, and no way to be personal. CodeDiary annotations are a **separate metadata layer** — visible when needed, invisible when not, queryable by category, exportable to PRs, and clearable after merge without touching source code. The dual-store architecture lets developers write candid private notes ("I don't understand this module") alongside shared team knowledge ("this billing loop has an intentional off-by-one for backward compat") — something comments fundamentally cannot do.
+
+### Core Value Propositions
+
+1. **Knowledge capture at point of discovery.** Developers annotate code as they explore and modify it, building structured understanding incrementally across the team.
+2. **AI-assisted, not AI-dependent.** AI drafts annotations from diffs so the developer curates rather than writes from scratch. Works fully without AI — manual annotation is first-class.
+3. **Shared institutional memory.** Team annotations persist in git alongside the source tree. Developer A annotates a module today; Developer B finds that knowledge six months later.
+4. **Critical region awareness.** AI or human-flagged critical regions create a review queue sorted by severity — shifting developers from "review everything" to "focus where it matters."
+5. **Audit trail for AI changes.** Structured records of who verified what, when, with what confidence — from individual review markers to PR export.
 
 ## Architecture Overview
 
@@ -49,21 +69,22 @@ codediary/
 
 ### Shared + Personal Storage (Dual-Store Architecture)
 
-Designed for large teams (2000+ developers on legacy codebases):
+Designed for large teams working on mature, sprawling codebases where no single developer understands the full system:
 
-- **Shared store** (`.codediary/` directory, committed to git): Per-file YAML mirroring the source tree (e.g., `.codediary/src/auth/middleware.ts.yaml`). This keeps merge conflicts scoped to individual files — two devs rarely annotate the same file at once.
-- **Personal store** (`.vscode/codediary.yaml`, gitignored): Single flat YAML file for private notes.
+- **Shared store** (`.codediary/` directory, committed to git): Per-file YAML mirroring the source tree (e.g., `.codediary/src/auth/middleware.ts.yaml`). Merge-conflict-safe — two devs rarely annotate the same file simultaneously. Knowledge persists across team members and survives turnover.
+- **Personal store** (`.vscode/codediary.yaml`, gitignored): Single flat YAML file for private notes. Allows candid annotations ("I don't understand this") that shouldn't be committed.
 - **DiaryStore facade** merges reads from both stores and routes writes based on a scope picker ("Share with team" vs "Just for me"). Default scope is configurable via `codediary.defaultScope` setting.
 - **Narrative** is personal-only (it's your intent description for a PR).
-- **clearAll** only clears the personal store to protect team data.
+- **clearAll** only clears the personal store to protect team knowledge.
 
 ### AI Integration via vscode.lm API
 
 No custom LLM infrastructure. Uses `vscode.lm.selectChatModels()` to leverage whatever language model the user already has installed (GitHub Copilot, Claude, etc.).
 
 - Model picker when multiple models are available, remembers selection for session
-- Two scan modes: **diff-based** (changed code only) and **full-file** (for legacy code exploration)
-- AI suggestions presented as multi-select quick pick — user decides what to keep
+- Two scan modes: **diff-based** (changed code only) and **full-file** (for exploring unfamiliar legacy code)
+- AI suggestions presented as multi-select quick pick — developer curates, not writes from scratch
+- AI features are opt-in; the tool is fully functional with manual-only annotation
 
 ### No Static Pattern Detection
 
@@ -71,7 +92,7 @@ Critical logic detection is either:
 1. **AI-native** — LLM semantic analysis of code (opt-in, requires a language model)
 2. **Manual** — developer flags regions by hand
 
-No AST parsing, no regex rules, no static patterns. This is a deliberate constraint.
+No AST parsing, no regex rules, no static patterns. This is a deliberate constraint — semantic understanding of "what matters" in a large codebase requires either human judgment or AI reasoning, not pattern matching.
 
 ### Critical Flag Resolution
 
@@ -103,6 +124,10 @@ Critical flags support a full resolution lifecycle:
 | `codediary.scanCritical` | Scan Changes for Critical Logic (Diff Only) | — |
 | `codediary.scanCriticalAll` | Scan All Uncommitted Changes (Diff Only) | — |
 | `codediary.scanFile` | Scan Entire File for Critical Logic (Full File) | — |
+| `codediary.searchAnnotations` | Search Annotations | — |
+| `codediary.filterByPath` | Filter by File/Folder Path | — |
+| `codediary.filterBySeverity` | Filter Critical by Severity | — |
+| `codediary.clearFilters` | Clear All Filters | — |
 | `codediary.changeModel` | Change AI Model | — |
 
 ## Configuration
@@ -138,16 +163,16 @@ Press `F5` in VSCode to launch the Extension Development Host for manual testing
 - Status bar with coverage summary
 - PR export to clipboard (structured markdown)
 - Shared/personal dual-store architecture
-- Unit test suite (160 tests, 98%+ line coverage)
+- Annotation search across codebase (text, category, file path filters with jump to source)
+- AI knowledge feedback loop: existing annotations injected into AI suggestion prompts
+- Overlap detection: prevents annotation accumulation, auto-replaces AI-generated duplicates
+- Sidebar filtering: filter Change Plan by category + file path, filter Critical Queue by severity + file path
+- Unit test suite (209 tests, 98%+ line coverage)
 
-### Remaining (Phase 2)
+### Deferred (build only if users pull for them)
+- Session model: group annotations into named units of work
 - GitHub REST API PR comment push
 - Configurable export templates
 - Custom annotation categories in settings
 - Pre-commit/pre-push guard for unreviewed critical regions
-
-### Future (Phase 3-4)
-- Session model: group annotations into named units of work
-- Session timeline view and batch summaries
-- Feature-level implementation narratives
 - JIRA/Linear ticket linkage

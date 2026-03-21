@@ -6,6 +6,8 @@ import { __setWorkspaceFolder, __clearWorkspace, __setConfig } from '../__mocks_
 import { DiaryGenerator } from '../../src/ai/diaryGenerator';
 import { DiaryStore } from '../../src/storage/diaryStore';
 import { LmService } from '../../src/ai/lmService';
+import { Annotation } from '../../src/models/annotation';
+import { CriticalFlag } from '../../src/models/criticalFlag';
 
 let tmpDir: string;
 
@@ -120,6 +122,108 @@ describe('DiaryGenerator parsing', () => {
       const { numberLines, dispose } = getParser();
       expect(numberLines('')).toBe('1: ');
       dispose();
+    });
+  });
+
+  describe('formatExistingKnowledge', () => {
+    function makeAnnotation(overrides: Partial<Annotation> = {}): Annotation {
+      return {
+        id: 'ann-1',
+        file: 'src/foo.ts',
+        line_start: 10,
+        line_end: 20,
+        category: 'verified',
+        text: 'Looks good',
+        source: 'manual',
+        created_at: '2026-01-01T00:00:00Z',
+        ...overrides,
+      };
+    }
+
+    function makeFlag(overrides: Partial<CriticalFlag> = {}): CriticalFlag {
+      return {
+        file: 'src/foo.ts',
+        line_start: 5,
+        line_end: 15,
+        severity: 'critical',
+        description: 'Auth token validation',
+        human_reviewed: false,
+        ...overrides,
+      };
+    }
+
+    it('returns empty string when no existing knowledge', () => {
+      const store = new DiaryStore();
+      const lm = new LmService();
+      const generator = new DiaryGenerator(lm, store);
+      const result = generator.formatExistingKnowledge('src/foo.ts');
+      expect(result).toBe('');
+      store.dispose();
+    });
+
+    it('includes annotations for the file', () => {
+      const store = new DiaryStore();
+      const lm = new LmService();
+      const generator = new DiaryGenerator(lm, store);
+      store.addAnnotation(makeAnnotation({ text: 'billing off-by-one is intentional' }));
+
+      const result = generator.formatExistingKnowledge('src/foo.ts');
+      expect(result).toContain('existing_knowledge');
+      expect(result).toContain('billing off-by-one is intentional');
+      expect(result).toContain('Verified');
+      expect(result).toContain('L10-20');
+      store.dispose();
+    });
+
+    it('includes critical flags for the file', () => {
+      const store = new DiaryStore();
+      const lm = new LmService();
+      const generator = new DiaryGenerator(lm, store);
+      store.addCriticalFlag(makeFlag({ description: 'Token validation logic' }));
+
+      const result = generator.formatExistingKnowledge('src/foo.ts');
+      expect(result).toContain('Token validation logic');
+      expect(result).toContain('critical');
+      expect(result).toContain('unreviewed');
+      store.dispose();
+    });
+
+    it('shows reviewed status for resolved critical flags', () => {
+      const store = new DiaryStore();
+      const lm = new LmService();
+      const generator = new DiaryGenerator(lm, store);
+      store.addCriticalFlag(makeFlag({ human_reviewed: true }));
+
+      const result = generator.formatExistingKnowledge('src/foo.ts');
+      expect(result).toContain('reviewed');
+      expect(result).not.toContain('unreviewed');
+      store.dispose();
+    });
+
+    it('does not include annotations for other files', () => {
+      const store = new DiaryStore();
+      const lm = new LmService();
+      const generator = new DiaryGenerator(lm, store);
+      store.addAnnotation(makeAnnotation({ file: 'src/other.ts', text: 'wrong file' }));
+
+      const result = generator.formatExistingKnowledge('src/foo.ts');
+      expect(result).toBe('');
+      store.dispose();
+    });
+
+    it('includes both annotations and critical flags', () => {
+      const store = new DiaryStore();
+      const lm = new LmService();
+      const generator = new DiaryGenerator(lm, store);
+      store.addAnnotation(makeAnnotation({ text: 'verified the auth flow' }));
+      store.addCriticalFlag(makeFlag({ description: 'Payment logic' }));
+
+      const result = generator.formatExistingKnowledge('src/foo.ts');
+      expect(result).toContain('verified the auth flow');
+      expect(result).toContain('Payment logic');
+      expect(result).toContain('Existing annotations');
+      expect(result).toContain('Existing critical flags');
+      store.dispose();
     });
   });
 });

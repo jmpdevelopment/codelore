@@ -293,6 +293,164 @@ describe('DiaryStore', () => {
     });
   });
 
+  describe('findOverlapping', () => {
+    it('finds annotations that overlap the given range', () => {
+      const store = new DiaryStore();
+      store.addAnnotation(makeAnnotation({ id: 'a1', line_start: 10, line_end: 20 }));
+      store.addAnnotation(makeAnnotation({ id: 'a2', line_start: 15, line_end: 25 }));
+      store.addAnnotation(makeAnnotation({ id: 'a3', line_start: 30, line_end: 40 }));
+
+      const overlapping = store.findOverlapping('src/foo.ts', 18, 22);
+      expect(overlapping).toHaveLength(2);
+      expect(overlapping.map(a => a.id).sort()).toEqual(['a1', 'a2']);
+      store.dispose();
+    });
+
+    it('returns empty when no overlap', () => {
+      const store = new DiaryStore();
+      store.addAnnotation(makeAnnotation({ id: 'a1', line_start: 10, line_end: 20 }));
+
+      const overlapping = store.findOverlapping('src/foo.ts', 25, 30);
+      expect(overlapping).toHaveLength(0);
+      store.dispose();
+    });
+
+    it('detects exact range match', () => {
+      const store = new DiaryStore();
+      store.addAnnotation(makeAnnotation({ id: 'a1', line_start: 10, line_end: 20 }));
+
+      const overlapping = store.findOverlapping('src/foo.ts', 10, 20);
+      expect(overlapping).toHaveLength(1);
+      store.dispose();
+    });
+
+    it('detects partial overlap at start', () => {
+      const store = new DiaryStore();
+      store.addAnnotation(makeAnnotation({ id: 'a1', line_start: 10, line_end: 20 }));
+
+      const overlapping = store.findOverlapping('src/foo.ts', 5, 12);
+      expect(overlapping).toHaveLength(1);
+      store.dispose();
+    });
+
+    it('detects partial overlap at end', () => {
+      const store = new DiaryStore();
+      store.addAnnotation(makeAnnotation({ id: 'a1', line_start: 10, line_end: 20 }));
+
+      const overlapping = store.findOverlapping('src/foo.ts', 18, 30);
+      expect(overlapping).toHaveLength(1);
+      store.dispose();
+    });
+
+    it('detects containment (new range contains existing)', () => {
+      const store = new DiaryStore();
+      store.addAnnotation(makeAnnotation({ id: 'a1', line_start: 12, line_end: 18 }));
+
+      const overlapping = store.findOverlapping('src/foo.ts', 10, 20);
+      expect(overlapping).toHaveLength(1);
+      store.dispose();
+    });
+
+    it('detects containment (existing contains new range)', () => {
+      const store = new DiaryStore();
+      store.addAnnotation(makeAnnotation({ id: 'a1', line_start: 5, line_end: 30 }));
+
+      const overlapping = store.findOverlapping('src/foo.ts', 10, 20);
+      expect(overlapping).toHaveLength(1);
+      store.dispose();
+    });
+
+    it('does not match annotations in other files', () => {
+      const store = new DiaryStore();
+      store.addAnnotation(makeAnnotation({ id: 'a1', file: 'src/other.ts', line_start: 10, line_end: 20 }));
+
+      const overlapping = store.findOverlapping('src/foo.ts', 10, 20);
+      expect(overlapping).toHaveLength(0);
+      store.dispose();
+    });
+
+    it('finds overlapping across both stores', () => {
+      const store = new DiaryStore();
+      store.addAnnotation(makeAnnotation({ id: 'a1', line_start: 10, line_end: 20 }), 'shared');
+      store.addAnnotation(makeAnnotation({ id: 'a2', line_start: 15, line_end: 25 }), 'personal');
+
+      const overlapping = store.findOverlapping('src/foo.ts', 12, 18);
+      expect(overlapping).toHaveLength(2);
+      store.dispose();
+    });
+
+    it('handles single-line annotations', () => {
+      const store = new DiaryStore();
+      store.addAnnotation(makeAnnotation({ id: 'a1', line_start: 15, line_end: 15 }));
+
+      expect(store.findOverlapping('src/foo.ts', 15, 15)).toHaveLength(1);
+      expect(store.findOverlapping('src/foo.ts', 10, 15)).toHaveLength(1);
+      expect(store.findOverlapping('src/foo.ts', 15, 20)).toHaveLength(1);
+      expect(store.findOverlapping('src/foo.ts', 16, 20)).toHaveLength(0);
+      store.dispose();
+    });
+
+    it('handles adjacent ranges (no overlap)', () => {
+      const store = new DiaryStore();
+      store.addAnnotation(makeAnnotation({ id: 'a1', line_start: 10, line_end: 14 }));
+
+      // Line 15 starts right after line 14 ends — no overlap
+      const overlapping = store.findOverlapping('src/foo.ts', 15, 20);
+      expect(overlapping).toHaveLength(0);
+      store.dispose();
+    });
+  });
+
+  describe('findOverlappingCriticalFlags', () => {
+    it('finds critical flags that overlap the given range', () => {
+      const store = new DiaryStore();
+      store.addCriticalFlag(makeFlag({ line_start: 10, line_end: 20 }));
+      store.addCriticalFlag(makeFlag({ line_start: 15, line_end: 25 }));
+      store.addCriticalFlag(makeFlag({ line_start: 30, line_end: 40 }));
+
+      const overlapping = store.findOverlappingCriticalFlags('src/foo.ts', 18, 22);
+      expect(overlapping).toHaveLength(2);
+      store.dispose();
+    });
+
+    it('returns empty when no overlap', () => {
+      const store = new DiaryStore();
+      store.addCriticalFlag(makeFlag({ line_start: 10, line_end: 20 }));
+
+      const overlapping = store.findOverlappingCriticalFlags('src/foo.ts', 25, 30);
+      expect(overlapping).toHaveLength(0);
+      store.dispose();
+    });
+
+    it('does not match flags in other files', () => {
+      const store = new DiaryStore();
+      store.addCriticalFlag(makeFlag({ file: 'src/other.ts', line_start: 10, line_end: 20 }));
+
+      const overlapping = store.findOverlappingCriticalFlags('src/foo.ts', 10, 20);
+      expect(overlapping).toHaveLength(0);
+      store.dispose();
+    });
+
+    it('finds overlapping across both stores', () => {
+      const store = new DiaryStore();
+      store.addCriticalFlag(makeFlag({ line_start: 10, line_end: 20 }), 'shared');
+      store.addCriticalFlag(makeFlag({ line_start: 15, line_end: 25 }), 'personal');
+
+      const overlapping = store.findOverlappingCriticalFlags('src/foo.ts', 12, 18);
+      expect(overlapping).toHaveLength(2);
+      store.dispose();
+    });
+
+    it('detects exact range match', () => {
+      const store = new DiaryStore();
+      store.addCriticalFlag(makeFlag({ line_start: 10, line_end: 20 }));
+
+      const overlapping = store.findOverlappingCriticalFlags('src/foo.ts', 10, 20);
+      expect(overlapping).toHaveLength(1);
+      store.dispose();
+    });
+  });
+
   describe('events', () => {
     it('fires onDidChange when either store changes', () => {
       const store = new DiaryStore();

@@ -62,6 +62,9 @@ export class CriticalQueueProvider implements vscode.TreeDataProvider<CriticalNo
   private _onDidChangeTreeData = new vscode.EventEmitter<CriticalNode | undefined>();
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
+  private filterPath: string | undefined;
+  private filterSeverity: CriticalSeverity | undefined;
+
   constructor(private store: DiaryStore) {
     store.onDidChange(() => this.refresh());
   }
@@ -70,12 +73,35 @@ export class CriticalQueueProvider implements vscode.TreeDataProvider<CriticalNo
     this._onDidChangeTreeData.fire(undefined);
   }
 
+  setPathFilter(pathFilter: string | undefined): void {
+    this.filterPath = pathFilter;
+    this.refresh();
+  }
+
+  setSeverityFilter(severity: CriticalSeverity | undefined): void {
+    this.filterSeverity = severity;
+    this.refresh();
+  }
+
+  getActiveFilters(): { path?: string; severity?: CriticalSeverity } {
+    return { path: this.filterPath, severity: this.filterSeverity };
+  }
+
   getTreeItem(element: CriticalNode): vscode.TreeItem {
     return element;
   }
 
   getChildren(): CriticalNode[] {
-    const flags = this.store.getCriticalFlags();
+    let flags = this.store.getCriticalFlags();
+
+    if (this.filterPath) {
+      const pathLower = this.filterPath.toLowerCase();
+      flags = flags.filter(f => f.file.toLowerCase().includes(pathLower));
+    }
+    if (this.filterSeverity) {
+      flags = flags.filter(f => f.severity === this.filterSeverity);
+    }
+
     // Sort: unreviewed first, then by severity
     const sorted = [...flags].sort((a, b) => {
       if (a.human_reviewed !== b.human_reviewed) {

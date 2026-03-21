@@ -157,6 +157,72 @@ describe('ChangePlanProvider', () => {
     store.dispose();
   });
 
+  it('filters by file path', () => {
+    const store = new DiaryStore();
+    store.addAnnotation(makeAnnotation({ id: 'a1', file: 'src/auth/login.ts' }));
+    store.addAnnotation(makeAnnotation({ id: 'a2', file: 'src/billing/charge.ts' }));
+    store.addAnnotation(makeAnnotation({ id: 'a3', file: 'src/auth/tokens.ts' }));
+    const provider = new ChangePlanProvider(store);
+
+    provider.setPathFilter('src/auth');
+    const filtered = provider.getChildren();
+    expect(filtered).toHaveLength(2);
+    const filePaths = filtered.map((c: any) => c.filePath).sort();
+    expect(filePaths).toEqual(['src/auth/login.ts', 'src/auth/tokens.ts']);
+    store.dispose();
+  });
+
+  it('path filter is case insensitive', () => {
+    const store = new DiaryStore();
+    store.addAnnotation(makeAnnotation({ id: 'a1', file: 'src/Auth/Login.ts' }));
+    const provider = new ChangePlanProvider(store);
+
+    provider.setPathFilter('auth');
+    expect(provider.getChildren()).toHaveLength(1);
+    store.dispose();
+  });
+
+  it('clears path filter with undefined', () => {
+    const store = new DiaryStore();
+    store.addAnnotation(makeAnnotation({ id: 'a1', file: 'src/auth/login.ts' }));
+    store.addAnnotation(makeAnnotation({ id: 'a2', file: 'src/billing/charge.ts' }));
+    const provider = new ChangePlanProvider(store);
+
+    provider.setPathFilter('auth');
+    expect(provider.getChildren()).toHaveLength(1);
+
+    provider.setPathFilter(undefined);
+    expect(provider.getChildren()).toHaveLength(2);
+    store.dispose();
+  });
+
+  it('combines category and path filters', () => {
+    const store = new DiaryStore();
+    store.addAnnotation(makeAnnotation({ id: 'a1', file: 'src/auth/login.ts', category: 'verified' }));
+    store.addAnnotation(makeAnnotation({ id: 'a2', file: 'src/auth/tokens.ts', category: 'needs_review' }));
+    store.addAnnotation(makeAnnotation({ id: 'a3', file: 'src/billing/charge.ts', category: 'verified' }));
+    const provider = new ChangePlanProvider(store);
+
+    provider.setFilter('verified');
+    provider.setPathFilter('src/auth');
+    const filtered = provider.getChildren();
+    expect(filtered).toHaveLength(1);
+    expect((filtered[0] as any).filePath).toBe('src/auth/login.ts');
+    store.dispose();
+  });
+
+  it('getActiveFilters returns current filter state', () => {
+    const store = new DiaryStore();
+    const provider = new ChangePlanProvider(store);
+
+    expect(provider.getActiveFilters()).toEqual({ category: undefined, path: undefined });
+
+    provider.setFilter('verified');
+    provider.setPathFilter('src/auth');
+    expect(provider.getActiveFilters()).toEqual({ category: 'verified', path: 'src/auth' });
+    store.dispose();
+  });
+
   it('annotation nodes cover all category color mappings', () => {
     const store = new DiaryStore();
     const categories = ['verified', 'needs_review', 'modified', 'confused', 'hallucination', 'intent', 'accepted'] as const;
