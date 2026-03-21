@@ -1,37 +1,46 @@
 # CodeDiary — Implementation Guide
 
-Institutional knowledge capture for large codebases undergoing AI-accelerated development. A VSCode extension that builds a living knowledge layer — capturing what developers discover, decide, and verify as AI agents modify code at scale.
+Context infrastructure for AI-assisted development. A VSCode extension that builds a living knowledge layer — capturing what developers discover, decide, and verify as AI agents modify code at scale.
 
 **Tagline:** "Know what changed and why."
 
 ## Why CodeDiary Exists
 
-AI coding assistants generate changes at unprecedented speed, but on large, mature codebases the bottleneck isn't writing code — it's **comprehension**. When an AI agent modifies a module last touched years ago, the annotation explaining what was discovered and verified is often more valuable than the code change itself.
+AI agents write code fast. AI reviewers review it fast. Both are context-blind.
 
-Existing tools address AI code generation (Cursor, Claude Code, Copilot) and AI code review (CodeRabbit, Copilot Review). Nothing addresses the gap between those stages: **human knowledge capture during AI-driven development**. Developers learn things about the codebase as they work — what a module actually does, why a quirk exists, which regions are dangerous — and that knowledge dies in Slack threads, forgotten PR comments, or tribal memory that walks out the door.
+The agent that rewrites a payment module doesn't know the billing loop has an intentional off-by-one. The AI reviewer that flags it as a bug every PR doesn't know either. The senior engineer who understands it has explained it three times in Slack, twice in PR comments, and once in a meeting. Next quarter she's on a different team and that knowledge is gone.
 
-CodeDiary captures the signal and makes it persist.
+CodeDiary captures that knowledge, persists it alongside the code, and delivers it at the moment of relevance — to developers, to AI agents, and to AI review tools.
 
-### Why Not Inline Comments?
+### The Gap It Fills
 
-Comments pollute the source, have no structure, no lifecycle, no audit trail, and no way to be personal. CodeDiary annotations are a **separate metadata layer** — visible when needed, invisible when not, queryable by category, exportable to PRs, and clearable after merge without touching source code. The dual-store architecture lets developers write candid private notes ("I don't understand this module") alongside shared team knowledge ("this billing loop has an intentional off-by-one for backward compat") — something comments fundamentally cannot do.
+Existing tools address AI code generation (Cursor, Claude Code, Copilot) and AI code review (CodeRabbit, Copilot Review). Nothing addresses what happens between: **human knowledge capture during AI-driven development**. Developers learn things about the codebase as they work — what a module actually does, why a quirk exists, which regions are dangerous — and that knowledge dies in Slack threads, forgotten PR comments, or tribal memory.
+
+### Why Not Inline Comments or Git History?
+
+**Comments** pollute the source, have no structure, no lifecycle, no audit trail, and no way to be personal. You'll never write `// I don't understand this module` in shared source code. Comments don't warn you when you modify the code they describe.
+
+**Git history** tells you what changed, not what you need to know. `git blame` gives you who and when, not why or what's dangerous. PR comments — where the real knowledge lives — are in a web UI, tied to stale diffs, unsearchable from the IDE, and invisible to AI agents.
+
+CodeDiary annotations are a **separate metadata layer** — visible when needed, invisible when not, queryable, structured for both human and AI consumption, and proactive (they find you, you don't have to find them).
 
 ### Core Value Propositions
 
-1. **Knowledge capture at point of discovery.** Developers annotate code as they explore and modify it, building structured understanding incrementally across the team.
-2. **AI-assisted, not AI-dependent.** AI drafts annotations from diffs so the developer curates rather than writes from scratch. Works fully without AI — manual annotation is first-class.
-3. **Shared institutional memory.** Team annotations persist in git alongside the source tree. Developer A annotates a module today; Developer B finds that knowledge six months later.
-4. **Critical region awareness.** AI or human-flagged critical regions create a review queue sorted by severity — shifting developers from "review everything" to "focus where it matters."
-5. **Audit trail for AI changes.** Structured records of who verified what, when, with what confidence — from individual review markers to PR export.
+1. **Context for AI agents.** Annotations in `.codediary/` give AI agents a map of what matters before they modify code — fewer hallucinations, fewer re-discoveries, fewer wasted tokens.
+2. **Noise reduction for AI reviewers.** A `verified` annotation saying "off-by-one is intentional" stops your AI review tool from filing the same false positive every sprint.
+3. **Proactive knowledge delivery.** Open a file with critical flags — you get warned. Save changes overlapping known risks — you get briefed. Knowledge finds you at the moment it matters.
+4. **Knowledge capture at point of discovery.** Developers annotate code as they explore and modify it, building structured understanding incrementally across the team.
+5. **Shared institutional memory.** Team annotations persist in git alongside the source tree. Survives turnover. Developer A annotates a module today; Developer B inherits that knowledge.
+6. **AI-assisted, not AI-dependent.** AI drafts annotations from diffs so the developer curates rather than writes from scratch. Works fully without AI — manual annotation is first-class.
 
 ## Architecture Overview
 
 ```
 codediary/
 ├── src/
-│   ├── extension.ts              # Activation, command registration
+│   ├── extension.ts              # Activation, command/view registration
 │   ├── models/
-│   │   ├── annotation.ts         # Annotation data model + 7 categories
+│   │   ├── annotation.ts         # Annotation model + 8 categories + ContentAnchor
 │   │   ├── reviewMarker.ts       # Human review marker model
 │   │   └── criticalFlag.ts       # Critical region flag + resolution model
 │   ├── storage/
@@ -41,23 +50,32 @@ codediary/
 │   ├── providers/
 │   │   ├── annotationDecorator.ts    # Inline text + colored backgrounds per category
 │   │   ├── reviewMarkerDecorator.ts  # Green checkmark on reviewed lines
-│   │   └── criticalDecorator.ts      # Red/green shield on critical regions
+│   │   ├── criticalDecorator.ts      # Red/green shield on critical regions
+│   │   └── knowledgeNotifier.ts      # Proactive warnings on file open/save
 │   ├── views/
 │   │   ├── changePlanProvider.ts     # TreeView sidebar: annotations grouped by file
 │   │   ├── criticalQueueProvider.ts  # TreeView: sorted critical review queue
+│   │   ├── preCommitBriefProvider.ts # TreeView: diff-aware knowledge briefing
 │   │   └── coverageBar.ts           # Status bar: annotation + review summary
 │   ├── commands/
 │   │   ├── annotate.ts           # Add/edit/delete annotations with scope picker
 │   │   ├── markReviewed.ts       # Mark lines/files as human-reviewed
 │   │   ├── markCritical.ts       # Flag critical regions, resolve/remove
-│   │   └── exportPR.ts           # Generate markdown, set narrative, clear all
+│   │   ├── clearAll.ts           # Set narrative, clear personal data
+│   │   ├── quickNote.ts          # Ephemeral AI notes + copy annotations to clipboard
+│   │   ├── agentInstructions.ts  # Generate CLAUDE.md/.cursorrules/etc. with knowledge
+│   │   ├── reanchor.ts           # Re-anchor stale annotations after code moves
+│   │   └── search.ts             # Search annotations across codebase
 │   ├── ai/
 │   │   ├── lmService.ts          # vscode.lm API wrapper with model picker
 │   │   ├── diaryGenerator.ts     # AI-suggested diary entries from diffs
 │   │   └── criticalDetector.ts   # AI critical logic detection (diff + full file)
-│   └── export/
-│       └── markdownExport.ts     # PR description markdown generation
-├── test/                         # Vitest unit tests (160 tests, 98%+ coverage)
+│   └── utils/
+│       ├── anchorEngine.ts       # Content hashing, drift detection, re-anchor search
+│       ├── git.ts                # Git diff, changed files, line range parsing
+│       └── validation.ts         # Path safety, markdown sanitization, input validation
+├── test/                         # Vitest unit tests (261 tests, 98%+ coverage)
+├── .codediary/                   # Shared annotation store (committed to git)
 ├── package.json
 ├── tsconfig.json
 ├── vitest.config.ts
@@ -69,38 +87,72 @@ codediary/
 
 ### Shared + Personal Storage (Dual-Store Architecture)
 
-Designed for large teams working on mature, sprawling codebases where no single developer understands the full system:
-
-- **Shared store** (`.codediary/` directory, committed to git): Per-file YAML mirroring the source tree (e.g., `.codediary/src/auth/middleware.ts.yaml`). Merge-conflict-safe — two devs rarely annotate the same file simultaneously. Knowledge persists across team members and survives turnover.
+- **Shared store** (`.codediary/` directory, committed to git): Per-file YAML mirroring the source tree (e.g., `.codediary/src/auth/middleware.ts.yaml`). Merge-conflict-safe. Knowledge persists across team members and survives turnover.
 - **Personal store** (`.vscode/codediary.yaml`, gitignored): Single flat YAML file for private notes. Allows candid annotations ("I don't understand this") that shouldn't be committed.
-- **DiaryStore facade** merges reads from both stores and routes writes based on a scope picker ("Share with team" vs "Just for me"). Default scope is configurable via `codediary.defaultScope` setting.
-- **Narrative** is personal-only (it's your intent description for a PR).
+- **DiaryStore facade** merges reads from both stores and routes writes based on a scope picker. Default scope configurable via `codediary.defaultScope` setting.
+- **Narrative** is personal-only (your intent description for a work session).
 - **clearAll** only clears the personal store to protect team knowledge.
+- **Personal annotations are excluded from AI context** — private notes never leak into suggestions visible to the team.
+
+### Pre-Commit Brief (Diff-Centric Knowledge Delivery)
+
+The Pre-Commit Brief is the primary consumption surface. Instead of requiring developers to browse annotations, it answers: "What do I need to know about the code I'm about to commit?"
+
+- Reads `git diff HEAD` to identify changed files and line ranges
+- Cross-references changes with existing annotations and critical flags
+- Items overlapping changed lines are highlighted (⚡)
+- Files sorted by risk: unresolved critical flags first
+- Refreshes automatically on store changes and editor focus
+
+### Proactive Notifications
+
+Knowledge shouldn't wait in a sidebar for someone to check it:
+
+- **On file open:** If the file has unresolved critical flags, a warning appears immediately with a link to the brief.
+- **On file save:** If uncommitted changes overlap known annotations or critical flags, a nudge appears. "Your changes overlap 2 critical flags — review before committing."
+- **Anti-spam:** Each file only triggers once per session (resets when store changes).
+
+### Content Anchoring
+
+Annotations are tied to code via SHA-256 content hashes (trimmed, non-empty lines). When code moves or changes:
+
+- Anchors are verified on file open — stale annotations show a ⚠ warning
+- Sliding window search finds where code moved (handles insertions/deletions above)
+- Developer confirms re-anchor suggestions — no silent position changes
+- Agent instruction files tell AI agents to maintain anchors when refactoring
+
+Whitespace changes (reformatting, prettier) don't break anchors. Tradeoff: two code blocks differing only by whitespace hash the same. Acceptable.
 
 ### AI Integration via vscode.lm API
 
 No custom LLM infrastructure. Uses `vscode.lm.selectChatModels()` to leverage whatever language model the user already has installed (GitHub Copilot, Claude, etc.).
 
-- Model picker when multiple models are available, remembers selection for session
-- Two scan modes: **diff-based** (changed code only) and **full-file** (for exploring unfamiliar legacy code)
+- Model picker when multiple models available, remembers selection for session
+- Two scan modes: **diff-based** (changed code only) and **full-file** (exploring unfamiliar code)
 - AI suggestions presented as multi-select quick pick — developer curates, not writes from scratch
+- Existing annotations injected into AI prompts to prevent duplicates
 - AI features are opt-in; the tool is fully functional with manual-only annotation
+
+### AI Agent Integration
+
+Annotations in `.codediary/` are structured YAML — readable by any AI agent. The `generateAgentInstructions` command writes configuration for Claude Code, Cursor, Copilot, Windsurf, and generic agents, pointing them to the knowledge store.
+
+AI agents consume annotations as context (what to preserve, what's dangerous, what's intentional). AI agents can also produce annotations by writing to the YAML files directly.
 
 ### No Static Pattern Detection
 
 Critical logic detection is either:
-1. **AI-native** — LLM semantic analysis of code (opt-in, requires a language model)
+1. **AI-native** — LLM semantic analysis of code (opt-in)
 2. **Manual** — developer flags regions by hand
 
-No AST parsing, no regex rules, no static patterns. This is a deliberate constraint — semantic understanding of "what matters" in a large codebase requires either human judgment or AI reasoning, not pattern matching.
+No AST parsing, no regex rules, no static patterns. Semantic understanding of "what matters" requires either human judgment or AI reasoning, not pattern matching.
 
-### Critical Flag Resolution
+### Security Hardening
 
-Critical flags support a full resolution lifecycle:
-- Flag with severity (critical / high / medium) and description
-- Resolve with comment, resolver identity, and timestamp
-- Remove entirely
-- Queue sorted: unreviewed first, then by severity
+- **Markdown sanitization**: All user-supplied text in hover messages is stripped of link syntax to prevent command injection via `command:` URIs
+- **Path traversal prevention**: `isSafeRelativePath()` rejects absolute paths and `..` traversal before any file open operation
+- **Symlink safety**: Both stores resolve symlinks before writing to prevent writes outside the workspace
+- **Scoped trust**: Hover messages use `enabledCommands` whitelist instead of blanket `isTrusted: true`
 
 ## Commands
 
@@ -115,28 +167,53 @@ Critical flags support a full resolution lifecycle:
 | `codediary.markCritical` | Mark as Critical | — |
 | `codediary.resolveCritical` | Resolve Critical Flag | — |
 | `codediary.removeCritical` | Remove Critical Flag | — |
-| `codediary.exportPR` | Export to PR (Clipboard) | — |
+| `codediary.quickNote` | Quick AI Note (Ephemeral) | `Cmd+Shift+L` |
+| `codediary.copyAnnotationsForFile` | Copy Annotations for Current File | — |
+| `codediary.generateAgentInstructions` | Generate Agent Instruction Files | — |
+| `codediary.reanchor` | Re-anchor Stale Annotations | — |
+| `codediary.verifyAnchors` | Verify Annotation Anchors | — |
 | `codediary.setNarrative` | Set Change Narrative | — |
-| `codediary.clearAll` | Clear All Annotations | — |
+| `codediary.clearAll` | Clear Personal Data | — |
+| `codediary.searchAnnotations` | Search Annotations | — |
 | `codediary.filterByCategory` | Filter by Category | — |
+| `codediary.filterByPath` | Filter by File/Folder Path | — |
+| `codediary.filterBySeverity` | Filter Critical by Severity | — |
+| `codediary.clearFilters` | Clear All Filters | — |
+| `codediary.refreshSidebar` | Refresh | — |
 | `codediary.suggestDiary` | Suggest Diary Entries (Current File) | — |
 | `codediary.suggestDiaryAll` | Suggest Diary Entries (All Changes) | — |
 | `codediary.scanCritical` | Scan Changes for Critical Logic (Diff Only) | — |
 | `codediary.scanCriticalAll` | Scan All Uncommitted Changes (Diff Only) | — |
 | `codediary.scanFile` | Scan Entire File for Critical Logic (Full File) | — |
-| `codediary.searchAnnotations` | Search Annotations | — |
-| `codediary.filterByPath` | Filter by File/Folder Path | — |
-| `codediary.filterBySeverity` | Filter Critical by Severity | — |
-| `codediary.clearFilters` | Clear All Filters | — |
 | `codediary.changeModel` | Change AI Model | — |
+
+## Sidebar Views
+
+| View | Description |
+|------|-------------|
+| **Pre-Commit Brief** | Diff-aware knowledge briefing — shows changed files with overlapping annotations and critical flags, sorted by risk |
+| **Change Plan** | All annotations grouped by file, filterable by category and path |
+| **Critical Review Queue** | All critical flags sorted by severity (unresolved first), filterable by severity and path |
 
 ## Configuration
 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
 | `codediary.storagePath` | string | `.vscode/codediary.yaml` | Personal storage file path |
-| `codediary.highlightUnreviewed` | boolean | `true` | Highlight unreviewed lines |
-| `codediary.defaultScope` | `shared` \| `personal` | `shared` | Where new annotations are stored |
+| `codediary.defaultScope` | `shared` \| `personal` | `shared` | Where new annotations are stored by default |
+
+## Annotation Categories
+
+| Category | Icon | Purpose |
+|----------|------|---------|
+| Verified | ✓ | Reviewed this change, it's correct |
+| Needs Review | 🔍 | Haven't fully verified — reviewer should check |
+| Modified | ✏️ | Changed the AI's output manually |
+| Don't Understand | ? | Don't understand why the AI did this |
+| Potential Hallucination | ⚠ | May reference non-existent APIs or patterns |
+| Intent Note | 💬 | Context about what was asked of the AI |
+| Accepted As-Is | 👍 | Reviewed, acceptable without changes |
+| AI Prompt | 🤖 | Ephemeral note for AI agent — excluded from team features |
 
 ## Development
 
@@ -152,27 +229,33 @@ Press `F5` in VSCode to launch the Extension Development Host for manual testing
 
 ## Implementation Status
 
-### Complete (Phase 1 + Phase 2 partial)
-- Inline annotations with 7 categories and scope picker
+### Complete
+- Inline annotations with 8 categories, scope picker, and content anchoring
 - Human review markers with merge logic for overlapping ranges
-- Critical flag lifecycle (flag, resolve with comment, remove)
+- Critical flag lifecycle (flag with severity, resolve with comment, remove)
+- Pre-Commit Brief: diff-aware knowledge surfacing sorted by risk
+- Proactive notifications on file open (critical flags) and save (overlap detection)
 - AI-suggested diary entries from git diffs (via vscode.lm)
 - AI critical logic detection: diff-based and full-file scanning
-- Change Plan sidebar with file grouping and category filter
-- Critical Review Queue sorted by severity
-- Status bar with coverage summary
-- PR export to clipboard (structured markdown)
-- Shared/personal dual-store architecture
-- Annotation search across codebase (text, category, file path filters with jump to source)
 - AI knowledge feedback loop: existing annotations injected into AI suggestion prompts
+- Change Plan sidebar with file grouping, category and path filtering
+- Critical Review Queue sorted by severity with severity and path filtering
+- Status bar with coverage summary
+- Annotation search across codebase (text, category, file path filters with jump to source)
 - Overlap detection: prevents annotation accumulation, auto-replaces AI-generated duplicates
-- Sidebar filtering: filter Change Plan by category + file path, filter Critical Queue by severity + file path
-- Unit test suite (209 tests, 98%+ line coverage)
+- Content anchoring: drift detection via content hash, stale warnings, re-anchor suggestions
+- Ephemeral AI notes (ai_prompt category, personal scope, excluded from team features)
+- Copy annotations for current file to clipboard
+- Agent instruction file generation (CLAUDE.md, .cursorrules, copilot-instructions, AGENTS.md, .windsurfrules)
+- Shared/personal dual-store architecture with privacy boundary (personal excluded from AI context)
+- Security hardening: markdown sanitization, path traversal prevention, symlink-safe writes, scoped command trust
+- Unit test suite (261 tests, 98%+ line coverage)
 
 ### Deferred (build only if users pull for them)
-- Session model: group annotations into named units of work
-- GitHub REST API PR comment push
-- Configurable export templates
-- Custom annotation categories in settings
+- Knowledge coverage heatmap (churn vs annotation coverage)
+- Annotation aging (detect outdated annotations where surrounding code evolved)
+- Team annotation feed (summary of .codediary/ changes after git pull)
+- Quick annotation from AI review comments (bridge between AI reviewer and persistent knowledge)
 - Pre-commit/pre-push guard for unreviewed critical regions
+- Custom annotation categories in settings
 - JIRA/Linear ticket linkage
