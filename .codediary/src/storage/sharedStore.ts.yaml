@@ -1,0 +1,34 @@
+annotations:
+  - id: demo-b1
+    file: src/storage/sharedStore.ts
+    line_start: 38
+    line_end: 47
+    category: intent
+    text: >-
+      Symlink check in constructor is a security boundary. If .codediary/ is a symlink pointing
+      outside the workspace, we bail entirely. This was added after a security review flagged
+      the risk of writing YAML to arbitrary paths.
+    source: manual
+    created_at: "2026-03-19T11:00:00Z"
+    author: jmp
+  - id: demo-b2
+    file: src/storage/sharedStore.ts
+    line_start: 227
+    line_end: 244
+    category: verified
+    text: >-
+      Review marker merge logic: when you mark lines 5-10 as reviewed and lines 8-15 were
+      already reviewed, you get one merged marker for 5-15. This is correct — gaps would
+      be confusing in the gutter.
+    source: manual
+    created_at: "2026-03-15T16:45:00Z"
+    author: jmp
+critical_flags:
+  - file: src/storage/sharedStore.ts
+    line_start: 86
+    line_end: 124
+    severity: high
+    description: >-
+      File write path — saveFile() writes YAML to disk. Has symlink re-check but no file
+      locking. Concurrent writes from two VS Code instances could corrupt data.
+    human_reviewed: false

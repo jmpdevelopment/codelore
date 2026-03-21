@@ -1,0 +1,25 @@
+annotations:
+  - id: demo-e1
+    file: src/providers/annotationDecorator.ts
+    line_start: 26
+    line_end: 29
+    category: confused
+    text: >-
+      The 100ms setTimeout on document open feels like a race condition workaround.
+      Editor might not be assigned when onDidOpenTextDocument fires. Is there a cleaner
+      VS Code API event for "editor is ready with this document"?
+    source: manual
+    created_at: "2026-03-16T11:45:00Z"
+    author: jmp
+  - id: demo-e2
+    file: src/providers/annotationDecorator.ts
+    line_start: 148
+    line_end: 159
+    category: verified
+    text: >-
+      Stale hover uses enabledCommands whitelist instead of isTrusted: true. This was
+      a P1 security fix — blanket trust would let injected markdown execute arbitrary
+      VS Code commands.
+    source: manual
+    created_at: "2026-03-19T16:30:00Z"
+    author: jmp
