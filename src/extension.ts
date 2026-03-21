@@ -5,6 +5,7 @@ import { ReviewMarkerDecorator } from './providers/reviewMarkerDecorator';
 import { CriticalDecorator } from './providers/criticalDecorator';
 import { ChangePlanProvider } from './views/changePlanProvider';
 import { CriticalQueueProvider } from './views/criticalQueueProvider';
+import { PreCommitBriefProvider } from './views/preCommitBriefProvider';
 import { CoverageBar } from './views/coverageBar';
 import { registerAnnotateCommands } from './commands/annotate';
 import { registerReviewCommands } from './commands/markReviewed';
@@ -36,8 +37,11 @@ export function activate(context: vscode.ExtensionContext): void {
   // Sidebar views
   const changePlanProvider = new ChangePlanProvider(store);
   const criticalQueueProvider = new CriticalQueueProvider(store);
+  const preCommitBriefProvider = new PreCommitBriefProvider(store);
   vscode.window.registerTreeDataProvider('codediary.changePlan', changePlanProvider);
   vscode.window.registerTreeDataProvider('codediary.criticalQueue', criticalQueueProvider);
+  vscode.window.registerTreeDataProvider('codediary.preCommitBrief', preCommitBriefProvider);
+  context.subscriptions.push(preCommitBriefProvider);
 
   // Status bar
   const coverageBar = new CoverageBar(store);
@@ -110,6 +114,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('codediary.refreshSidebar', () => {
       changePlanProvider.refresh();
       criticalQueueProvider.refresh();
+      preCommitBriefProvider.refresh();
     }),
 
     vscode.commands.registerCommand('codediary.showChangePlan', () => {

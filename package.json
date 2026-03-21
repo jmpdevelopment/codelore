@@ -258,7 +258,7 @@
         },
         {
           "command": "codediary.refreshSidebar",
-          "when": "view == codediary.changePlan || view == codediary.criticalQueue",
+          "when": "view == codediary.changePlan || view == codediary.criticalQueue || view == codediary.preCommitBrief",
           "group": "navigation@5"
         }
       ],
@@ -305,6 +305,10 @@
         {
           "id": "codediary.changePlan",
           "name": "Change Plan"
+        },
+        {
+          "id": "codediary.preCommitBrief",
+          "name": "Pre-Commit Brief"
         },
         {
           "id": "codediary.criticalQueue",
