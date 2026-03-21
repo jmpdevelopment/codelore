@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { DiaryStore } from '../storage/diaryStore';
+import { countUniqueLines } from '../utils/validation';
 
 export class CoverageBar implements vscode.Disposable {
   private statusBarItem: vscode.StatusBarItem;
@@ -32,8 +33,7 @@ export class CoverageBar implements vscode.Disposable {
       return;
     }
 
-    const reviewedFiles = new Set(markers.map(m => m.file));
-    const totalLines = markers.reduce((sum, m) => sum + (m.line_end - m.line_start + 1), 0);
+    const totalLines = countUniqueLines(markers);
     const unreviewedCritical = criticalFlags.filter(f => !f.human_reviewed).length;
 
     let text = `$(notebook) ${annotations.length} notes · ${totalLines} lines reviewed`;

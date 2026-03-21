@@ -40,7 +40,12 @@ export class YamlStore {
     }
     const config = vscode.workspace.getConfiguration('codediary');
     const relative = config.get<string>('storagePath', '.vscode/codediary.yaml');
-    this.filePath = path.join(workspaceFolder.uri.fsPath, relative);
+    const resolved = path.resolve(workspaceFolder.uri.fsPath, relative);
+    // Prevent path traversal outside workspace
+    if (!resolved.startsWith(workspaceFolder.uri.fsPath + path.sep)) {
+      return;
+    }
+    this.filePath = resolved;
   }
 
   private setupWatcher(): void {

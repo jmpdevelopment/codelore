@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
 import { DiaryStore } from '../storage/diaryStore';
 import { Annotation, CATEGORY_META, AnnotationCategory } from '../models/annotation';
 
@@ -39,7 +40,7 @@ class AnnotationNode extends vscode.TreeItem {
       arguments: [
         vscode.Uri.file(
           vscode.workspace.workspaceFolders?.[0]
-            ? require('path').join(vscode.workspace.workspaceFolders[0].uri.fsPath, annotation.file)
+            ? path.join(vscode.workspace.workspaceFolders[0].uri.fsPath, annotation.file)
             : annotation.file,
         ),
         {

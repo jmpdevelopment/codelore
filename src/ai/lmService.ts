@@ -82,6 +82,8 @@ export class LmService {
     } catch (err) {
       if (err instanceof vscode.LanguageModelError) {
         vscode.window.showErrorMessage(`CodeDiary AI: ${err.message}`);
+      } else if (err instanceof Error) {
+        vscode.window.showErrorMessage(`CodeDiary AI: ${err.message}`);
       }
       return undefined;
     }

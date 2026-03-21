@@ -1,21 +1,7 @@
 import * as vscode from 'vscode';
 import { DiaryStore, Scope } from '../storage/diaryStore';
 import { ReviewMarker } from '../models/reviewMarker';
-
-function getGitUser(): string {
-  try {
-    const cp = require('child_process');
-    return cp.execSync('git config user.name', { encoding: 'utf8' }).trim();
-  } catch {
-    return 'unknown';
-  }
-}
-
-function getRelativePath(uri: vscode.Uri): string | undefined {
-  const folder = vscode.workspace.getWorkspaceFolder(uri);
-  if (!folder) { return undefined; }
-  return vscode.workspace.asRelativePath(uri, false);
-}
+import { getGitUser, getRelativePath } from '../utils/git';
 
 async function pickReviewScope(store: DiaryStore): Promise<Scope | undefined> {
   const defaultScope = store.getDefaultScope();

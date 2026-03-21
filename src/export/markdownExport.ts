@@ -1,5 +1,6 @@
 import { DiaryStore } from '../storage/diaryStore';
 import { CATEGORY_META } from '../models/annotation';
+import { countUniqueLines } from '../utils/validation';
 
 export function generateMarkdown(store: DiaryStore): string {
   const annotations = store.getAnnotations();
@@ -23,7 +24,7 @@ export function generateMarkdown(store: DiaryStore): string {
   // Stats
   const files = new Set(annotations.map(a => a.file));
   const reviewedFiles = new Set(markers.map(m => m.file));
-  const totalReviewedLines = markers.reduce((sum, m) => sum + (m.line_end - m.line_start + 1), 0);
+  const totalReviewedLines = countUniqueLines(markers);
   const unreviewedCritical = criticalFlags.filter(f => !f.human_reviewed);
 
   lines.push('### Review Coverage');

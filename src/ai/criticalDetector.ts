@@ -2,6 +2,8 @@ import * as vscode from 'vscode';
 import { LmService } from './lmService';
 import { DiaryStore } from '../storage/diaryStore';
 import { CriticalFlag, CriticalSeverity } from '../models/criticalFlag';
+import { getRelativePath, getWorkspaceCwd, gitDiff, gitDiffAll } from '../utils/git';
+import { validLineRange, isValidSeverity } from '../utils/validation';
 
 const DIFF_SYSTEM_PROMPT = `You are a code safety reviewer. Given a code diff, identify regions that are high-risk and should not be shipped without careful human review.
 
@@ -74,10 +76,13 @@ export class CriticalDetector {
   ) {}
 
   async scanCurrentFile(editor: vscode.TextEditor): Promise<void> {
-    const filePath = this.getRelativePath(editor.document.uri);
+    const filePath = getRelativePath(editor.document.uri);
     if (!filePath) { return; }
 
-    const diff = await this.getGitDiff(filePath);
+    const cwd = getWorkspaceCwd();
+    if (!cwd) { return; }
+
+    const diff = gitDiff(filePath, cwd);
     if (!diff) {
       vscode.window.showInformationMessage('CodeDiary: No changes detected for this file.');
       return;
@@ -85,7 +90,7 @@ export class CriticalDetector {
 
     await this.scan({
       systemPrompt: DIFF_SYSTEM_PROMPT,
-      prompt: `File: ${filePath}\n\nDiff:\n${diff}`,
+      prompt: `<file path="${filePath}">\n<diff>\n${diff}\n</diff>\n</file>`,
       limitToFiles: [filePath],
       mode: 'diff',
       target: filePath,
@@ -93,7 +98,10 @@ export class CriticalDetector {
   }
 
   async scanAllChanges(): Promise<void> {
-    const diff = await this.getGitDiffAll();
+    const cwd = getWorkspaceCwd();
+    if (!cwd) { return; }
+
+    const diff = gitDiffAll(cwd);
     if (!diff) {
       vscode.window.showInformationMessage('CodeDiary: No uncommitted changes found.');
       return;
@@ -101,14 +109,14 @@ export class CriticalDetector {
 
     await this.scan({
       systemPrompt: DIFF_SYSTEM_PROMPT,
-      prompt: `Full diff of all uncommitted changes:\n\n${diff}`,
+      prompt: `<diff>\n${diff}\n</diff>`,
       mode: 'diff',
       target: 'all uncommitted changes',
     });
   }
 
   async scanFileContent(editor: vscode.TextEditor): Promise<void> {
-    const filePath = this.getRelativePath(editor.document.uri);
+    const filePath = getRelativePath(editor.document.uri);
     if (!filePath) { return; }
 
     const content = editor.document.getText();
@@ -119,7 +127,7 @@ export class CriticalDetector {
 
     await this.scan({
       systemPrompt: FILE_SYSTEM_PROMPT,
-      prompt: `File: ${filePath}\n\n${numbered}`,
+      prompt: `<file path="${filePath}">\n${numbered}\n</file>`,
       limitToFiles: [filePath],
       mode: 'file',
       target: filePath,
@@ -142,61 +150,65 @@ export class CriticalDetector {
         cancellable: true,
       },
       async (progress, token) => {
-        progress.report({ message: 'Connecting to language model...' });
+        try {
+          progress.report({ message: 'Connecting to language model...' });
 
-        const result = await this.lm.generate(opts.systemPrompt, opts.prompt, token);
-        if (!result || token.isCancellationRequested) { return; }
+          const result = await this.lm.generate(opts.systemPrompt, opts.prompt, token);
+          if (!result || token.isCancellationRequested) { return; }
 
-        progress.report({ message: `Analyzing with ${result.modelName}...` });
+          progress.report({ message: `Analyzing with ${result.modelName}...` });
 
-        const defaultFile = opts.limitToFiles?.length === 1 ? opts.limitToFiles[0] : undefined;
-        const regions = this.parseRegions(result.text, defaultFile);
-        const filtered = opts.limitToFiles
-          ? regions.filter(r => opts.limitToFiles!.includes(r.file))
-          : regions;
+          const defaultFile = opts.limitToFiles?.length === 1 ? opts.limitToFiles[0] : undefined;
+          const regions = this.parseRegions(result.text, defaultFile);
+          const filtered = opts.limitToFiles
+            ? regions.filter(r => opts.limitToFiles!.includes(r.file))
+            : regions;
 
-        if (filtered.length === 0) {
+          if (filtered.length === 0) {
+            vscode.window.showInformationMessage(
+              `CodeDiary: No critical regions detected in ${opts.target} (via ${result.modelName}).`,
+            );
+            return;
+          }
+
+          // Show what was found, let user confirm
+          const items = filtered.map(r => ({
+            label: `$(shield) ${r.severity}: ${r.description.substring(0, 70)}`,
+            description: `${r.file} L${r.line_start}-${r.line_end}`,
+            picked: true,
+            region: r,
+          }));
+
+          const modeDescription = opts.mode === 'diff'
+            ? 'detected in changed code'
+            : 'detected in existing code';
+
+          const selected = await vscode.window.showQuickPick(items, {
+            canPickMany: true,
+            placeHolder: 'Select critical regions to flag (uncheck to dismiss)',
+            title: `${filtered.length} critical regions ${modeDescription} — ${result.modelName}`,
+          });
+
+          if (!selected || selected.length === 0) { return; }
+
+          for (const item of selected) {
+            const flag: CriticalFlag = {
+              file: item.region.file,
+              line_start: item.region.line_start,
+              line_end: item.region.line_end,
+              severity: item.region.severity,
+              description: item.region.description,
+              human_reviewed: false,
+            };
+            this.store.addCriticalFlag(flag);
+          }
+
           vscode.window.showInformationMessage(
-            `CodeDiary: No critical regions detected in ${opts.target} (via ${result.modelName}).`,
+            `CodeDiary: ${selected.length} critical regions flagged in ${opts.target} (via ${result.modelName}).`,
           );
-          return;
+        } catch (err) {
+          vscode.window.showErrorMessage(`CodeDiary: Failed to scan for critical regions: ${err instanceof Error ? err.message : String(err)}`);
         }
-
-        // Show what was found, let user confirm
-        const items = filtered.map(r => ({
-          label: `$(shield) ${r.severity}: ${r.description.substring(0, 70)}`,
-          description: `${r.file} L${r.line_start}-${r.line_end}`,
-          picked: true,
-          region: r,
-        }));
-
-        const modeDescription = opts.mode === 'diff'
-          ? 'detected in changed code'
-          : 'detected in existing code';
-
-        const selected = await vscode.window.showQuickPick(items, {
-          canPickMany: true,
-          placeHolder: 'Select critical regions to flag (uncheck to dismiss)',
-          title: `${filtered.length} critical regions ${modeDescription} — ${result.modelName}`,
-        });
-
-        if (!selected || selected.length === 0) { return; }
-
-        for (const item of selected) {
-          const flag: CriticalFlag = {
-            file: item.region.file,
-            line_start: item.region.line_start,
-            line_end: item.region.line_end,
-            severity: item.region.severity,
-            description: item.region.description,
-            human_reviewed: false,
-          };
-          this.store.addCriticalFlag(flag);
-        }
-
-        vscode.window.showInformationMessage(
-          `CodeDiary: ${selected.length} critical regions flagged in ${opts.target} (via ${result.modelName}).`,
-        );
       },
     );
   }
@@ -206,51 +218,24 @@ export class CriticalDetector {
       const cleaned = raw.replace(/^```(?:json)?\n?/gm, '').replace(/\n?```$/gm, '').trim();
       const parsed = JSON.parse(cleaned);
       if (!Array.isArray(parsed)) { return []; }
-      return parsed
-        .filter((r: any) => r.line_start && r.severity && r.description)
-        .map((r: any) => ({
-          file: r.file || defaultFile || 'unknown',
-          line_start: r.line_start,
-          line_end: r.line_end || r.line_start,
+      const results: DetectedRegion[] = [];
+      for (const r of parsed) {
+        if (!r || typeof r !== 'object') { continue; }
+        const range = validLineRange(r.line_start, r.line_end);
+        if (!range) { continue; }
+        if (!isValidSeverity(r.severity)) { continue; }
+        if (typeof r.description !== 'string' || !r.description.trim()) { continue; }
+        results.push({
+          file: typeof r.file === 'string' ? r.file : (defaultFile || 'unknown'),
+          line_start: range.line_start,
+          line_end: range.line_end,
           severity: r.severity,
-          description: r.description,
-        }));
+          description: r.description.trim(),
+        });
+      }
+      return results;
     } catch {
       return [];
     }
-  }
-
-  private async getGitDiff(filePath: string): Promise<string | undefined> {
-    try {
-      const cp = require('child_process');
-      const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-      if (!cwd) { return undefined; }
-      const diff = cp.execSync(`git diff HEAD -- "${filePath}"`, { cwd, encoding: 'utf8' });
-      if (!diff.trim()) {
-        const unstaged = cp.execSync(`git diff -- "${filePath}"`, { cwd, encoding: 'utf8' });
-        return unstaged.trim() || undefined;
-      }
-      return diff.trim();
-    } catch {
-      return undefined;
-    }
-  }
-
-  private async getGitDiffAll(): Promise<string | undefined> {
-    try {
-      const cp = require('child_process');
-      const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-      if (!cwd) { return undefined; }
-      const diff = cp.execSync('git diff HEAD', { cwd, encoding: 'utf8' });
-      return diff.trim() || undefined;
-    } catch {
-      return undefined;
-    }
-  }
-
-  private getRelativePath(uri: vscode.Uri): string | undefined {
-    const folder = vscode.workspace.getWorkspaceFolder(uri);
-    if (!folder) { return undefined; }
-    return vscode.workspace.asRelativePath(uri, false);
   }
 }

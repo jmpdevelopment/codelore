@@ -53,7 +53,12 @@ export class SharedStore {
   }
 
   private yamlPath(sourceFile: string): string {
-    return path.join(this.basePath!, `${sourceFile}.yaml`);
+    const resolved = path.resolve(this.basePath!, `${sourceFile}.yaml`);
+    // Prevent path traversal outside .codediary/
+    if (!resolved.startsWith(this.basePath! + path.sep) && resolved !== this.basePath) {
+      throw new Error(`Path traversal detected: ${sourceFile}`);
+    }
+    return resolved;
   }
 
   private loadFile(sourceFile: string): FileData {

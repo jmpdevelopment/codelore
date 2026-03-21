@@ -10,7 +10,7 @@ import { registerAnnotateCommands } from './commands/annotate';
 import { registerReviewCommands } from './commands/markReviewed';
 import { registerCriticalCommands } from './commands/markCritical';
 import { registerExportCommands } from './commands/exportPR';
-import { ANNOTATION_CATEGORIES, CATEGORY_META } from './models/annotation';
+import { ANNOTATION_CATEGORIES, CATEGORY_META, AnnotationCategory } from './models/annotation';
 import { LmService } from './ai/lmService';
 import { DiaryGenerator } from './ai/diaryGenerator';
 import { CriticalDetector } from './ai/criticalDetector';
@@ -47,18 +47,18 @@ export function activate(context: vscode.ExtensionContext): void {
   // Filter command
   context.subscriptions.push(
     vscode.commands.registerCommand('codediary.filterByCategory', async () => {
-      const items = [
-        { label: '$(close) Clear Filter', category: undefined as string | undefined },
+      const items: Array<{ label: string; category: AnnotationCategory | undefined }> = [
+        { label: '$(close) Clear Filter', category: undefined },
         ...ANNOTATION_CATEGORIES.map(cat => ({
           label: `${CATEGORY_META[cat].icon} ${CATEGORY_META[cat].label}`,
-          category: cat as string | undefined,
+          category: cat as AnnotationCategory | undefined,
         })),
       ];
       const picked = await vscode.window.showQuickPick(items, {
         placeHolder: 'Filter annotations by category',
       });
       if (picked !== undefined) {
-        changePlanProvider.setFilter(picked.category as any);
+        changePlanProvider.setFilter(picked.category);
       }
     }),
 

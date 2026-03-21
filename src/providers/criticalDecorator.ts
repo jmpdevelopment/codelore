@@ -14,16 +14,11 @@ export class CriticalDecorator implements vscode.Disposable {
   private disposables: vscode.Disposable[] = [];
 
   constructor(private store: DiaryStore) {
+    // Base decoration types provide structure; severity-specific colors
+    // are applied via per-item renderOptions
     this.unreviewedDecoration = vscode.window.createTextEditorDecorationType({
       isWholeLine: true,
-      overviewRulerColor: '#f44336',
       overviewRulerLane: vscode.OverviewRulerLane.Center,
-      backgroundColor: '#f4433615',
-      after: {
-        contentText: ' ⚠ critical',
-        color: '#f44336',
-        fontStyle: 'italic',
-      },
     });
 
     this.reviewedDecoration = vscode.window.createTextEditorDecorationType({
@@ -31,7 +26,6 @@ export class CriticalDecorator implements vscode.Disposable {
       overviewRulerColor: '#4caf50',
       overviewRulerLane: vscode.OverviewRulerLane.Center,
       after: {
-        contentText: ' ✓ critical-reviewed',
         color: '#4caf50',
         fontStyle: 'italic',
       },

@@ -70,13 +70,10 @@ export class ReviewMarkerDecorator implements vscode.Disposable {
 
     editor.setDecorations(this.reviewedDecoration, reviewedRanges);
 
-    // Unreviewed highlighting is informational only — we don't compute
-    // which lines are "changed" here since that requires git diff integration.
-    // For now we just show reviewed markers. Unreviewed highlighting will
-    // be enhanced when we integrate with git diff data.
-    if (!highlightUnreviewed) {
-      editor.setDecorations(this.unreviewedDecoration, []);
-    }
+    // Unreviewed highlighting requires git diff integration to know which
+    // lines are "changed." For now, always clear — this will be populated
+    // when we integrate with git diff data.
+    editor.setDecorations(this.unreviewedDecoration, []);
   }
 
   private getRelativePath(uri: vscode.Uri): string | undefined {
