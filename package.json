@@ -1,0 +1,203 @@
+{
+  "name": "codediary",
+  "displayName": "CodeDiary",
+  "description": "Reflect before you ship. A pre-PR review diary for AI-generated code.",
+  "version": "0.1.0",
+  "publisher": "codediary",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["Other"],
+  "keywords": ["code diary", "AI code review", "diff annotation", "pre-PR review", "code journal"],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "codediary.addAnnotation",
+        "title": "CodeDiary: Add Annotation",
+        "icon": "$(note)"
+      },
+      {
+        "command": "codediary.editAnnotation",
+        "title": "CodeDiary: Edit Annotation"
+      },
+      {
+        "command": "codediary.deleteAnnotation",
+        "title": "CodeDiary: Delete Annotation"
+      },
+      {
+        "command": "codediary.markReviewed",
+        "title": "CodeDiary: Mark as Reviewed",
+        "icon": "$(check)"
+      },
+      {
+        "command": "codediary.markFileReviewed",
+        "title": "CodeDiary: Mark File as Reviewed"
+      },
+      {
+        "command": "codediary.unmarkReviewed",
+        "title": "CodeDiary: Unmark Reviewed"
+      },
+      {
+        "command": "codediary.markCritical",
+        "title": "CodeDiary: Mark as Critical",
+        "icon": "$(shield)"
+      },
+      {
+        "command": "codediary.exportPR",
+        "title": "CodeDiary: Export to PR (Clipboard)",
+        "icon": "$(clippy)"
+      },
+      {
+        "command": "codediary.clearAll",
+        "title": "CodeDiary: Clear All Annotations"
+      },
+      {
+        "command": "codediary.setNarrative",
+        "title": "CodeDiary: Set Change Narrative"
+      },
+      {
+        "command": "codediary.filterByCategory",
+        "title": "CodeDiary: Filter by Category",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "codediary.refreshSidebar",
+        "title": "CodeDiary: Refresh",
+        "icon": "$(refresh)"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "codediary.addAnnotation",
+        "key": "ctrl+shift+j",
+        "mac": "cmd+shift+j",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "codediary.markReviewed",
+        "key": "ctrl+shift+k",
+        "mac": "cmd+shift+k",
+        "when": "editorTextFocus"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "submenu": "codediary.submenu",
+          "group": "codediary@1"
+        }
+      ],
+      "codediary.submenu": [
+        {
+          "command": "codediary.addAnnotation",
+          "group": "annotation@1"
+        },
+        {
+          "command": "codediary.markReviewed",
+          "group": "review@1"
+        },
+        {
+          "command": "codediary.unmarkReviewed",
+          "group": "review@2"
+        },
+        {
+          "command": "codediary.markCritical",
+          "group": "critical@1"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "codediary.exportPR",
+          "when": "view == codediary.changePlan",
+          "group": "navigation@1"
+        },
+        {
+          "command": "codediary.filterByCategory",
+          "when": "view == codediary.changePlan",
+          "group": "navigation@2"
+        },
+        {
+          "command": "codediary.refreshSidebar",
+          "when": "view == codediary.changePlan || view == codediary.criticalQueue",
+          "group": "navigation@3"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "codediary.editAnnotation",
+          "when": "view == codediary.changePlan && viewItem == annotation",
+          "group": "inline@1"
+        },
+        {
+          "command": "codediary.deleteAnnotation",
+          "when": "view == codediary.changePlan && viewItem == annotation",
+          "group": "inline@2"
+        }
+      ]
+    },
+    "submenus": [
+      {
+        "id": "codediary.submenu",
+        "label": "CodeDiary"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "codediary-sidebar",
+          "title": "CodeDiary",
+          "icon": "$(notebook)"
+        }
+      ]
+    },
+    "views": {
+      "codediary-sidebar": [
+        {
+          "id": "codediary.changePlan",
+          "name": "Change Plan"
+        },
+        {
+          "id": "codediary.criticalQueue",
+          "name": "Critical Review Queue"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "CodeDiary",
+      "properties": {
+        "codediary.storagePath": {
+          "type": "string",
+          "default": ".vscode/codediary.yaml",
+          "description": "Path to the CodeDiary storage file (relative to workspace root)."
+        },
+        "codediary.highlightUnreviewed": {
+          "type": "boolean",
+          "default": true,
+          "description": "Highlight unreviewed changed lines with a warm background tint."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "build": "node esbuild.js",
+    "build:prod": "node esbuild.js --production",
+    "lint": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^25.5.0",
+    "@types/uuid": "^10.0.0",
+    "@types/vscode": "^1.110.0",
+    "esbuild": "^0.27.4",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "js-yaml": "^4.1.1",
+    "uuid": "^13.0.0"
+  }
+}
