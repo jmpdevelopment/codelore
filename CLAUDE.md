@@ -1,4 +1,4 @@
-# CodeDiary — Implementation Plan
+# CodeDiary — Implementation Guide
 
 A VSCode extension for journaling AI-assisted code changes. Captures intent, decision-making, and implementation journey before PR.
 
@@ -11,150 +11,143 @@ codediary/
 ├── src/
 │   ├── extension.ts              # Activation, command registration
 │   ├── models/
-│   │   ├── annotation.ts         # Annotation data model + types
+│   │   ├── annotation.ts         # Annotation data model + 7 categories
 │   │   ├── reviewMarker.ts       # Human review marker model
-│   │   └── criticalFlag.ts       # Critical region flag model
+│   │   └── criticalFlag.ts       # Critical region flag + resolution model
 │   ├── storage/
-│   │   └── yamlStore.ts          # YAML read/write for .vscode/codediary.yaml
+│   │   ├── diaryStore.ts         # Facade: merges shared + personal stores
+│   │   ├── sharedStore.ts        # Per-file YAML in .codediary/ (git-committed)
+│   │   └── yamlStore.ts          # Single YAML in .vscode/ (personal, gitignored)
 │   ├── providers/
-│   │   ├── annotationDecorator.ts    # Gutter icons + inline text decorations
-│   │   ├── reviewMarkerDecorator.ts  # Green checkmark gutter for reviewed lines
-│   │   └── unreviewed Highlight.ts   # Warm background tint on unreviewed lines
+│   │   ├── annotationDecorator.ts    # Inline text + colored backgrounds per category
+│   │   ├── reviewMarkerDecorator.ts  # Green checkmark on reviewed lines
+│   │   └── criticalDecorator.ts      # Red/green shield on critical regions
 │   ├── views/
 │   │   ├── changePlanProvider.ts     # TreeView sidebar: annotations grouped by file
-│   │   ├── criticalQueueProvider.ts  # TreeView: unreviewed critical regions
-│   │   └── coverageBar.ts           # Status bar: review coverage %
+│   │   ├── criticalQueueProvider.ts  # TreeView: sorted critical review queue
+│   │   └── coverageBar.ts           # Status bar: annotation + review summary
 │   ├── commands/
-│   │   ├── annotate.ts           # Add/edit/delete annotations (context menu + shortcut)
+│   │   ├── annotate.ts           # Add/edit/delete annotations with scope picker
 │   │   ├── markReviewed.ts       # Mark lines/files as human-reviewed
-│   │   ├── markCritical.ts       # Manually flag regions as critical
-│   │   └── exportPR.ts           # Generate markdown + copy to clipboard
+│   │   ├── markCritical.ts       # Flag critical regions, resolve/remove
+│   │   └── exportPR.ts           # Generate markdown, set narrative, clear all
+│   ├── ai/
+│   │   ├── lmService.ts          # vscode.lm API wrapper with model picker
+│   │   ├── diaryGenerator.ts     # AI-suggested diary entries from diffs
+│   │   └── criticalDetector.ts   # AI critical logic detection (diff + full file)
 │   └── export/
 │       └── markdownExport.ts     # PR description markdown generation
-├── package.json                  # Extension manifest, commands, menus, keybindings
+├── test/                         # Vitest unit tests (160 tests, 98%+ coverage)
+├── package.json
 ├── tsconfig.json
+├── vitest.config.ts
 └── .vscode/
-    └── launch.json               # Extension debug config
+    └── launch.json
 ```
 
-## Implementation Phases
+## Key Design Decisions
 
-### Phase 1: MVP — Core Journaling (6-8 weeks)
+### Shared + Personal Storage (Dual-Store Architecture)
 
-**Step 1: Scaffold**
-- `yo code` TypeScript extension scaffold
-- Configure package.json: extension ID `codediary`, activation events, contributes section
-- Verify diff view API access (TextEditor, diff URI schemes)
+Designed for large teams (2000+ developers on legacy codebases):
 
-**Step 2: Data Model + Storage**
-- Define TypeScript interfaces for Annotation, ReviewMarker, CriticalFlag (per spec schemas)
-- Annotation categories enum: `verified | needs_review | modified | confused | hallucination | intent | accepted`
-- Annotation source enum: `manual | ai_suggested | ai_accepted`
-- YAML storage layer using `js-yaml`: read/write `.vscode/codediary.yaml`
-- File watcher for external edits to the YAML file
+- **Shared store** (`.codediary/` directory, committed to git): Per-file YAML mirroring the source tree (e.g., `.codediary/src/auth/middleware.ts.yaml`). This keeps merge conflicts scoped to individual files — two devs rarely annotate the same file at once.
+- **Personal store** (`.vscode/codediary.yaml`, gitignored): Single flat YAML file for private notes.
+- **DiaryStore facade** merges reads from both stores and routes writes based on a scope picker ("Share with team" vs "Just for me"). Default scope is configurable via `codediary.defaultScope` setting.
+- **Narrative** is personal-only (it's your intent description for a PR).
+- **clearAll** only clears the personal store to protect team data.
 
-**Step 3: Inline Annotations (F1 + F2)**
-- Right-click context menu in editor/diff view → "CodeDiary: Add Annotation"
-- Quick-pick for category selection (no modal)
-- Input box for free-text annotation body
-- Gutter icons per category (color-coded: green/orange/blue/yellow/red/purple/gray)
-- Inline decoration showing first line of annotation text
-- Keyboard shortcut: `Ctrl+Shift+J` / `Cmd+Shift+J`
-- Click gutter icon to expand/edit annotation
-- Delete annotation command
+### AI Integration via vscode.lm API
 
-**Step 4: Human Review Markers (F8)**
-- "Mark as Reviewed" command for selected range or entire file
-- Green checkmark gutter decoration on reviewed lines
-- Store reviewer git identity + timestamp
-- Unreviewed line highlighting (subtle warm background tint via `editor.background` decoration)
-- Bulk actions: "Mark file as reviewed", "Mark all test files as reviewed"
+No custom LLM infrastructure. Uses `vscode.lm.selectChatModels()` to leverage whatever language model the user already has installed (GitHub Copilot, Claude, etc.).
 
-**Step 5: Review Coverage (F8 continued)**
-- Status bar item showing "X% reviewed (Y/Z files, A/B lines)"
-- Sidebar coverage summary at top of change plan
-- Calculate coverage from review markers vs. git diff changed lines
+- Model picker when multiple models are available, remembers selection for session
+- Two scan modes: **diff-based** (changed code only) and **full-file** (for legacy code exploration)
+- AI suggestions presented as multi-select quick pick — user decides what to keep
 
-**Step 6: Critical Logic — Manual Marking Only (F9, modified)**
-- "Mark as Critical" command for selected range
-- Red shield gutter icon on unreviewed critical lines
-- Green shield on reviewed critical lines
-- Severity picker: critical | high | medium
-- Critical Review Queue in sidebar (sorted by severity)
-- NOTE: No static pattern detection. AI-native detection deferred to Phase 2.
+### No Static Pattern Detection
 
-**Step 7: Change Plan Sidebar (F3)**
-- TreeView provider grouped by file → annotation category
-- Summary stats at top
-- Click to jump to annotation location
-- Filter by category
-- Editable narrative field for overall change description
+Critical logic detection is either:
+1. **AI-native** — LLM semantic analysis of code (opt-in, requires a language model)
+2. **Manual** — developer flags regions by hand
 
-**Step 8: PR Export (F4, clipboard only)**
-- Generate structured markdown from change plan:
-  - Intent / narrative
-  - What was changed (by file)
-  - Review coverage stats
-  - Unreviewed files list
-  - Critical regions status
-  - Annotations marked "needs_review" or "confused"
-- One-click copy to clipboard
-- Template: hardcoded markdown format (configurable templates in Phase 2)
+No AST parsing, no regex rules, no static patterns. This is a deliberate constraint.
 
-### Phase 2: AI-Assisted Journaling (10-14 weeks)
+### Critical Flag Resolution
 
-- AI-suggested diary entries from diffs + commit context
-- One-click accept/edit ghost text flow
-- AI-native critical logic detection (LLM semantic analysis, opt-in)
-- LLM provider config (Claude API, OpenAI, local ollama)
-- Agent context integration (Claude Code sessions, Cursor logs)
+Critical flags support a full resolution lifecycle:
+- Flag with severity (critical / high / medium) and description
+- Resolve with comment, resolver identity, and timestamp
+- Remove entirely
+- Queue sorted: unreviewed first, then by severity
+
+## Commands
+
+| Command | Title | Keybinding |
+|---------|-------|------------|
+| `codediary.addAnnotation` | Add Annotation | `Cmd+Shift+J` |
+| `codediary.editAnnotation` | Edit Annotation | — |
+| `codediary.deleteAnnotation` | Delete Annotation | — |
+| `codediary.markReviewed` | Mark as Reviewed | `Cmd+Shift+K` |
+| `codediary.markFileReviewed` | Mark File as Reviewed | — |
+| `codediary.unmarkReviewed` | Unmark Reviewed | — |
+| `codediary.markCritical` | Mark as Critical | — |
+| `codediary.resolveCritical` | Resolve Critical Flag | — |
+| `codediary.removeCritical` | Remove Critical Flag | — |
+| `codediary.exportPR` | Export to PR (Clipboard) | — |
+| `codediary.setNarrative` | Set Change Narrative | — |
+| `codediary.clearAll` | Clear All Annotations | — |
+| `codediary.filterByCategory` | Filter by Category | — |
+| `codediary.suggestDiary` | Suggest Diary Entries (Current File) | — |
+| `codediary.suggestDiaryAll` | Suggest Diary Entries (All Changes) | — |
+| `codediary.scanCritical` | Scan Changes for Critical Logic (Diff Only) | — |
+| `codediary.scanCriticalAll` | Scan All Uncommitted Changes (Diff Only) | — |
+| `codediary.scanFile` | Scan Entire File for Critical Logic (Full File) | — |
+| `codediary.changeModel` | Change AI Model | — |
+
+## Configuration
+
+| Setting | Type | Default | Description |
+|---------|------|---------|-------------|
+| `codediary.storagePath` | string | `.vscode/codediary.yaml` | Personal storage file path |
+| `codediary.highlightUnreviewed` | boolean | `true` | Highlight unreviewed lines |
+| `codediary.defaultScope` | `shared` \| `personal` | `shared` | Where new annotations are stored |
+
+## Development
+
+```bash
+npm run compile    # TypeScript compilation
+npm run build      # esbuild bundle
+npm run test       # Vitest unit tests
+npm run test:coverage  # Tests with coverage report
+npm run lint       # Type check without emit
+```
+
+Press `F5` in VSCode to launch the Extension Development Host for manual testing.
+
+## Implementation Status
+
+### Complete (Phase 1 + Phase 2 partial)
+- Inline annotations with 7 categories and scope picker
+- Human review markers with merge logic for overlapping ranges
+- Critical flag lifecycle (flag, resolve with comment, remove)
+- AI-suggested diary entries from git diffs (via vscode.lm)
+- AI critical logic detection: diff-based and full-file scanning
+- Change Plan sidebar with file grouping and category filter
+- Critical Review Queue sorted by severity
+- Status bar with coverage summary
+- PR export to clipboard (structured markdown)
+- Shared/personal dual-store architecture
+- Unit test suite (160 tests, 98%+ line coverage)
+
+### Remaining (Phase 2)
 - GitHub REST API PR comment push
 - Configurable export templates
 - Custom annotation categories in settings
 - Pre-commit/pre-push guard for unreviewed critical regions
 
-### Phase 3: Session Tracking (16-20 weeks)
-
+### Future (Phase 3-4)
 - Session model: group annotations into named units of work
-- Session timeline view
-- Batch session summaries (AI-generated)
-- Session-to-PR mapping
-
-### Phase 4: Feature Narrative (24-28 weeks)
-
-- Sessions → feature-level implementation story
-- Auto-generated feature summaries
+- Session timeline view and batch summaries
+- Feature-level implementation narratives
 - JIRA/Linear ticket linkage
-- Team analytics dashboard
-
-## Key Constraints
-
-- **No static pattern detection / AST rules** — critical logic is AI-native or manual only
-- **Local-first** — all data in `.vscode/codediary.yaml`, no cloud dependency
-- **Privacy-first** — no code sent to LLM without explicit opt-in config
-- **Warm, reflective tone** — this is a journaling tool, not a linting tool
-- **Storage format:** Human-readable YAML for easy manual editing and git diffing
-
-## Commands (package.json contributes)
-
-| Command | Title | Keybinding |
-|---------|-------|------------|
-| `codediary.addAnnotation` | CodeDiary: Add Annotation | `Ctrl+Shift+J` / `Cmd+Shift+J` |
-| `codediary.editAnnotation` | CodeDiary: Edit Annotation | — |
-| `codediary.deleteAnnotation` | CodeDiary: Delete Annotation | — |
-| `codediary.markReviewed` | CodeDiary: Mark as Reviewed | — |
-| `codediary.markFileReviewed` | CodeDiary: Mark File as Reviewed | — |
-| `codediary.markCritical` | CodeDiary: Mark as Critical | — |
-| `codediary.exportPR` | CodeDiary: Export to PR (Clipboard) | — |
-| `codediary.showChangePlan` | CodeDiary: Show Change Plan | — |
-
-## Context Menu Contributions
-
-- `editor/context` → Add Annotation, Mark as Reviewed, Mark as Critical
-- `scm/resourceState/context` → Mark File as Reviewed
-
-## Views
-
-- `codediary-sidebar` (ViewContainer in activity bar)
-  - `codediary.changePlan` — Change plan tree view
-  - `codediary.criticalQueue` — Critical review queue
