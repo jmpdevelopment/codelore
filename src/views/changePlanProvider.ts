@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { DiaryStore } from '../storage/diaryStore';
 import { Annotation, CATEGORY_META, AnnotationCategory } from '../models/annotation';
+import { isSafeRelativePath, sanitizeMarkdownText } from '../utils/validation';
 
 type TreeItem = FileNode | AnnotationNode;
 
@@ -27,30 +28,31 @@ class AnnotationNode extends vscode.TreeItem {
     const scopeIcon = scope === 'shared' ? '$(globe)' : '$(lock)';
     this.description = `${scopeIcon} L${annotation.line_start}-${annotation.line_end}`;
     this.tooltip = new vscode.MarkdownString(
-      `**${meta.label}**\n\n${annotation.text}\n\n*${annotation.author || 'unknown'} — ${new Date(annotation.created_at).toLocaleString()}*`,
+      `**${meta.label}**\n\n${sanitizeMarkdownText(annotation.text)}\n\n*${sanitizeMarkdownText(annotation.author || 'unknown')} — ${new Date(annotation.created_at).toLocaleString()}*`,
     );
     this.iconPath = new vscode.ThemeIcon(
       meta.icon.replace('$(', '').replace(')', ''),
       new vscode.ThemeColor(this.getColorId(annotation.category)),
     );
     this.contextValue = 'annotation';
-    this.command = {
-      command: 'vscode.open',
-      title: 'Go to annotation',
-      arguments: [
-        vscode.Uri.file(
-          vscode.workspace.workspaceFolders?.[0]
-            ? path.join(vscode.workspace.workspaceFolders[0].uri.fsPath, annotation.file)
-            : annotation.file,
-        ),
-        {
-          selection: new vscode.Range(
-            annotation.line_start - 1, 0,
-            annotation.line_end - 1, 0,
-          ),
-        } as vscode.TextDocumentShowOptions,
-      ],
-    };
+
+    // Only create navigation command for safe relative paths
+    const wsFolder = vscode.workspace.workspaceFolders?.[0];
+    if (wsFolder && isSafeRelativePath(annotation.file)) {
+      this.command = {
+        command: 'vscode.open',
+        title: 'Go to annotation',
+        arguments: [
+          vscode.Uri.file(path.join(wsFolder.uri.fsPath, annotation.file)),
+          {
+            selection: new vscode.Range(
+              annotation.line_start - 1, 0,
+              annotation.line_end - 1, 0,
+            ),
+          } as vscode.TextDocumentShowOptions,
+        ],
+      };
+    }
   }
 
   private getColorId(category: AnnotationCategory): string {

@@ -60,13 +60,8 @@
         "icon": "$(shield)"
       },
       {
-        "command": "codediary.exportPR",
-        "title": "CodeDiary: Export to PR (Clipboard)",
-        "icon": "$(clippy)"
-      },
-      {
         "command": "codediary.clearAll",
-        "title": "CodeDiary: Clear All Annotations"
+        "title": "CodeDiary: Clear Personal Data"
       },
       {
         "command": "codediary.setNarrative",
@@ -242,11 +237,6 @@
       ],
       "view/title": [
         {
-          "command": "codediary.exportPR",
-          "when": "view == codediary.changePlan",
-          "group": "navigation@1"
-        },
-        {
           "command": "codediary.filterByCategory",
           "when": "view == codediary.changePlan",
           "group": "navigation@2"
@@ -329,11 +319,6 @@
           "type": "string",
           "default": ".vscode/codediary.yaml",
           "description": "Path to the CodeDiary storage file (relative to workspace root)."
-        },
-        "codediary.highlightUnreviewed": {
-          "type": "boolean",
-          "default": true,
-          "description": "Highlight unreviewed changed lines with a warm background tint."
         },
         "codediary.defaultScope": {
           "type": "string",

@@ -9,7 +9,7 @@ import { CoverageBar } from './views/coverageBar';
 import { registerAnnotateCommands } from './commands/annotate';
 import { registerReviewCommands } from './commands/markReviewed';
 import { registerCriticalCommands } from './commands/markCritical';
-import { registerExportCommands } from './commands/exportPR';
+import { registerExportCommands } from './commands/clearAll';
 import { registerSearchCommands } from './commands/search';
 import { registerQuickNoteCommands } from './commands/quickNote';
 import { registerAgentInstructionCommands } from './commands/agentInstructions';

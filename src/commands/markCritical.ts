@@ -61,9 +61,9 @@ export function registerCriticalCommands(context: vscode.ExtensionContext, store
           scope: 'shared' as Scope,
         },
         {
-          label: '$(note) Working notes (cleared on export)',
+          label: '$(note) Personal notes (private)',
           description: defaultScope === 'personal' ? '(default)' : '',
-          detail: 'Personal tracking only — cleared when you export to PR',
+          detail: 'Personal tracking only — gitignored, just for you',
           scope: 'personal' as Scope,
         },
       ];

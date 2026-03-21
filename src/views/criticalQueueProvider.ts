@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { DiaryStore } from '../storage/diaryStore';
 import { CriticalFlag, CriticalSeverity } from '../models/criticalFlag';
+import { isSafeRelativePath, sanitizeMarkdownText } from '../utils/validation';
 
 const SEVERITY_ORDER: Record<CriticalSeverity, number> = {
   critical: 0,
@@ -20,15 +21,15 @@ class CriticalNode extends vscode.TreeItem {
     this.contextValue = 'criticalFlag';
 
     const tooltipParts = [
-      `**${flag.severity.toUpperCase()}** — ${flag.description || 'Manually flagged'}`,
+      `**${flag.severity.toUpperCase()}** — ${sanitizeMarkdownText(flag.description || 'Manually flagged')}`,
     ];
     if (flag.human_reviewed) {
-      tooltipParts.push(`\n\n✅ **Resolved** by ${flag.resolved_by || 'unknown'}`);
+      tooltipParts.push(`\n\n✅ **Resolved** by ${sanitizeMarkdownText(flag.resolved_by || 'unknown')}`);
       if (flag.resolved_at) {
         tooltipParts.push(` on ${new Date(flag.resolved_at).toLocaleString()}`);
       }
       if (flag.resolution_comment) {
-        tooltipParts.push(`\n\n> ${flag.resolution_comment}`);
+        tooltipParts.push(`\n\n> ${sanitizeMarkdownText(flag.resolution_comment)}`);
       }
     } else {
       tooltipParts.push('\n\n⚠ Not yet reviewed');
@@ -41,20 +42,20 @@ class CriticalNode extends vscode.TreeItem {
       this.iconPath = new vscode.ThemeIcon('shield', new vscode.ThemeColor('list.errorForeground'));
     }
 
-    this.command = {
-      command: 'vscode.open',
-      title: 'Go to critical region',
-      arguments: [
-        vscode.Uri.file(
-          vscode.workspace.workspaceFolders?.[0]
-            ? path.join(vscode.workspace.workspaceFolders[0].uri.fsPath, flag.file)
-            : flag.file,
-        ),
-        {
-          selection: new vscode.Range(flag.line_start - 1, 0, flag.line_end - 1, 0),
-        } as vscode.TextDocumentShowOptions,
-      ],
-    };
+    // Only create navigation command for safe relative paths
+    const wsFolder = vscode.workspace.workspaceFolders?.[0];
+    if (wsFolder && isSafeRelativePath(flag.file)) {
+      this.command = {
+        command: 'vscode.open',
+        title: 'Go to critical region',
+        arguments: [
+          vscode.Uri.file(path.join(wsFolder.uri.fsPath, flag.file)),
+          {
+            selection: new vscode.Range(flag.line_start - 1, 0, flag.line_end - 1, 0),
+          } as vscode.TextDocumentShowOptions,
+        ],
+      };
+    }
   }
 }
 

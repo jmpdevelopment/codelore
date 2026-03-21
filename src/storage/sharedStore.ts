@@ -34,7 +34,18 @@ export class SharedStore {
   constructor() {
     const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
     if (!workspaceFolder) { return; }
-    this.basePath = path.join(workspaceFolder.uri.fsPath, '.codediary');
+    const candidatePath = path.join(workspaceFolder.uri.fsPath, '.codediary');
+    // Resolve symlinks to prevent writing outside workspace
+    if (fs.existsSync(candidatePath)) {
+      try {
+        const realPath = fs.realpathSync(candidatePath);
+        const realWorkspace = fs.realpathSync(workspaceFolder.uri.fsPath);
+        if (!realPath.startsWith(realWorkspace + path.sep) && realPath !== realWorkspace) {
+          return; // .codediary is a symlink pointing outside workspace
+        }
+      } catch { return; }
+    }
+    this.basePath = candidatePath;
     this.loadAll();
     this.setupWatcher();
   }
@@ -96,6 +107,17 @@ export class SharedStore {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
+    // Re-check symlink safety before writing
+    try {
+      const realDir = fs.realpathSync(dir);
+      const wsFolder = vscode.workspace.workspaceFolders?.[0];
+      if (wsFolder) {
+        const realWorkspace = fs.realpathSync(wsFolder.uri.fsPath);
+        if (!realDir.startsWith(realWorkspace + path.sep) && realDir !== realWorkspace) {
+          return;
+        }
+      }
+    } catch { return; }
     const content = yaml.dump(data, { lineWidth: 120, noRefs: true });
     fs.writeFileSync(filePath, content, 'utf8');
     this.cache.set(sourceFile, data);

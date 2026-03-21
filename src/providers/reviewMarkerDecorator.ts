@@ -54,8 +54,6 @@ export class ReviewMarkerDecorator implements vscode.Disposable {
     if (!filePath) { return; }
 
     const markers = this.store.getReviewMarkersForFile(filePath);
-    const config = vscode.workspace.getConfiguration('codediary');
-    const highlightUnreviewed = config.get<boolean>('highlightUnreviewed', true);
 
     // Reviewed ranges
     const reviewedRanges: vscode.DecorationOptions[] = markers.map(m => ({

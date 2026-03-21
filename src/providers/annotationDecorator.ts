@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { DiaryStore } from '../storage/diaryStore';
 import { CATEGORY_META, AnnotationCategory } from '../models/annotation';
 import { verifyAnchor } from '../utils/anchorEngine';
+import { sanitizeMarkdownText } from '../utils/validation';
 
 export class AnnotationDecorator implements vscode.Disposable {
   private decorationTypes: Map<AnnotationCategory, vscode.TextEditorDecorationType> = new Map();
@@ -138,8 +139,8 @@ export class AnnotationDecorator implements vscode.Disposable {
     const meta = CATEGORY_META[category];
     const md = new vscode.MarkdownString();
     md.appendMarkdown(`**${meta.label}**\n\n`);
-    md.appendMarkdown(text + '\n\n');
-    if (author) { md.appendMarkdown(`*— ${author}*`); }
+    md.appendMarkdown(sanitizeMarkdownText(text) + '\n\n');
+    if (author) { md.appendMarkdown(`*— ${sanitizeMarkdownText(author)}*`); }
     if (createdAt) { md.appendMarkdown(` • ${new Date(createdAt).toLocaleString()}`); }
     return md;
   }
@@ -147,12 +148,12 @@ export class AnnotationDecorator implements vscode.Disposable {
   private buildStaleHover(category: AnnotationCategory, text: string, author?: string, createdAt?: string): vscode.MarkdownString {
     const meta = CATEGORY_META[category];
     const md = new vscode.MarkdownString();
-    md.isTrusted = true;
+    md.isTrusted = { enabledCommands: ['codediary.reanchor'] };
     md.appendMarkdown(`**⚠ STALE — ${meta.label}**\n\n`);
-    md.appendMarkdown(text + '\n\n');
+    md.appendMarkdown(sanitizeMarkdownText(text) + '\n\n');
     md.appendMarkdown('*The code at this location has changed since this annotation was created.*\n\n');
     md.appendMarkdown('[Re-anchor annotations](command:codediary.reanchor)');
-    if (author) { md.appendMarkdown(`\n\n*— ${author}*`); }
+    if (author) { md.appendMarkdown(`\n\n*— ${sanitizeMarkdownText(author)}*`); }
     if (createdAt) { md.appendMarkdown(` • ${new Date(createdAt).toLocaleString()}`); }
     return md;
   }

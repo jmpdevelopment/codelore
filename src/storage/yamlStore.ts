@@ -45,6 +45,17 @@ export class YamlStore {
     if (!resolved.startsWith(workspaceFolder.uri.fsPath + path.sep)) {
       return;
     }
+    // Resolve symlinks to prevent writing outside workspace via symlink
+    try {
+      const realWorkspace = fs.realpathSync(workspaceFolder.uri.fsPath);
+      const dir = path.dirname(resolved);
+      if (fs.existsSync(dir)) {
+        const realDir = fs.realpathSync(dir);
+        if (!realDir.startsWith(realWorkspace + path.sep) && realDir !== realWorkspace) {
+          return;
+        }
+      }
+    } catch { /* directory doesn't exist yet — will be created, no symlink risk */ }
     this.filePath = resolved;
   }
 
@@ -86,6 +97,17 @@ export class YamlStore {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
+    // Re-check symlink safety before writing
+    try {
+      const realPath = fs.realpathSync(dir);
+      const wsFolder = vscode.workspace.workspaceFolders?.[0];
+      if (wsFolder) {
+        const realWorkspace = fs.realpathSync(wsFolder.uri.fsPath);
+        if (!realPath.startsWith(realWorkspace + path.sep) && realPath !== realWorkspace) {
+          return;
+        }
+      }
+    } catch { return; }
     const content = yaml.dump(this.data, { lineWidth: 120, noRefs: true });
     fs.writeFileSync(this.filePath, content, 'utf8');
   }

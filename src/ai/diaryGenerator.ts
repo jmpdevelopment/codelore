@@ -260,8 +260,9 @@ export class DiaryGenerator {
   }
 
   formatExistingKnowledge(filePath: string): string {
-    const annotations = this.store.getAnnotationsForFile(filePath);
-    const criticalFlags = this.store.getCriticalFlagsForFile(filePath);
+    // Only include shared annotations in AI context — personal notes stay private
+    const annotations = this.store.shared.getAnnotationsForFile(filePath);
+    const criticalFlags = this.store.shared.getCriticalFlagsForFile(filePath);
 
     if (annotations.length === 0 && criticalFlags.length === 0) {
       return '';

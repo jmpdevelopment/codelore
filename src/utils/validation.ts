@@ -1,3 +1,4 @@
+import * as path from 'path';
 import { AnnotationCategory, ANNOTATION_CATEGORIES } from '../models/annotation';
 import { CriticalSeverity } from '../models/criticalFlag';
 
@@ -53,4 +54,27 @@ export function countUniqueLines(ranges: Array<{ line_start: number; line_end: n
   }
 
   return merged.reduce((sum, m) => sum + (m.end - m.start + 1), 0);
+}
+
+/**
+ * Validates that a stored file path is safe to use:
+ * - Must be relative (no leading / or drive letter)
+ * - Must not contain .. segments
+ * - Must not be empty
+ */
+export function isSafeRelativePath(filePath: string): boolean {
+  if (!filePath || filePath.trim() === '') { return false; }
+  if (path.isAbsolute(filePath)) { return false; }
+  const normalized = path.normalize(filePath);
+  if (normalized.startsWith('..') || normalized.includes(`${path.sep}..`)) { return false; }
+  return true;
+}
+
+/**
+ * Escape text for display in MarkdownString to prevent command injection.
+ * Strips markdown link syntax that could embed command: URIs.
+ */
+export function sanitizeMarkdownText(text: string): string {
+  // Remove markdown links that could contain command: or other dangerous URIs
+  return text.replace(/\[([^\]]*)\]\([^)]*\)/g, '$1');
 }

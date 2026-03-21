@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { DiaryStore, SearchFilter, SearchResult } from '../storage/diaryStore';
 import { ANNOTATION_CATEGORIES, CATEGORY_META, AnnotationCategory } from '../models/annotation';
+import { isSafeRelativePath } from '../utils/validation';
 
 async function pickSearchFilter(store: DiaryStore): Promise<SearchFilter | undefined> {
   const filterItems = [
@@ -60,6 +61,7 @@ async function pickSearchFilter(store: DiaryStore): Promise<SearchFilter | undef
 function openResult(result: SearchResult): void {
   const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
   if (!workspaceFolder) { return; }
+  if (!isSafeRelativePath(result.file)) { return; }
 
   const absPath = path.join(workspaceFolder.uri.fsPath, result.file);
   const uri = vscode.Uri.file(absPath);

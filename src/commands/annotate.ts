@@ -11,13 +11,13 @@ async function pickScope(store: DiaryStore): Promise<Scope | undefined> {
     {
       label: '$(globe) Team knowledge (persists)',
       description: defaultScope === 'shared' ? '(default)' : '',
-      detail: 'Saved to .codediary/ — committed to git, survives PR export',
+      detail: 'Saved to .codediary/ — committed to git, visible to team',
       scope: 'shared' as Scope,
     },
     {
-      label: '$(note) Working notes (cleared on export)',
+      label: '$(note) Personal notes (private)',
       description: defaultScope === 'personal' ? '(default)' : '',
-      detail: 'Saved to .vscode/ — private scratchpad, cleared when you export to PR',
+      detail: 'Saved to .vscode/ — gitignored, just for you',
       scope: 'personal' as Scope,
     },
   ];

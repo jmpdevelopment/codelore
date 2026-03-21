@@ -1,15 +1,8 @@
 import * as vscode from 'vscode';
 import { DiaryStore } from '../storage/diaryStore';
-import { generateMarkdown } from '../export/markdownExport';
 
 export function registerExportCommands(context: vscode.ExtensionContext, store: DiaryStore): void {
   context.subscriptions.push(
-    vscode.commands.registerCommand('codediary.exportPR', async () => {
-      const markdown = generateMarkdown(store);
-      await vscode.env.clipboard.writeText(markdown);
-      vscode.window.showInformationMessage('CodeDiary: PR description copied to clipboard');
-    }),
-
     vscode.commands.registerCommand('codediary.setNarrative', async () => {
       const current = store.getNarrative() || '';
       const text = await vscode.window.showInputBox({
@@ -24,13 +17,13 @@ export function registerExportCommands(context: vscode.ExtensionContext, store: 
 
     vscode.commands.registerCommand('codediary.clearAll', async () => {
       const confirm = await vscode.window.showWarningMessage(
-        'Clear all CodeDiary annotations, review markers, and critical flags?',
+        'Clear all personal CodeDiary annotations, review markers, and critical flags? (Team data in .codediary/ is not affected.)',
         { modal: true },
-        'Clear All',
+        'Clear Personal Data',
       );
-      if (confirm === 'Clear All') {
+      if (confirm === 'Clear Personal Data') {
         store.clearAll();
-        vscode.window.showInformationMessage('CodeDiary: All data cleared');
+        vscode.window.showInformationMessage('CodeDiary: Personal data cleared');
       }
     }),
   );
