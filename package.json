@@ -67,6 +67,35 @@
         "command": "codediary.refreshSidebar",
         "title": "CodeDiary: Refresh",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "codediary.suggestDiary",
+        "title": "CodeDiary: Suggest Diary Entries (Current File)",
+        "icon": "$(sparkle)"
+      },
+      {
+        "command": "codediary.suggestDiaryAll",
+        "title": "CodeDiary: Suggest Diary Entries (All Changes)",
+        "icon": "$(sparkle)"
+      },
+      {
+        "command": "codediary.scanCritical",
+        "title": "CodeDiary: Scan Changes for Critical Logic (Diff Only)",
+        "icon": "$(shield)"
+      },
+      {
+        "command": "codediary.scanCriticalAll",
+        "title": "CodeDiary: Scan All Uncommitted Changes for Critical Logic (Diff Only)",
+        "icon": "$(shield)"
+      },
+      {
+        "command": "codediary.scanFile",
+        "title": "CodeDiary: Scan Entire File for Critical Logic (Full File)",
+        "icon": "$(shield)"
+      },
+      {
+        "command": "codediary.changeModel",
+        "title": "CodeDiary: Change AI Model"
       }
     ],
     "keybindings": [
@@ -106,6 +135,18 @@
         {
           "command": "codediary.markCritical",
           "group": "critical@1"
+        },
+        {
+          "command": "codediary.suggestDiary",
+          "group": "ai@1"
+        },
+        {
+          "command": "codediary.scanCritical",
+          "group": "ai@2"
+        },
+        {
+          "command": "codediary.scanFile",
+          "group": "ai@3"
         }
       ],
       "view/title": [

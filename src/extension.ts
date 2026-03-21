@@ -11,9 +11,15 @@ import { registerReviewCommands } from './commands/markReviewed';
 import { registerCriticalCommands } from './commands/markCritical';
 import { registerExportCommands } from './commands/exportPR';
 import { ANNOTATION_CATEGORIES, CATEGORY_META } from './models/annotation';
+import { LmService } from './ai/lmService';
+import { DiaryGenerator } from './ai/diaryGenerator';
+import { CriticalDetector } from './ai/criticalDetector';
 
 export function activate(context: vscode.ExtensionContext): void {
   const store = new YamlStore();
+  const lm = new LmService();
+  const diaryGenerator = new DiaryGenerator(lm, store);
+  const criticalDetector = new CriticalDetector(lm, store);
   context.subscriptions.push({ dispose: () => store.dispose() });
 
   // Decoration providers
@@ -63,6 +69,46 @@ export function activate(context: vscode.ExtensionContext): void {
 
     vscode.commands.registerCommand('codediary.showChangePlan', () => {
       vscode.commands.executeCommand('codediary.changePlan.focus');
+    }),
+
+    // AI commands
+    vscode.commands.registerCommand('codediary.suggestDiary', async () => {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) {
+        vscode.window.showInformationMessage('CodeDiary: Open a file first.');
+        return;
+      }
+      await diaryGenerator.suggestForFile(editor);
+    }),
+
+    vscode.commands.registerCommand('codediary.suggestDiaryAll', async () => {
+      await diaryGenerator.suggestForAllChanges();
+    }),
+
+    vscode.commands.registerCommand('codediary.scanCritical', async () => {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) {
+        vscode.window.showInformationMessage('CodeDiary: Open a file first.');
+        return;
+      }
+      await criticalDetector.scanCurrentFile(editor);
+    }),
+
+    vscode.commands.registerCommand('codediary.scanCriticalAll', async () => {
+      await criticalDetector.scanAllChanges();
+    }),
+
+    vscode.commands.registerCommand('codediary.changeModel', async () => {
+      await lm.changeModel();
+    }),
+
+    vscode.commands.registerCommand('codediary.scanFile', async () => {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) {
+        vscode.window.showInformationMessage('CodeDiary: Open a file first.');
+        return;
+      }
+      await criticalDetector.scanFileContent(editor);
     }),
   );
 
