@@ -40,7 +40,7 @@ codediary/
 ├── src/
 │   ├── extension.ts              # Activation, command/view registration
 │   ├── models/
-│   │   ├── annotation.ts         # Annotation model + 8 categories + ContentAnchor
+│   │   ├── annotation.ts         # Annotation model + 9 categories + ContentAnchor + FileDependency
 │   │   ├── reviewMarker.ts       # Human review marker model
 │   │   └── criticalFlag.ts       # Critical region flag + resolution model
 │   ├── storage/
@@ -71,10 +71,10 @@ codediary/
 │   │   ├── diaryGenerator.ts     # AI-suggested diary entries from diffs
 │   │   └── criticalDetector.ts   # AI critical logic detection (diff + full file)
 │   └── utils/
-│       ├── anchorEngine.ts       # Content hashing, drift detection, re-anchor search
+│       ├── anchorEngine.ts       # Content + signature hashing, drift detection, re-anchor search
 │       ├── git.ts                # Git diff, changed files, line range parsing
 │       └── validation.ts         # Path safety, markdown sanitization, input validation
-├── test/                         # Vitest unit tests (261 tests, 98%+ coverage)
+├── test/                         # Vitest unit tests (280 tests, 98%+ coverage)
 ├── .codediary/                   # Shared annotation store (committed to git)
 ├── package.json
 ├── tsconfig.json
@@ -101,7 +101,8 @@ The Pre-Commit Brief is the primary consumption surface. Instead of requiring de
 - Reads `git diff HEAD` to identify changed files and line ranges
 - Cross-references changes with existing annotations and critical flags
 - Items overlapping changed lines are highlighted (⚡)
-- Files sorted by risk: unresolved critical flags first
+- Cross-file dependencies from other annotations are surfaced as linked items
+- Files sorted by risk: unresolved critical flags first, then dependency count
 - Refreshes automatically on store changes and editor focus
 
 ### Proactive Notifications
@@ -109,19 +110,36 @@ The Pre-Commit Brief is the primary consumption surface. Instead of requiring de
 Knowledge shouldn't wait in a sidebar for someone to check it:
 
 - **On file open:** If the file has unresolved critical flags, a warning appears immediately with a link to the brief.
-- **On file save:** If uncommitted changes overlap known annotations or critical flags, a nudge appears. "Your changes overlap 2 critical flags — review before committing."
+- **On file save:** If uncommitted changes overlap known annotations, critical flags, or cross-file dependencies, a nudge appears. "Your changes overlap 2 critical flags — review before committing."
 - **Anti-spam:** Each file only triggers once per session (resets when store changes).
 
 ### Content Anchoring
 
-Annotations are tied to code via SHA-256 content hashes (trimmed, non-empty lines). When code moves or changes:
+Annotations are tied to code via two complementary strategies:
+
+1. **Content hash** (primary): SHA-256 of trimmed, non-empty lines in the annotated region. Whitespace-immune. Sliding window search finds where code moved.
+2. **Signature hash** (fallback): SHA-256 of the function/class/method signature line. When the body changes but the declaration is intact, the annotation can still be located. Supports Python (`def`, `class`, `async def`) and TypeScript/JavaScript (`function`, `class`, arrow functions, methods). Reported as `confidence: 'low'` to distinguish from exact content matches.
+
+When code moves or changes:
 
 - Anchors are verified on file open — stale annotations show a ⚠ warning
-- Sliding window search finds where code moved (handles insertions/deletions above)
+- Content hash match tried first (exact or shifted position)
+- Signature hash used as fallback when content changed but signature intact
 - Developer confirms re-anchor suggestions — no silent position changes
 - Agent instruction files tell AI agents to maintain anchors when refactoring
 
 Whitespace changes (reformatting, prettier) don't break anchors. Tradeoff: two code blocks differing only by whitespace hash the same. Acceptable.
+
+### Cross-File Dependencies
+
+Annotations can declare dependencies on other files via `FileDependency` entries:
+
+- Each dependency links to a target file (with optional line range) and describes the relationship (e.g., "must stay in sync", "calls this function", "shares this data model")
+- **Pre-Commit Brief** surfaces incoming dependencies: if you change `billing/calc.py` and an annotation on `reporting/monthly.py` declares a dependency on it, you see that link before committing
+- **Save notifications** warn when your edits touch files that other annotations depend on
+- Dependencies are sorted above regular annotations in the brief (after critical flags)
+- AI suggestions can automatically detect and propose cross-file links when code is tightly coupled
+- Manual dependency linking is available during annotation creation via a prompted flow
 
 ### AI Integration via vscode.lm API
 
@@ -191,7 +209,7 @@ No AST parsing, no regex rules, no static patterns. Semantic understanding of "w
 
 | View | Description |
 |------|-------------|
-| **Pre-Commit Brief** | Diff-aware knowledge briefing — shows changed files with overlapping annotations and critical flags, sorted by risk |
+| **Pre-Commit Brief** | Diff-aware knowledge briefing — shows changed files with overlapping annotations, critical flags, and cross-file dependencies, sorted by risk |
 | **Change Plan** | All annotations grouped by file, filterable by category and path |
 | **Critical Review Queue** | All critical flags sorted by severity (unresolved first), filterable by severity and path |
 
@@ -213,6 +231,7 @@ No AST parsing, no regex rules, no static patterns. Semantic understanding of "w
 | Potential Hallucination | ⚠ | May reference non-existent APIs or patterns |
 | Intent Note | 💬 | Context about what was asked of the AI |
 | Accepted As-Is | 👍 | Reviewed, acceptable without changes |
+| Business Rule | ⚖ | Documents a business rule or domain constraint — don't change without stakeholder sign-off |
 | AI Prompt | 🤖 | Ephemeral note for AI agent — excluded from team features |
 
 ## Development
@@ -230,7 +249,7 @@ Press `F5` in VSCode to launch the Extension Development Host for manual testing
 ## Implementation Status
 
 ### Complete
-- Inline annotations with 8 categories, scope picker, and content anchoring
+- Inline annotations with 9 categories, scope picker, and content + signature anchoring
 - Human review markers with merge logic for overlapping ranges
 - Critical flag lifecycle (flag with severity, resolve with comment, remove)
 - Pre-Commit Brief: diff-aware knowledge surfacing sorted by risk
@@ -243,13 +262,14 @@ Press `F5` in VSCode to launch the Extension Development Host for manual testing
 - Status bar with coverage summary
 - Annotation search across codebase (text, category, file path filters with jump to source)
 - Overlap detection: prevents annotation accumulation, auto-replaces AI-generated duplicates
-- Content anchoring: drift detection via content hash, stale warnings, re-anchor suggestions
+- Content anchoring: drift detection via content hash + signature hash fallback, stale warnings, re-anchor suggestions
 - Ephemeral AI notes (ai_prompt category, personal scope, excluded from team features)
 - Copy annotations for current file to clipboard
 - Agent instruction file generation (CLAUDE.md, .cursorrules, copilot-instructions, AGENTS.md, .windsurfrules)
 - Shared/personal dual-store architecture with privacy boundary (personal excluded from AI context)
+- Cross-file dependency links: annotations can declare relationships to other files, surfaced in pre-commit brief and save notifications
 - Security hardening: markdown sanitization, path traversal prevention, symlink-safe writes, scoped command trust
-- Unit test suite (261 tests, 98%+ line coverage)
+- Unit test suite (280 tests, 98%+ line coverage)
 
 ### Deferred (build only if users pull for them)
 - Knowledge coverage heatmap (churn vs annotation coverage)
@@ -257,5 +277,4 @@ Press `F5` in VSCode to launch the Extension Development Host for manual testing
 - Team annotation feed (summary of .codediary/ changes after git pull)
 - Quick annotation from AI review comments (bridge between AI reviewer and persistent knowledge)
 - Pre-commit/pre-push guard for unreviewed critical regions
-- Custom annotation categories in settings
 - JIRA/Linear ticket linkage
