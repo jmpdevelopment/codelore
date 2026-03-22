@@ -1,13 +1,13 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { DiaryStore } from '../storage/diaryStore';
-import { Annotation, CATEGORY_META, EPHEMERAL_CATEGORIES } from '../models/annotation';
+import { Annotation, CATEGORY_META, EPHEMERAL_CATEGORIES, FileDependency } from '../models/annotation';
 import { CriticalFlag } from '../models/criticalFlag';
 import { ReviewMarker } from '../models/reviewMarker';
 import { gitChangedFiles, gitDiff, getWorkspaceCwd, parseChangedLineRanges, ChangedLineRange } from '../utils/git';
 import { isSafeRelativePath, sanitizeMarkdownText } from '../utils/validation';
 
-type BriefTreeItem = SummaryNode | BriefFileNode | KnowledgeNode | NoChangesNode;
+type BriefTreeItem = SummaryNode | BriefFileNode | KnowledgeNode | DependencyNode | NoChangesNode;
 
 // ── Summary header ──────────────────────────────────────────────────
 
@@ -17,11 +17,15 @@ class SummaryNode extends vscode.TreeItem {
     criticalCount: number,
     annotationCount: number,
     reviewedCount: number,
+    dependencyCount: number = 0,
   ) {
     const parts: string[] = [];
     parts.push(`${filesChanged} file${filesChanged !== 1 ? 's' : ''} changed`);
     if (criticalCount > 0) {
       parts.push(`${criticalCount} critical`);
+    }
+    if (dependencyCount > 0) {
+      parts.push(`${dependencyCount} linked`);
     }
     if (annotationCount > 0) {
       parts.push(`${annotationCount} annotation${annotationCount !== 1 ? 's' : ''}`);
@@ -48,6 +52,14 @@ class NoChangesNode extends vscode.TreeItem {
 
 // ── File-level node ─────────────────────────────────────────────────
 
+/** An annotation from another file that has a dependency link pointing to this file. */
+interface IncomingDependency {
+  /** The annotation in the other file that declares the dependency. */
+  sourceAnnotation: Annotation;
+  /** The specific dependency entry pointing to this file. */
+  dependency: FileDependency;
+}
+
 interface FileKnowledge {
   filePath: string;
   annotations: Annotation[];
@@ -56,14 +68,21 @@ interface FileKnowledge {
   changedRanges: ChangedLineRange[];
   overlappingAnnotations: Annotation[];
   overlappingCritical: CriticalFlag[];
+  /** Annotations from other files with dependency links pointing to this changed file. */
+  incomingDependencies: IncomingDependency[];
 }
 
 class BriefFileNode extends vscode.TreeItem {
   constructor(public readonly knowledge: FileKnowledge) {
     super(knowledge.filePath, vscode.TreeItemCollapsibleState.Expanded);
 
-    const { overlappingCritical, overlappingAnnotations, criticalFlags, annotations, reviewMarkers } = knowledge;
+    const { overlappingCritical, overlappingAnnotations, criticalFlags, annotations, reviewMarkers, incomingDependencies } = knowledge;
     const parts: string[] = [];
+
+    // Cross-file dependencies are the most critical signal
+    if (incomingDependencies.length > 0) {
+      parts.push(`${incomingDependencies.length} dependency link${incomingDependencies.length !== 1 ? 's' : ''}`);
+    }
 
     // Overlapping = knowledge that directly covers changed lines
     const unresolvedCritical = overlappingCritical.filter(f => !f.human_reviewed);
@@ -93,13 +112,16 @@ class BriefFileNode extends vscode.TreeItem {
     }
 
     this.description = parts.join(', ');
-    this.iconPath = this.pickIcon(unresolvedCritical.length, overlappingAnnotations.length, reviewMarkers.length);
+    this.iconPath = this.pickIcon(unresolvedCritical.length, overlappingAnnotations.length, incomingDependencies.length, reviewMarkers.length);
     this.contextValue = 'briefFile';
   }
 
-  private pickIcon(unresolvedCritical: number, overlappingAnnotations: number, reviewed: number): vscode.ThemeIcon {
+  private pickIcon(unresolvedCritical: number, overlappingAnnotations: number, dependencies: number, reviewed: number): vscode.ThemeIcon {
     if (unresolvedCritical > 0) {
       return new vscode.ThemeIcon('shield', new vscode.ThemeColor('list.errorForeground'));
+    }
+    if (dependencies > 0) {
+      return new vscode.ThemeIcon('references', new vscode.ThemeColor('charts.purple'));
     }
     if (overlappingAnnotations > 0) {
       return new vscode.ThemeIcon('note', new vscode.ThemeColor('list.warningForeground'));
@@ -189,6 +211,45 @@ class KnowledgeNode extends vscode.TreeItem {
   }
 }
 
+// ── Dependency link node ────────────────────────────────────────────
+
+class DependencyNode extends vscode.TreeItem {
+  constructor(incoming: IncomingDependency) {
+    const src = incoming.sourceAnnotation;
+    const dep = incoming.dependency;
+    super(
+      `🔗 ${dep.relationship}`,
+      vscode.TreeItemCollapsibleState.None,
+    );
+    this.description = `from ${src.file}:${src.line_start}`;
+
+    const tooltipParts = [
+      `**Cross-file dependency**\n\n`,
+      `**${dep.relationship}**\n\n`,
+      `Source: \`${src.file}\` L${src.line_start}-${src.line_end}\n\n`,
+      `> ${sanitizeMarkdownText(src.text)}\n\n`,
+      `*${sanitizeMarkdownText(src.author || 'unknown')} — ${new Date(src.created_at).toLocaleString()}*`,
+    ];
+    this.tooltip = new vscode.MarkdownString(tooltipParts.join(''));
+
+    this.iconPath = new vscode.ThemeIcon('references', new vscode.ThemeColor('charts.purple'));
+    this.contextValue = 'briefDependency';
+
+    // Navigate to the source annotation
+    const wsFolder = vscode.workspace.workspaceFolders?.[0];
+    if (wsFolder && isSafeRelativePath(src.file)) {
+      this.command = {
+        command: 'vscode.open',
+        title: 'Go to source',
+        arguments: [
+          vscode.Uri.file(path.join(wsFolder.uri.fsPath, src.file)),
+          { selection: new vscode.Range(src.line_start - 1, 0, src.line_end - 1, 0) } as vscode.TextDocumentShowOptions,
+        ],
+      };
+    }
+  }
+}
+
 // ── Provider ────────────────────────────────────────────────────────
 
 export class PreCommitBriefProvider implements vscode.TreeDataProvider<BriefTreeItem>, vscode.Disposable {
@@ -234,21 +295,26 @@ export class PreCommitBriefProvider implements vscode.TreeDataProvider<BriefTree
     let totalCritical = 0;
     let totalAnnotations = 0;
     let totalReviewed = 0;
+    let totalDependencies = 0;
     for (const fk of knowledge) {
       totalCritical += fk.overlappingCritical.filter(f => !f.human_reviewed).length;
       totalAnnotations += fk.overlappingAnnotations.length;
       totalReviewed += fk.reviewMarkers.length > 0 ? 1 : 0;
+      totalDependencies += fk.incomingDependencies.length;
     }
 
     const items: BriefTreeItem[] = [
-      new SummaryNode(knowledge.length, totalCritical, totalAnnotations, totalReviewed),
+      new SummaryNode(knowledge.length, totalCritical, totalAnnotations, totalReviewed, totalDependencies),
     ];
 
-    // Sort files: unresolved critical overlaps first, then by annotation count, then alphabetical
+    // Sort files: unresolved critical overlaps first, then dependencies, then by annotation count, then alphabetical
     const sorted = [...knowledge].sort((a, b) => {
       const aCrit = a.overlappingCritical.filter(f => !f.human_reviewed).length;
       const bCrit = b.overlappingCritical.filter(f => !f.human_reviewed).length;
       if (aCrit !== bCrit) { return bCrit - aCrit; }
+      const aDeps = a.incomingDependencies.length;
+      const bDeps = b.incomingDependencies.length;
+      if (aDeps !== bDeps) { return bDeps - aDeps; }
       const aKnowledge = a.overlappingAnnotations.length + a.overlappingCritical.length;
       const bKnowledge = b.overlappingAnnotations.length + b.overlappingCritical.length;
       if (aKnowledge !== bKnowledge) { return bKnowledge - aKnowledge; }
@@ -262,10 +328,15 @@ export class PreCommitBriefProvider implements vscode.TreeDataProvider<BriefTree
     return items;
   }
 
-  private getFileChildren(knowledge: FileKnowledge): KnowledgeNode[] {
-    const nodes: KnowledgeNode[] = [];
+  private getFileChildren(knowledge: FileKnowledge): BriefTreeItem[] {
+    const nodes: BriefTreeItem[] = [];
 
-    // Critical flags first, overlapping changes highlighted
+    // Cross-file dependencies first — these are the most actionable
+    for (const dep of knowledge.incomingDependencies) {
+      nodes.push(new DependencyNode(dep));
+    }
+
+    // Critical flags, overlapping changes highlighted
     const sortedCritical = [...knowledge.criticalFlags].sort((a, b) => {
       const aOverlap = knowledge.overlappingCritical.includes(a) ? 0 : 1;
       const bOverlap = knowledge.overlappingCritical.includes(b) ? 0 : 1;
@@ -299,6 +370,18 @@ export class PreCommitBriefProvider implements vscode.TreeDataProvider<BriefTree
     const changedFiles = gitChangedFiles(cwd);
     if (changedFiles.length === 0) { return []; }
 
+    // Build a map of incoming dependencies: which annotations point to which files
+    const allAnnotations = this.store.getAnnotations()
+      .filter(a => !EPHEMERAL_CATEGORIES.has(a.category));
+    const incomingByFile = new Map<string, IncomingDependency[]>();
+    for (const ann of allAnnotations) {
+      if (!ann.dependencies) { continue; }
+      for (const dep of ann.dependencies) {
+        if (!incomingByFile.has(dep.file)) { incomingByFile.set(dep.file, []); }
+        incomingByFile.get(dep.file)!.push({ sourceAnnotation: ann, dependency: dep });
+      }
+    }
+
     const result: FileKnowledge[] = [];
 
     for (const filePath of changedFiles) {
@@ -319,6 +402,9 @@ export class PreCommitBriefProvider implements vscode.TreeDataProvider<BriefTree
         rangesOverlap(f.line_start, f.line_end, changedRanges),
       );
 
+      // Gather incoming dependencies from other files
+      const incomingDependencies = incomingByFile.get(filePath) ?? [];
+
       result.push({
         filePath,
         annotations,
@@ -327,6 +413,7 @@ export class PreCommitBriefProvider implements vscode.TreeDataProvider<BriefTree
         changedRanges,
         overlappingAnnotations,
         overlappingCritical,
+        incomingDependencies,
       });
     }
 

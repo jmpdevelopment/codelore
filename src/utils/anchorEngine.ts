@@ -1,12 +1,24 @@
 import * as crypto from 'crypto';
+import { ContentAnchor } from '../models/annotation';
 
-/** Stored alongside an annotation or critical flag for drift detection. */
-export interface ContentAnchor {
-  /** Hash of the trimmed, non-empty lines in the annotated region. */
-  content_hash: string;
-  /** Whether the anchor no longer matches the file content. */
-  stale: boolean;
-}
+/**
+ * Patterns that identify function/class/method signature lines.
+ * Supports Python (def, class, async def) and TypeScript/JavaScript
+ * (function, class, export function, async function, arrow functions, methods).
+ */
+const SIGNATURE_PATTERNS = [
+  // Python: def, async def, class
+  /^\s*(async\s+)?def\s+\w+/,
+  /^\s*class\s+\w+/,
+  // TypeScript/JavaScript: function, export function, async function
+  /^\s*(export\s+)?(async\s+)?function\s+\w+/,
+  // TS/JS: class declarations
+  /^\s*(export\s+)?(abstract\s+)?class\s+\w+/,
+  // TS/JS: method definitions (name followed by parens, possibly with async/static/get/set)
+  /^\s*(static\s+)?(async\s+)?(get\s+|set\s+)?\w+\s*\(/,
+  // TS/JS: arrow function assigned to const/let/var
+  /^\s*(export\s+)?(const|let|var)\s+\w+\s*=\s*(async\s+)?\(/,
+];
 
 /**
  * Compute a content hash for the given lines (1-based line_start/line_end).
@@ -19,6 +31,67 @@ export function computeContentHash(fileLines: string[], lineStart: number, lineE
     .filter(l => l.length > 0)
     .join('\n');
   return crypto.createHash('sha256').update(normalized).digest('hex').slice(0, 16);
+}
+
+/**
+ * Extract the signature line from a code region (first line matching a known pattern).
+ * Returns the trimmed signature line, or undefined if no signature is found.
+ */
+export function extractSignature(fileLines: string[], lineStart: number, lineEnd: number): string | undefined {
+  const region = fileLines.slice(lineStart - 1, lineEnd);
+  for (const line of region) {
+    const trimmed = line.trim();
+    if (trimmed.length === 0) { continue; }
+    for (const pattern of SIGNATURE_PATTERNS) {
+      if (pattern.test(line)) {
+        return trimmed;
+      }
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Compute a hash of the function/class signature within the annotated region.
+ * Returns undefined if no recognizable signature is found.
+ */
+export function computeSignatureHash(fileLines: string[], lineStart: number, lineEnd: number): string | undefined {
+  const sig = extractSignature(fileLines, lineStart, lineEnd);
+  if (!sig) { return undefined; }
+  return crypto.createHash('sha256').update(sig).digest('hex').slice(0, 16);
+}
+
+/**
+ * Search the file for lines matching a signature hash.
+ * Returns the line number (1-based) of the best match closest to originalLine.
+ */
+export function findBySignature(
+  fileLines: string[],
+  originalLineStart: number,
+  signatureHash: string,
+): number | undefined {
+  const candidates: { line: number; distance: number }[] = [];
+
+  for (let i = 0; i < fileLines.length; i++) {
+    const trimmed = fileLines[i].trim();
+    if (trimmed.length === 0) { continue; }
+    let isSignature = false;
+    for (const pattern of SIGNATURE_PATTERNS) {
+      if (pattern.test(fileLines[i])) {
+        isSignature = true;
+        break;
+      }
+    }
+    if (!isSignature) { continue; }
+    const hash = crypto.createHash('sha256').update(trimmed).digest('hex').slice(0, 16);
+    if (hash === signatureHash) {
+      candidates.push({ line: i + 1, distance: Math.abs(i + 1 - originalLineStart) });
+    }
+  }
+
+  if (candidates.length === 0) { return undefined; }
+  candidates.sort((a, b) => a.distance - b.distance);
+  return candidates[0].line;
 }
 
 /**
@@ -46,7 +119,9 @@ export interface ReanchorCandidate {
  *
  * Strategy:
  * 1. Try sliding the same-size window across the file looking for an exact hash match.
- * 2. If no exact match, return undefined — the content has been edited or deleted.
+ * 2. If no exact match but a signature_hash is provided, search for the signature
+ *    as a fallback — the body changed but the function/class declaration is intact.
+ * 3. If neither matches, return undefined.
  *
  * This handles line shifts (insertions/deletions above the region) perfectly,
  * and handles moves within the file.
@@ -56,11 +131,12 @@ export function findReanchorCandidate(
   originalLineStart: number,
   originalLineEnd: number,
   expectedHash: string,
+  signatureHash?: string,
 ): ReanchorCandidate | undefined {
   const regionSize = originalLineEnd - originalLineStart + 1;
   if (regionSize < 1 || fileLines.length < regionSize) { return undefined; }
 
-  // Search outward from original position for best locality
+  // Strategy 1: exact content hash match (sliding window)
   const candidates: { start: number; distance: number }[] = [];
 
   for (let start = 1; start <= fileLines.length - regionSize + 1; start++) {
@@ -71,17 +147,31 @@ export function findReanchorCandidate(
     }
   }
 
-  if (candidates.length === 0) { return undefined; }
+  if (candidates.length > 0) {
+    candidates.sort((a, b) => a.distance - b.distance);
+    const best = candidates[0];
+    return {
+      line_start: best.start,
+      line_end: best.start + regionSize - 1,
+      confidence: best.distance === 0 ? 'exact' : 'high',
+    };
+  }
 
-  // Pick the candidate closest to the original position
-  candidates.sort((a, b) => a.distance - b.distance);
-  const best = candidates[0];
+  // Strategy 2: signature-based fallback — body changed but signature intact
+  if (signatureHash) {
+    const sigLine = findBySignature(fileLines, originalLineStart, signatureHash);
+    if (sigLine !== undefined) {
+      // Anchor to the same region size starting from the signature line
+      const newEnd = Math.min(sigLine + regionSize - 1, fileLines.length);
+      return {
+        line_start: sigLine,
+        line_end: newEnd,
+        confidence: 'low',
+      };
+    }
+  }
 
-  return {
-    line_start: best.start,
-    line_end: best.start + regionSize - 1,
-    confidence: best.distance === 0 ? 'exact' : 'high',
-  };
+  return undefined;
 }
 
 /**
@@ -125,12 +215,13 @@ export function checkAnchors(
       continue;
     }
 
-    // Content moved or changed — try to find it
+    // Content moved or changed — try to find it (with signature fallback)
     const candidate = findReanchorCandidate(
       fileLines,
       item.line_start,
       item.line_end,
       item.anchor.content_hash,
+      item.anchor.signature_hash,
     );
 
     results.push({

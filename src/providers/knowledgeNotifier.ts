@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { DiaryStore } from '../storage/diaryStore';
-import { EPHEMERAL_CATEGORIES } from '../models/annotation';
+import { EPHEMERAL_CATEGORIES, Annotation } from '../models/annotation';
 import { getRelativePath, getWorkspaceCwd, gitDiff, parseChangedLineRanges } from '../utils/git';
 import { rangesOverlap } from '../views/preCommitBriefProvider';
 
@@ -89,12 +89,18 @@ export class KnowledgeNotifier implements vscode.Disposable {
       rangesOverlap(f.line_start, f.line_end, changedRanges),
     );
 
-    const total = overlappingAnnotations.length + overlappingCritical.length;
+    // Check for incoming cross-file dependencies from other files
+    const incomingDeps = this.findIncomingDependencies(filePath);
+
+    const total = overlappingAnnotations.length + overlappingCritical.length + incomingDeps.length;
     if (total === 0) { return; }
 
     this.notifiedOnSave.add(filePath);
 
     const parts: string[] = [];
+    if (incomingDeps.length > 0) {
+      parts.push(`${incomingDeps.length} cross-file dependency link${incomingDeps.length !== 1 ? 's' : ''}`);
+    }
     if (overlappingCritical.length > 0) {
       const unresolvedCount = overlappingCritical.filter(f => !f.human_reviewed).length;
       if (unresolvedCount > 0) {
@@ -112,6 +118,17 @@ export class KnowledgeNotifier implements vscode.Disposable {
         vscode.commands.executeCommand('codediary.preCommitBrief.focus');
       }
     });
+  }
+
+  /**
+   * Find annotations from other files that declare a dependency on the given file.
+   */
+  private findIncomingDependencies(filePath: string): Annotation[] {
+    return this.store.getAnnotations().filter(a =>
+      a.file !== filePath
+      && !EPHEMERAL_CATEGORIES.has(a.category)
+      && a.dependencies?.some(d => d.file === filePath),
+    );
   }
 
   dispose(): void {

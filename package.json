@@ -35,11 +35,13 @@
       },
       {
         "command": "codediary.editAnnotation",
-        "title": "CodeDiary: Edit Annotation"
+        "title": "CodeDiary: Edit Annotation",
+        "icon": "$(edit)"
       },
       {
         "command": "codediary.deleteAnnotation",
-        "title": "CodeDiary: Delete Annotation"
+        "title": "CodeDiary: Delete Annotation",
+        "icon": "$(trash)"
       },
       {
         "command": "codediary.markReviewed",

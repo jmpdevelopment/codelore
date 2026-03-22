@@ -6,6 +6,7 @@ export const ANNOTATION_CATEGORIES = [
   'hallucination',
   'intent',
   'accepted',
+  'business_rule',
   'ai_prompt',
 ] as const;
 
@@ -18,7 +19,19 @@ export type AnnotationSource = 'manual' | 'ai_suggested' | 'ai_accepted';
 
 export interface ContentAnchor {
   content_hash: string;
+  /** Hash of the function/class signature line for more stable anchoring. */
+  signature_hash?: string;
   stale: boolean;
+}
+
+export interface FileDependency {
+  /** Target file path (relative to workspace root). */
+  file: string;
+  /** Optional line range in the target file. */
+  line_start?: number;
+  line_end?: number;
+  /** Describes the relationship (e.g., "must stay in sync", "calls this function"). */
+  relationship: string;
 }
 
 export interface Annotation {
@@ -34,6 +47,8 @@ export interface Annotation {
   created_at: string;
   author?: string;
   anchor?: ContentAnchor;
+  /** Cross-file dependencies — other files/regions this code is coupled with. */
+  dependencies?: FileDependency[];
 }
 
 export const CATEGORY_META: Record<AnnotationCategory, { label: string; icon: string; color: string; description: string }> = {
@@ -78,6 +93,12 @@ export const CATEGORY_META: Record<AnnotationCategory, { label: string; icon: st
     icon: '$(thumbsup)',
     color: '#9e9e9e',
     description: 'Reviewed, acceptable without changes',
+  },
+  business_rule: {
+    label: 'Business Rule',
+    icon: '$(law)',
+    color: '#e91e63',
+    description: 'Documents a business rule or domain constraint — don\'t change without stakeholder sign-off',
   },
   ai_prompt: {
     label: 'AI Prompt',

@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
 import { v4 as uuidv4 } from 'uuid';
 import { DiaryStore, Scope } from '../storage/diaryStore';
-import { Annotation, ANNOTATION_CATEGORIES, CATEGORY_META, AnnotationCategory } from '../models/annotation';
+import { Annotation, ANNOTATION_CATEGORIES, CATEGORY_META, AnnotationCategory, FileDependency } from '../models/annotation';
 import { getGitUser, getRelativePath } from '../utils/git';
-import { computeContentHash } from '../utils/anchorEngine';
+import { computeContentHash, computeSignatureHash } from '../utils/anchorEngine';
 
 async function pickScope(store: DiaryStore): Promise<Scope | undefined> {
   const defaultScope = store.getDefaultScope();
@@ -25,6 +25,53 @@ async function pickScope(store: DiaryStore): Promise<Scope | undefined> {
     placeHolder: 'Will this outlive your current work session?',
   });
   return picked?.scope;
+}
+
+async function promptDependencies(): Promise<FileDependency[]> {
+  const deps: FileDependency[] = [];
+
+  // Ask if user wants to add a dependency link
+  const addDep = await vscode.window.showQuickPick(
+    [
+      { label: '$(link) Add cross-file dependency', id: 'yes' as const },
+      { label: '$(dash) Skip', id: 'no' as const },
+    ],
+    { placeHolder: 'Link this annotation to another file? (e.g., "must stay in sync with billing/calc.py")' },
+  );
+
+  if (!addDep || addDep.id === 'no') { return deps; }
+
+  // Loop to allow adding multiple dependencies
+  while (true) {
+    const filePath = await vscode.window.showInputBox({
+      prompt: 'Dependent file path (relative to workspace root)',
+      placeHolder: 'e.g., src/billing/calculator.py',
+    });
+    if (!filePath) { break; }
+
+    const relationship = await vscode.window.showInputBox({
+      prompt: 'How are these files related?',
+      placeHolder: 'e.g., must stay in sync, calls this function, shares this data model',
+    });
+    if (relationship === undefined) { break; }
+
+    deps.push({
+      file: filePath,
+      relationship: relationship || 'related',
+    });
+
+    const more = await vscode.window.showQuickPick(
+      [
+        { label: '$(add) Add another dependency', id: 'yes' as const },
+        { label: '$(check) Done', id: 'no' as const },
+      ],
+      { placeHolder: `${deps.length} dependency link${deps.length !== 1 ? 's' : ''} added` },
+    );
+
+    if (!more || more.id === 'no') { break; }
+  }
+
+  return deps;
 }
 
 export function registerAnnotateCommands(context: vscode.ExtensionContext, store: DiaryStore): void {
@@ -85,6 +132,10 @@ export function registerAnnotateCommands(context: vscode.ExtensionContext, store
       // Compute content anchor from current file content
       const fileLines = editor.document.getText().split('\n');
       const contentHash = computeContentHash(fileLines, lineStart, lineEnd);
+      const signatureHash = computeSignatureHash(fileLines, lineStart, lineEnd);
+
+      // Offer cross-file dependency linking
+      const dependencies = await promptDependencies();
 
       const annotation: Annotation = {
         id: uuidv4(),
@@ -96,13 +147,15 @@ export function registerAnnotateCommands(context: vscode.ExtensionContext, store
         source: 'manual',
         created_at: new Date().toISOString(),
         author: getGitUser(),
-        anchor: { content_hash: contentHash, stale: false },
+        anchor: { content_hash: contentHash, signature_hash: signatureHash, stale: false },
+        dependencies: dependencies.length > 0 ? dependencies : undefined,
       };
 
       store.addAnnotation(annotation, scope);
       const scopeLabel = scope === 'shared' ? 'team' : 'working notes';
+      const depMsg = dependencies.length > 0 ? ` with ${dependencies.length} dependency link${dependencies.length !== 1 ? 's' : ''}` : '';
       vscode.window.showInformationMessage(
-        `CodeDiary: ${CATEGORY_META[picked.category].label} annotation added (${scopeLabel})`,
+        `CodeDiary: ${CATEGORY_META[picked.category].label} annotation added (${scopeLabel})${depMsg}`,
       );
     }),
 

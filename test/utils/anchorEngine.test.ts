@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import {
   computeContentHash,
+  computeSignatureHash,
+  extractSignature,
+  findBySignature,
   verifyAnchor,
   findReanchorCandidate,
   checkAnchors,
@@ -263,5 +266,210 @@ describe('checkAnchors', () => {
     expect(goodbyeResult.stale).toBe(true);
     expect(goodbyeResult.candidate).toBeDefined();
     expect(goodbyeResult.candidate!.line_start).toBe(9);
+  });
+});
+
+// ── Signature anchoring ─────────────────────────────────────────────
+
+const pythonFile = [
+  'import os',                                // 1
+  '',                                          // 2
+  'class BillingService:',                    // 3
+  '    def calculate_total(self, items):',    // 4
+  '        total = sum(i.price for i in items)',  // 5
+  '        return total * 1.1',               // 6
+  '',                                          // 7
+  '    def apply_discount(self, total, code):', // 8
+  '        if code == "VIP":',                // 9
+  '            return total * 0.9',           // 10
+  '        return total',                     // 11
+];
+
+const tsFile = [
+  'import { User } from "./models";',        // 1
+  '',                                          // 2
+  'export async function fetchUser(id: string): Promise<User> {', // 3
+  '  const res = await fetch(`/api/users/${id}`);', // 4
+  '  return res.json();',                     // 5
+  '}',                                         // 6
+  '',                                          // 7
+  'export const processPayment = async (amount: number) => {', // 8
+  '  await stripe.charge(amount);',           // 9
+  '  return { success: true };',              // 10
+  '};',                                        // 11
+];
+
+describe('extractSignature', () => {
+  it('finds Python function signatures', () => {
+    const sig = extractSignature(pythonFile, 4, 6);
+    expect(sig).toBe('def calculate_total(self, items):');
+  });
+
+  it('finds Python class signatures', () => {
+    const sig = extractSignature(pythonFile, 3, 6);
+    expect(sig).toBe('class BillingService:');
+  });
+
+  it('finds TypeScript function signatures', () => {
+    const sig = extractSignature(tsFile, 3, 6);
+    expect(sig).toBe('export async function fetchUser(id: string): Promise<User> {');
+  });
+
+  it('finds arrow function signatures', () => {
+    const sig = extractSignature(tsFile, 8, 11);
+    expect(sig).toBe('export const processPayment = async (amount: number) => {');
+  });
+
+  it('returns undefined for non-signature code', () => {
+    const plainCode = [
+      '  const x = 42;',
+      '  console.log(x);',
+    ];
+    const sig = extractSignature(plainCode, 1, 2);
+    expect(sig).toBeUndefined();
+  });
+});
+
+describe('computeSignatureHash', () => {
+  it('returns a 16-char hex hash for regions with signatures', () => {
+    const hash = computeSignatureHash(pythonFile, 4, 6);
+    expect(hash).toMatch(/^[0-9a-f]{16}$/);
+  });
+
+  it('returns undefined for regions without signatures', () => {
+    const plainCode = ['  const x = 42;', '  return x;'];
+    const hash = computeSignatureHash(plainCode, 1, 2);
+    expect(hash).toBeUndefined();
+  });
+
+  it('same signature produces same hash', () => {
+    const h1 = computeSignatureHash(pythonFile, 4, 6);
+    const h2 = computeSignatureHash(pythonFile, 4, 6);
+    expect(h1).toBe(h2);
+  });
+
+  it('different signatures produce different hashes', () => {
+    const h1 = computeSignatureHash(pythonFile, 4, 6);
+    const h2 = computeSignatureHash(pythonFile, 8, 11);
+    expect(h1).not.toBe(h2);
+  });
+});
+
+describe('findBySignature', () => {
+  it('finds a function by its signature hash', () => {
+    const hash = computeSignatureHash(pythonFile, 4, 6)!;
+    const line = findBySignature(pythonFile, 4, hash);
+    expect(line).toBe(4);
+  });
+
+  it('finds a function that has moved', () => {
+    const hash = computeSignatureHash(pythonFile, 4, 6)!;
+    // Insert lines at top, pushing the function down
+    const shifted = ['# new comment', '# another', ...pythonFile];
+    const line = findBySignature(shifted, 4, hash);
+    expect(line).toBe(6); // 4 + 2 lines inserted
+  });
+
+  it('returns undefined when signature is removed', () => {
+    const hash = computeSignatureHash(pythonFile, 4, 6)!;
+    const withoutCalc = [
+      'import os',
+      '',
+      'class BillingService:',
+      '    pass',
+    ];
+    const line = findBySignature(withoutCalc, 4, hash);
+    expect(line).toBeUndefined();
+  });
+});
+
+describe('findReanchorCandidate with signature fallback', () => {
+  it('falls back to signature when content hash fails', () => {
+    const contentHash = computeContentHash(pythonFile, 4, 6);
+    const sigHash = computeSignatureHash(pythonFile, 4, 6)!;
+
+    // Modify the function body but keep the signature
+    const modified = [
+      'import os',
+      '',
+      'class BillingService:',
+      '    def calculate_total(self, items):',
+      '        total = sum(i.price * i.qty for i in items)',  // body changed
+      '        return total * 1.15',                           // body changed
+    ];
+
+    // Without signature, content hash won't match
+    const withoutSig = findReanchorCandidate(modified, 4, 6, contentHash);
+    expect(withoutSig).toBeUndefined();
+
+    // With signature, it finds the function
+    const withSig = findReanchorCandidate(modified, 4, 6, contentHash, sigHash);
+    expect(withSig).toBeDefined();
+    expect(withSig!.line_start).toBe(4);
+    expect(withSig!.confidence).toBe('low');
+  });
+
+  it('prefers content hash over signature when both match', () => {
+    const contentHash = computeContentHash(pythonFile, 4, 6);
+    const sigHash = computeSignatureHash(pythonFile, 4, 6)!;
+
+    // Unchanged file — content hash should match exactly
+    const result = findReanchorCandidate(pythonFile, 4, 6, contentHash, sigHash);
+    expect(result).toBeDefined();
+    expect(result!.confidence).toBe('exact'); // content hash match, not signature fallback
+  });
+
+  it('finds moved function via signature when body also changed', () => {
+    const contentHash = computeContentHash(pythonFile, 4, 6);
+    const sigHash = computeSignatureHash(pythonFile, 4, 6)!;
+
+    // Function moved down and body changed
+    const modified = [
+      'import os',
+      '',
+      '# new helper',
+      'def helper():',
+      '    pass',
+      '',
+      'class BillingService:',
+      '    def calculate_total(self, items):',
+      '        return sum(i.total for i in items)',  // different body
+    ];
+
+    const result = findReanchorCandidate(modified, 4, 6, contentHash, sigHash);
+    expect(result).toBeDefined();
+    expect(result!.line_start).toBe(8);
+    expect(result!.confidence).toBe('low');
+  });
+});
+
+describe('checkAnchors with signature_hash', () => {
+  it('uses signature fallback when content changed but signature intact', () => {
+    const contentHash = computeContentHash(pythonFile, 4, 6);
+    const sigHash = computeSignatureHash(pythonFile, 4, 6)!;
+
+    const modified = [
+      'import os',
+      '',
+      'class BillingService:',
+      '    def calculate_total(self, items):',
+      '        # refactored implementation',
+      '        return sum(i.subtotal for i in items) * 1.1',
+    ];
+
+    const results = checkAnchors(modified, [
+      {
+        id: 'a1',
+        line_start: 4,
+        line_end: 6,
+        anchor: { content_hash: contentHash, signature_hash: sigHash, stale: false },
+      },
+    ]);
+
+    expect(results).toHaveLength(1);
+    expect(results[0].stale).toBe(true);
+    expect(results[0].candidate).toBeDefined();
+    expect(results[0].candidate!.line_start).toBe(4);
+    expect(results[0].candidate!.confidence).toBe('low');
   });
 });

@@ -1,10 +1,27 @@
 import * as vscode from 'vscode';
 import { LmService } from './lmService';
 import { DiaryStore } from '../storage/diaryStore';
-import { Annotation, AnnotationCategory, CATEGORY_META } from '../models/annotation';
+import { Annotation, AnnotationCategory, CATEGORY_META, FileDependency } from '../models/annotation';
 import { v4 as uuidv4 } from 'uuid';
 import { getGitUser, getRelativePath, getWorkspaceCwd, gitDiff, gitDiffAll } from '../utils/git';
 import { validLineRange, isValidCategory } from '../utils/validation';
+
+/** Validate and extract dependency entries from AI-generated JSON. */
+function parseDependencies(raw: unknown): FileDependency[] | undefined {
+  if (!Array.isArray(raw) || raw.length === 0) { return undefined; }
+  const deps: FileDependency[] = [];
+  for (const d of raw) {
+    if (!d || typeof d !== 'object') { continue; }
+    if (typeof d.file !== 'string' || !d.file.trim()) { continue; }
+    deps.push({
+      file: d.file.trim(),
+      relationship: typeof d.relationship === 'string' ? d.relationship.trim() : 'related',
+      line_start: typeof d.line_start === 'number' ? d.line_start : undefined,
+      line_end: typeof d.line_end === 'number' ? d.line_end : undefined,
+    });
+  }
+  return deps.length > 0 ? deps : undefined;
+}
 
 const SYSTEM_PROMPT = `You are CodeDiary, an assistant that helps developers build institutional knowledge about their codebase during AI-assisted development.
 
@@ -19,10 +36,15 @@ IMPORTANT: If existing annotations or critical flags are provided, use them as c
 - Focus new entries on what the existing annotations DON'T already cover
 
 Respond with a JSON array of entries. Each entry has:
-- "category": one of "verified", "needs_review", "modified", "confused", "hallucination", "intent", "accepted"
+- "category": one of "verified", "needs_review", "modified", "confused", "hallucination", "intent", "accepted", "business_rule"
 - "line_start": starting line number in the new file
 - "line_end": ending line number
 - "text": the diary note (1-2 sentences, conversational tone)
+- "dependencies": (optional) array of cross-file dependency links: [{"file": "path/to/file.py", "relationship": "must stay in sync"}]
+
+Use the "business_rule" category when code implements a specific business rule, domain constraint, or regulatory requirement that should not be changed without stakeholder sign-off.
+
+When you detect that changed code is tightly coupled to another file (shared data models, paired calculations, coordinated state), include a "dependencies" entry to create a cross-file link.
 
 Focus on what matters. Skip trivial changes (imports, formatting). Flag anything that looks like it could break things or that a reviewer should double-check.
 
@@ -33,6 +55,7 @@ interface SuggestedEntry {
   line_start: number;
   line_end: number;
   text: string;
+  dependencies?: FileDependency[];
 }
 
 export class DiaryGenerator {
@@ -204,6 +227,7 @@ export class DiaryGenerator {
       source: 'ai_suggested',
       created_at: new Date().toISOString(),
       author: getGitUser(),
+      dependencies: entry.dependencies && entry.dependencies.length > 0 ? entry.dependencies : undefined,
     };
     this.store.addAnnotation(annotation);
   }
@@ -225,6 +249,7 @@ export class DiaryGenerator {
           line_start: range.line_start,
           line_end: range.line_end,
           text: e.text.trim(),
+          dependencies: parseDependencies(e.dependencies),
         });
       }
       return results;
@@ -251,6 +276,7 @@ export class DiaryGenerator {
           line_end: range.line_end,
           text: e.text.trim(),
           file: typeof e.file === 'string' ? e.file : undefined,
+          dependencies: parseDependencies(e.dependencies),
         });
       }
       return results;

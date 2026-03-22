@@ -1,0 +1,26 @@
+annotations:
+  - id: d2a81fee-87ee-4702-a048-d8d68ecc7695
+    file: src/commands/annotate.ts
+    line_start: 30
+    line_end: 30
+    category: needs_review
+    text: Need to review here later
+    source: manual
+    created_at: '2026-03-22T14:15:59.384Z'
+    author: jmpdevelopment
+    anchor:
+      content_hash: 94a550feb43e1578
+      signature_hash: 94a550feb43e1578
+      stale: false
+  - id: 3eb59fa4-72ac-4872-aa88-ba05eaac31de
+    file: src/commands/annotate.ts
+    line_start: 143
+    line_end: 146
+    category: needs_review
+    text: Need to review these props with ABC
+    source: manual
+    created_at: '2026-03-22T14:17:04.212Z'
+    author: jmpdevelopment
+    anchor:
+      content_hash: e1c2e1c69cc5fae0
+      stale: false
