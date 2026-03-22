@@ -1,25 +1,55 @@
 annotations:
-  - id: demo-c1
+  - id: 7365a08f-d3cd-4dcb-89fc-3159d2a3afe2
     file: src/utils/anchorEngine.ts
-    line_start: 15
-    line_end: 22
+    line_start: 27
+    line_end: 34
+    category: business_rule
+    text: >-
+      computeContentHash is the foundation of all annotation anchoring. It normalizes whitespace
+      and ignores empty lines so that formatter runs (prettier, eslint --fix) don't break every
+      anchor. Tradeoff: code blocks differing only by whitespace hash identically. Acceptable.
+    source: manual
+    created_at: "2026-03-22T16:00:00Z"
+    author: jmp
+    dependencies:
+      - file: src/commands/annotate.ts
+        relationship: annotate.ts calls computeContentHash when creating new annotations
+      - file: src/commands/reanchor.ts
+        relationship: reanchor.ts calls computeContentHash when relocating stale annotations
+  - id: 442c85a6-5cb9-4c65-952a-b58aeb4927c4
+    file: src/utils/anchorEngine.ts
+    line_start: 58
+    line_end: 62
     category: intent
     text: >-
-      Hash ignores whitespace and empty lines on purpose. Reformatting (prettier, eslint --fix)
-      shouldn't break every anchor in the file. Tradeoff: two genuinely different code blocks
-      that differ only by whitespace will hash the same. Acceptable.
+      computeSignatureHash hashes only the function/class declaration line, not the body. This
+      is the fallback anchor — when the code body changes but the signature is intact, we can
+      still locate the annotation. Returns undefined if no signature pattern matches (e.g. plain
+      variable assignments, config blocks).
     source: manual
-    created_at: "2026-03-18T13:20:00Z"
+    created_at: "2026-03-22T16:00:00Z"
     author: jmp
-  - id: demo-c2
+  - id: 109275c2-4a3d-438f-a304-f2d6586b8d51
     file: src/utils/anchorEngine.ts
-    line_start: 54
-    line_end: 85
+    line_start: 129
+    line_end: 175
     category: needs_review
     text: >-
-      Sliding window search is O(n * region_size) per stale annotation. Fine for normal files
-      but could be slow on very large files (10k+ lines) with many stale annotations. Haven't
-      hit this in practice yet.
+      findReanchorCandidate uses a sliding window O(n * region_size) per stale annotation. Fine
+      for normal files but could be slow on very large files (10k+ lines). The signature fallback
+      on line 161 returns confidence:'low' to distinguish from exact content matches.
     source: manual
-    created_at: "2026-03-18T13:35:00Z"
+    created_at: "2026-03-22T16:00:00Z"
+    author: jmp
+  - id: ab5e1ed9-c4c7-4f4e-8867-c1b7e23901b5
+    file: src/utils/anchorEngine.ts
+    line_start: 9
+    line_end: 21
+    category: intent
+    text: >-
+      SIGNATURE_PATTERNS cover Python and TypeScript/JavaScript only. Adding new languages
+      requires extending this array. The patterns are ordered from most specific to least — the
+      generic method pattern (line 18) matches very broadly, so it comes last.
+    source: manual
+    created_at: "2026-03-22T16:00:00Z"
     author: jmp

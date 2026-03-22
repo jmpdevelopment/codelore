@@ -1,13 +1,27 @@
 annotations:
-  - id: demo-f1
+  - id: 78bf8f07-75a5-441a-8662-f6e22f69576d
     file: src/views/preCommitBriefProvider.ts
     line_start: 186
     line_end: 210
     category: intent
     text: >-
-      buildKnowledge() runs git commands synchronously on every tree refresh. This is fine
-      because VS Code TreeDataProviders are called lazily, but if we ever add a file watcher
-      on .git/index we should debounce or cache.
+      buildKnowledge() runs git commands synchronously on every tree refresh. This is acceptable because
+      VS Code TreeDataProviders are called lazily (only when the panel is visible). If a file watcher
+      on .git/index is ever added, this should be debounced or cached.
     source: manual
-    created_at: "2026-03-21T10:00:00Z"
+    created_at: "2026-03-22T16:00:00Z"
     author: jmp
+  - id: 1bc29da3-f747-4b76-bbe7-f63ec9e78669
+    file: src/views/preCommitBriefProvider.ts
+    line_start: 1
+    line_end: 5
+    category: business_rule
+    text: >-
+      rangesOverlap is exported because knowledgeNotifier.ts uses it. Do not make it private
+      or remove the export — it is part of the cross-module API.
+    source: manual
+    created_at: "2026-03-22T16:00:00Z"
+    author: jmp
+    dependencies:
+      - file: src/providers/knowledgeNotifier.ts
+        relationship: knowledgeNotifier imports rangesOverlap for save-time overlap detection

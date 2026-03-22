@@ -1,26 +1,31 @@
 annotations:
-  - id: d2a81fee-87ee-4702-a048-d8d68ecc7695
-    file: src/commands/annotate.ts
-    line_start: 30
-    line_end: 30
-    category: needs_review
-    text: Need to review here later
-    source: manual
-    created_at: '2026-03-22T14:15:59.384Z'
-    author: jmpdevelopment
-    anchor:
-      content_hash: 94a550feb43e1578
-      signature_hash: 94a550feb43e1578
-      stale: false
   - id: 3eb59fa4-72ac-4872-aa88-ba05eaac31de
     file: src/commands/annotate.ts
-    line_start: 143
-    line_end: 146
-    category: needs_review
-    text: Need to review these props with ABC
+    line_start: 142
+    line_end: 176
+    category: intent
+    text: >-
+      editAnnotation and deleteAnnotation accept either a string ID or a TreeItem object from the
+      sidebar. VSCode passes the TreeItem as first arg when called from inline buttons (view/item/context
+      menu). The typeof check on arg handles both cases. If neither, falls back to cursor-based lookup.
     source: manual
-    created_at: '2026-03-22T14:17:04.212Z'
-    author: jmpdevelopment
-    anchor:
-      content_hash: e1c2e1c69cc5fae0
-      stale: false
+    created_at: "2026-03-22T16:00:00Z"
+    author: jmp
+  - id: c7ba5c30-0d09-4e7f-a111-6d2c4ec89c8b
+    file: src/commands/annotate.ts
+    line_start: 89
+    line_end: 106
+    category: intent
+    text: >-
+      Overlap detection before adding: warns the user if existing annotations cover the same line
+      range. "Replace existing" deletes ALL overlapping annotations (both manual and AI-generated)
+      at the user's explicit request. This is different from AI suggestion overlap replacement
+      which only auto-replaces AI-generated ones.
+    source: manual
+    created_at: "2026-03-22T16:00:00Z"
+    author: jmp
+    dependencies:
+      - file: src/ai/diaryGenerator.ts
+        relationship: >-
+          diaryGenerator overlap replacement only deletes source !== 'manual' — annotate.ts deletes
+          all overlapping when user explicitly chooses "Replace existing"

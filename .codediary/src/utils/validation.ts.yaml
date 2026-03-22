@@ -1,0 +1,37 @@
+annotations:
+  - id: 2f035f8c-c4d3-466c-aa4d-896fdf7c2fbc
+    file: src/utils/validation.ts
+    line_start: 65
+    line_end: 71
+    category: business_rule
+    text: >-
+      isSafeRelativePath is the single security gate for all file open/navigation operations.
+      Every code path that opens a file from annotation data must call this first. If bypassed,
+      attackers could craft annotations with paths like ../../etc/passwd to read arbitrary files.
+    source: manual
+    created_at: "2026-03-22T16:00:00Z"
+    author: jmp
+    dependencies:
+      - file: src/views/changePlanProvider.ts
+        relationship: changePlanProvider calls isSafeRelativePath before vscode.open navigation
+      - file: src/ai/diaryGenerator.ts
+        relationship: diaryGenerator validates dependency paths with isSafeRelativePath
+      - file: src/storage/sharedStore.ts
+        relationship: sharedStore has its own path traversal check in yamlPath() — both must agree
+  - id: ddcfb64e-c3d3-4e46-be1a-ac5622e04974
+    file: src/utils/validation.ts
+    line_start: 92
+    line_end: 95
+    category: business_rule
+    text: >-
+      sanitizeMarkdownText strips markdown link syntax to prevent command: URI injection in hover
+      messages. Without this, a malicious annotation text like [click](command:workbench.action.terminal.sendSequence?...)
+      could execute arbitrary VS Code commands when a user hovers over it.
+    source: manual
+    created_at: "2026-03-22T16:00:00Z"
+    author: jmp
+    dependencies:
+      - file: src/providers/annotationDecorator.ts
+        relationship: annotationDecorator uses sanitizeMarkdownText in all hover messages
+      - file: src/views/changePlanProvider.ts
+        relationship: changePlanProvider uses sanitizeMarkdownText in tooltip MarkdownStrings

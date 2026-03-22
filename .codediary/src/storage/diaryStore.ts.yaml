@@ -1,34 +1,37 @@
 annotations:
-  - id: demo-a1
+  - id: 3590cc0b-3455-4ad6-adb4-1e50e05c2dd1
     file: src/storage/diaryStore.ts
     line_start: 65
     line_end: 67
-    category: intent
+    category: business_rule
     text: >-
-      Shared annotations come first in the merged array. This ordering matters — if you ever
-      deduplicate, shared wins over personal.
+      Shared annotations come first in the merged array. This ordering is an invariant — if
+      deduplication is ever added, shared must win over personal. Changing the order breaks the
+      assumption that getAnnotationScope() returns 'shared' for the first match.
     source: manual
-    created_at: "2026-03-14T10:22:00Z"
+    created_at: "2026-03-22T16:00:00Z"
     author: jmp
-  - id: demo-a2
-    file: src/storage/diaryStore.ts
-    line_start: 120
-    line_end: 123
-    category: verified
-    text: >-
-      removeReviewMarker removes from both stores intentionally. Unlike clearAll (personal only),
-      an explicit unmark should apply everywhere.
-    source: manual
-    created_at: "2026-03-15T14:05:00Z"
-    author: jmp
-  - id: demo-a3
+  - id: e8eceb5e-6898-4a15-ac8e-802674ad6f50
     file: src/storage/diaryStore.ts
     line_start: 242
     line_end: 245
-    category: needs_review
+    category: business_rule
     text: >-
-      clearAll only wipes personal store. If someone expects this to nuke everything, they'll
-      be surprised. The naming could be better but "Clear Personal Data" in the UI helps.
+      clearAll only wipes the personal store. This is a critical safety decision — accidentally
+      clearing shared team knowledge would be catastrophic and irreversible. The UI label
+      "Clear Personal Data" reinforces this, do not rename it to "Clear All" or similar.
     source: manual
-    created_at: "2026-03-16T09:30:00Z"
+    created_at: "2026-03-22T16:00:00Z"
+    author: jmp
+  - id: 70b47a7f-797b-4b40-b3ca-dddfecf68b49
+    file: src/storage/diaryStore.ts
+    line_start: 120
+    line_end: 128
+    category: intent
+    text: >-
+      removeReviewMarker deletes from BOTH stores — this is correct. An explicit unmark should
+      clear everywhere. But removeReviewMarkersForFile (line 125) only clears personal, because
+      bulk-removing shared markers would erase team review history.
+    source: manual
+    created_at: "2026-03-22T16:00:00Z"
     author: jmp

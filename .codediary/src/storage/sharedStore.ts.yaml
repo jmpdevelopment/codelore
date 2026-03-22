@@ -1,27 +1,43 @@
 annotations:
-  - id: demo-b1
+  - id: 9c74c169-567c-4ea2-9c50-532994b610a0
     file: src/storage/sharedStore.ts
     line_start: 38
     line_end: 47
-    category: intent
+    category: business_rule
     text: >-
-      Symlink check in constructor is a security boundary. If .codediary/ is a symlink pointing
-      outside the workspace, we bail entirely. This was added after a security review flagged
-      the risk of writing YAML to arbitrary paths.
+      Symlink safety check in constructor. If .codediary/ is a symlink pointing outside the
+      workspace, the store refuses to initialize. This prevents a supply chain attack where
+      someone commits a symlink to a shared repo that exfiltrates annotation writes to an
+      attacker-controlled directory.
     source: manual
-    created_at: "2026-03-19T11:00:00Z"
+    created_at: "2026-03-22T16:00:00Z"
     author: jmp
-  - id: demo-b2
+    dependencies:
+      - file: src/storage/yamlStore.ts
+        relationship: yamlStore has an identical symlink check — both must be kept in sync
+  - id: 0c318781-f3fc-4cd5-9fb5-e4eec14b43a2
     file: src/storage/sharedStore.ts
-    line_start: 227
-    line_end: 244
-    category: verified
+    line_start: 66
+    line_end: 73
+    category: business_rule
     text: >-
-      Review marker merge logic: when you mark lines 5-10 as reviewed and lines 8-15 were
-      already reviewed, you get one merged marker for 5-15. This is correct — gaps would
-      be confusing in the gutter.
+      yamlPath() is the second layer of path traversal defense. Even if an annotation's file
+      field passes isSafeRelativePath, yamlPath verifies the resolved path stays under .codediary/.
+      Throws on violation — callers must handle.
     source: manual
-    created_at: "2026-03-15T16:45:00Z"
+    created_at: "2026-03-22T16:00:00Z"
+    author: jmp
+  - id: f5a3fb08-51e2-490d-a675-ebc20f2d7caa
+    file: src/storage/sharedStore.ts
+    line_start: 110
+    line_end: 120
+    category: needs_review
+    text: >-
+      saveFile re-checks symlink safety before every write, not just at construction. This
+      catches the case where someone creates a symlink after the extension has already loaded.
+      However, there is a TOCTOU race between the check and the write on line 122.
+    source: manual
+    created_at: "2026-03-22T16:00:00Z"
     author: jmp
 critical_flags:
   - file: src/storage/sharedStore.ts
@@ -30,5 +46,6 @@ critical_flags:
     severity: high
     description: >-
       File write path — saveFile() writes YAML to disk. Has symlink re-check but no file
-      locking. Concurrent writes from two VS Code instances could corrupt data.
+      locking. Concurrent writes from two VS Code instances could corrupt data. TOCTOU gap
+      between symlink check (line 112) and write (line 122).
     human_reviewed: false

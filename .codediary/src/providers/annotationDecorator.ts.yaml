@@ -1,25 +1,32 @@
 annotations:
-  - id: demo-e1
+  - id: f12c61a4-1e0b-4b30-bf76-eb676e39a7e6
     file: src/providers/annotationDecorator.ts
-    line_start: 26
-    line_end: 29
-    category: confused
+    line_start: 149
+    line_end: 152
+    category: business_rule
     text: >-
-      The 100ms setTimeout on document open feels like a race condition workaround.
-      Editor might not be assigned when onDidOpenTextDocument fires. Is there a cleaner
-      VS Code API event for "editor is ready with this document"?
+      buildStaleHover uses enabledCommands whitelist ['codediary.reanchor'] instead of isTrusted: true.
+      This is a security requirement — blanket trust allows injected markdown to execute arbitrary
+      VS Code commands via command: URIs. Only the reanchor command is whitelisted.
     source: manual
-    created_at: "2026-03-16T11:45:00Z"
+    created_at: "2026-03-22T16:00:00Z"
     author: jmp
-  - id: demo-e2
+    dependencies:
+      - file: src/utils/validation.ts
+        relationship: sanitizeMarkdownText strips link syntax as a second defense layer against command injection
+  - id: 3fa4149e-1c53-4feb-bcb2-37b7b69acf02
     file: src/providers/annotationDecorator.ts
-    line_start: 148
-    line_end: 159
-    category: verified
+    line_start: 88
+    line_end: 108
+    category: intent
     text: >-
-      Stale hover uses enabledCommands whitelist instead of isTrusted: true. This was
-      a P1 security fix — blanket trust would let injected markdown execute arbitrary
-      VS Code commands.
+      Stale annotations are separated from normal decorations and rendered with a different
+      decoration type (orange background + warning icon). The stale check calls verifyAnchor
+      on every render — this is fast (single hash comparison) but means decoration rendering
+      depends on content hashing being correct.
     source: manual
-    created_at: "2026-03-19T16:30:00Z"
+    created_at: "2026-03-22T16:00:00Z"
     author: jmp
+    dependencies:
+      - file: src/utils/anchorEngine.ts
+        relationship: verifyAnchor is called on every decoration render — if hash logic changes, stale detection changes
