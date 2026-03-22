@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { DiaryStore } from '../storage/diaryStore';
 import { Annotation, CATEGORY_META, AnnotationCategory } from '../models/annotation';
-import { isSafeRelativePath, sanitizeMarkdownText } from '../utils/validation';
+import { isSafeRelativePath, sanitizeMarkdownText, truncateText } from '../utils/validation';
 
 type TreeItem = FileNode | AnnotationNode;
 
@@ -21,7 +21,7 @@ class FileNode extends vscode.TreeItem {
 class AnnotationNode extends vscode.TreeItem {
   constructor(public readonly annotation: Annotation, scope: 'shared' | 'personal') {
     super(
-      `${CATEGORY_META[annotation.category].label}: ${annotation.text.split('\n')[0].substring(0, 60)}`,
+      `${CATEGORY_META[annotation.category].label}: ${truncateText(annotation.text.split('\n')[0], 60)}`,
       vscode.TreeItemCollapsibleState.None,
     );
     const meta = CATEGORY_META[annotation.category];

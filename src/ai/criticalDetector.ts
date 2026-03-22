@@ -3,7 +3,7 @@ import { LmService } from './lmService';
 import { DiaryStore } from '../storage/diaryStore';
 import { CriticalFlag, CriticalSeverity } from '../models/criticalFlag';
 import { getRelativePath, getWorkspaceCwd, gitDiff, gitDiffAll } from '../utils/git';
-import { validLineRange, isValidSeverity } from '../utils/validation';
+import { validLineRange, isValidSeverity, stripJsonFences, truncateText } from '../utils/validation';
 
 const DIFF_SYSTEM_PROMPT = `You are a code safety reviewer. Given a code diff, identify regions that are high-risk and should not be shipped without careful human review.
 
@@ -173,7 +173,7 @@ export class CriticalDetector {
 
           // Show what was found, let user confirm
           const items = filtered.map(r => ({
-            label: `$(shield) ${r.severity}: ${r.description.substring(0, 70)}`,
+            label: `$(shield) ${r.severity}: ${truncateText(r.description, 70)}`,
             description: `${r.file} L${r.line_start}-${r.line_end}`,
             picked: true,
             region: r,
@@ -215,7 +215,7 @@ export class CriticalDetector {
 
   private parseRegions(raw: string, defaultFile?: string): DetectedRegion[] {
     try {
-      const cleaned = raw.replace(/^```(?:json)?\n?/gm, '').replace(/\n?```$/gm, '').trim();
+      const cleaned = stripJsonFences(raw);
       const parsed = JSON.parse(cleaned);
       if (!Array.isArray(parsed)) { return []; }
       const results: DetectedRegion[] = [];

@@ -3,7 +3,7 @@ import * as yaml from 'js-yaml';
 import * as path from 'path';
 import * as fs from 'fs';
 import { Annotation } from '../models/annotation';
-import { ReviewMarker } from '../models/reviewMarker';
+import { ReviewMarker, mergeReviewMarkers } from '../models/reviewMarker';
 import { CriticalFlag } from '../models/criticalFlag';
 
 export interface DiaryData {
@@ -166,29 +166,9 @@ export class YamlStore {
   }
 
   addReviewMarker(marker: ReviewMarker): void {
-    // Merge overlapping ranges for same file
-    const existing = this.data.review_markers.filter(m => m.file === marker.file);
-    const nonOverlapping = existing.filter(
-      m => m.line_end < marker.line_start || m.line_start > marker.line_end,
-    );
-    const overlapping = existing.filter(
-      m => !(m.line_end < marker.line_start || m.line_start > marker.line_end),
-    );
-
-    let merged = marker;
-    for (const o of overlapping) {
-      merged = {
-        ...merged,
-        line_start: Math.min(merged.line_start, o.line_start),
-        line_end: Math.max(merged.line_end, o.line_end),
-      };
-    }
-
-    this.data.review_markers = [
-      ...this.data.review_markers.filter(m => m.file !== marker.file),
-      ...nonOverlapping,
-      merged,
-    ];
+    const forFile = this.data.review_markers.filter(m => m.file === marker.file);
+    const otherFiles = this.data.review_markers.filter(m => m.file !== marker.file);
+    this.data.review_markers = [...otherFiles, ...mergeReviewMarkers(forFile, marker)];
     this.save();
     this._onDidChange.fire();
   }

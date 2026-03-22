@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isSafeRelativePath, sanitizeMarkdownText } from '../../src/utils/validation';
+import { isSafeRelativePath, sanitizeMarkdownText, stripJsonFences, truncateText } from '../../src/utils/validation';
 
 describe('isSafeRelativePath', () => {
   it('accepts normal relative paths', () => {
@@ -59,5 +59,48 @@ describe('sanitizeMarkdownText', () => {
   it('preserves text without links', () => {
     const text = '**Bold** and *italic* and `code`';
     expect(sanitizeMarkdownText(text)).toBe(text);
+  });
+});
+
+describe('stripJsonFences', () => {
+  it('strips ```json fences', () => {
+    const raw = '```json\n[{"key": "value"}]\n```';
+    expect(stripJsonFences(raw)).toBe('[{"key": "value"}]');
+  });
+
+  it('strips ``` fences without language', () => {
+    const raw = '```\n[1, 2, 3]\n```';
+    expect(stripJsonFences(raw)).toBe('[1, 2, 3]');
+  });
+
+  it('passes through plain JSON', () => {
+    const raw = '[{"key": "value"}]';
+    expect(stripJsonFences(raw)).toBe(raw);
+  });
+
+  it('trims whitespace', () => {
+    expect(stripJsonFences('  [1]  ')).toBe('[1]');
+  });
+
+  it('handles empty string', () => {
+    expect(stripJsonFences('')).toBe('');
+  });
+});
+
+describe('truncateText', () => {
+  it('returns text unchanged when under limit', () => {
+    expect(truncateText('hello', 10)).toBe('hello');
+  });
+
+  it('returns text unchanged when at limit', () => {
+    expect(truncateText('hello', 5)).toBe('hello');
+  });
+
+  it('truncates and adds ellipsis when over limit', () => {
+    expect(truncateText('hello world', 5)).toBe('hello...');
+  });
+
+  it('handles empty string', () => {
+    expect(truncateText('', 10)).toBe('');
   });
 });

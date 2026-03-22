@@ -5,7 +5,7 @@ import { Annotation, CATEGORY_META, EPHEMERAL_CATEGORIES, FileDependency } from 
 import { CriticalFlag } from '../models/criticalFlag';
 import { ReviewMarker } from '../models/reviewMarker';
 import { gitChangedFiles, gitDiff, getWorkspaceCwd, parseChangedLineRanges, ChangedLineRange } from '../utils/git';
-import { isSafeRelativePath, sanitizeMarkdownText } from '../utils/validation';
+import { isSafeRelativePath, sanitizeMarkdownText, truncateText } from '../utils/validation';
 
 type BriefTreeItem = SummaryNode | BriefFileNode | KnowledgeNode | DependencyNode | NoChangesNode;
 
@@ -25,7 +25,7 @@ class SummaryNode extends vscode.TreeItem {
       parts.push(`${criticalCount} critical`);
     }
     if (dependencyCount > 0) {
-      parts.push(`${dependencyCount} linked`);
+      parts.push(`${dependencyCount} dependency link${dependencyCount !== 1 ? 's' : ''}`);
     }
     if (annotationCount > 0) {
       parts.push(`${annotationCount} annotation${annotationCount !== 1 ? 's' : ''}`);
@@ -171,7 +171,7 @@ class KnowledgeNode extends vscode.TreeItem {
       const meta = CATEGORY_META[ann.category];
       const prefix = overlapsChange ? '⚡ ' : '';
       super(
-        `${prefix}${meta.label}: ${ann.text.split('\n')[0].substring(0, 60)}`,
+        `${prefix}${meta.label}: ${truncateText(ann.text.split('\n')[0], 60)}`,
         vscode.TreeItemCollapsibleState.None,
       );
       this.description = `L${ann.line_start}-${ann.line_end}`;

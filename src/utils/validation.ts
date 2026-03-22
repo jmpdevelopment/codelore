@@ -71,6 +71,21 @@ export function isSafeRelativePath(filePath: string): boolean {
 }
 
 /**
+ * Strip markdown code fences from LLM JSON responses.
+ */
+export function stripJsonFences(raw: string): string {
+  return raw.replace(/^```(?:json)?\n?/gm, '').replace(/\n?```$/gm, '').trim();
+}
+
+/**
+ * Truncate text to maxLen characters, adding "..." if truncated.
+ */
+export function truncateText(text: string, maxLen: number): string {
+  if (text.length <= maxLen) { return text; }
+  return text.substring(0, maxLen) + '...';
+}
+
+/**
  * Escape text for display in MarkdownString to prevent command injection.
  * Strips markdown link syntax that could embed command: URIs.
  */

@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { DiaryStore } from '../storage/diaryStore';
+import { getRelativePath } from '../utils/git';
 
 export class ReviewMarkerDecorator implements vscode.Disposable {
   private reviewedDecoration: vscode.TextEditorDecorationType;
@@ -50,7 +51,7 @@ export class ReviewMarkerDecorator implements vscode.Disposable {
 
   private updateEditor(editor: vscode.TextEditor): void {
 
-    const filePath = this.getRelativePath(editor.document.uri);
+    const filePath = getRelativePath(editor.document.uri);
     if (!filePath) { return; }
 
     const markers = this.store.getReviewMarkersForFile(filePath);
@@ -72,12 +73,6 @@ export class ReviewMarkerDecorator implements vscode.Disposable {
     // lines are "changed." For now, always clear — this will be populated
     // when we integrate with git diff data.
     editor.setDecorations(this.unreviewedDecoration, []);
-  }
-
-  private getRelativePath(uri: vscode.Uri): string | undefined {
-    const folder = vscode.workspace.getWorkspaceFolder(uri);
-    if (!folder) { return undefined; }
-    return vscode.workspace.asRelativePath(uri, false);
   }
 
   dispose(): void {

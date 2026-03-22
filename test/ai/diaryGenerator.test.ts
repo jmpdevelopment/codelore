@@ -31,10 +31,10 @@ describe('DiaryGenerator parsing', () => {
     const store = new DiaryStore();
     const lm = new LmService();
     const generator = new DiaryGenerator(lm, store);
-    const parseEntries = (generator as any).parseEntries.bind(generator);
-    const parseEntriesWithFile = (generator as any).parseEntriesWithFile.bind(generator);
+    const parseEntries = (raw: string, extractFile = false) =>
+      (generator as any).parseEntries.call(generator, raw, extractFile);
     const numberLines = (generator as any).numberLines.bind(generator);
-    return { parseEntries, parseEntriesWithFile, numberLines, store, dispose: () => store.dispose() };
+    return { parseEntries, numberLines, store, dispose: () => store.dispose() };
   }
 
   describe('parseEntries', () => {
@@ -92,14 +92,26 @@ describe('DiaryGenerator parsing', () => {
     });
   });
 
-  describe('parseEntriesWithFile', () => {
-    it('delegates to parseEntries', () => {
-      const { parseEntriesWithFile, dispose } = getParser();
+  describe('parseEntries with extractFile', () => {
+    it('extracts file field when extractFile is true', () => {
+      const { parseEntries, dispose } = getParser();
       const raw = JSON.stringify([
         { category: 'verified', line_start: 10, text: 'ok', file: 'src/foo.ts' },
       ]);
-      const result = parseEntriesWithFile(raw);
+      const result = parseEntries(raw, true);
       expect(result).toHaveLength(1);
+      expect(result[0].file).toBe('src/foo.ts');
+      dispose();
+    });
+
+    it('does not extract file when extractFile is false', () => {
+      const { parseEntries, dispose } = getParser();
+      const raw = JSON.stringify([
+        { category: 'verified', line_start: 10, text: 'ok', file: 'src/foo.ts' },
+      ]);
+      const result = parseEntries(raw);
+      expect(result).toHaveLength(1);
+      expect(result[0].file).toBeUndefined();
       dispose();
     });
   });
@@ -121,6 +133,66 @@ describe('DiaryGenerator parsing', () => {
     it('handles empty string', () => {
       const { numberLines, dispose } = getParser();
       expect(numberLines('')).toBe('1: ');
+      dispose();
+    });
+  });
+
+  describe('parseDependencies security', () => {
+    it('rejects absolute paths in dependencies', () => {
+      const { parseEntries, dispose } = getParser();
+      const raw = JSON.stringify([
+        {
+          category: 'verified', line_start: 1, line_end: 5, text: 'note',
+          dependencies: [{ file: '/etc/passwd', relationship: 'reads' }],
+        },
+      ]);
+      const result = parseEntries(raw);
+      expect(result).toHaveLength(1);
+      expect(result[0].dependencies).toBeUndefined();
+      dispose();
+    });
+
+    it('rejects path traversal in dependencies', () => {
+      const { parseEntries, dispose } = getParser();
+      const raw = JSON.stringify([
+        {
+          category: 'verified', line_start: 1, line_end: 5, text: 'note',
+          dependencies: [{ file: '../../../etc/passwd', relationship: 'reads' }],
+        },
+      ]);
+      const result = parseEntries(raw);
+      expect(result).toHaveLength(1);
+      expect(result[0].dependencies).toBeUndefined();
+      dispose();
+    });
+
+    it('accepts valid dependency paths', () => {
+      const { parseEntries, dispose } = getParser();
+      const raw = JSON.stringify([
+        {
+          category: 'verified', line_start: 1, line_end: 5, text: 'note',
+          dependencies: [{ file: 'src/billing/calc.py', relationship: 'must stay in sync' }],
+        },
+      ]);
+      const result = parseEntries(raw);
+      expect(result).toHaveLength(1);
+      expect(result[0].dependencies).toHaveLength(1);
+      expect(result[0].dependencies![0].file).toBe('src/billing/calc.py');
+      dispose();
+    });
+
+    it('validates dependency line ranges', () => {
+      const { parseEntries, dispose } = getParser();
+      const raw = JSON.stringify([
+        {
+          category: 'verified', line_start: 1, line_end: 5, text: 'note',
+          dependencies: [{ file: 'src/foo.ts', relationship: 'related', line_start: -1, line_end: 10 }],
+        },
+      ]);
+      const result = parseEntries(raw);
+      expect(result).toHaveLength(1);
+      // Invalid line range should be dropped
+      expect(result[0].dependencies![0].line_start).toBeUndefined();
       dispose();
     });
   });

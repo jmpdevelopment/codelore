@@ -1,29 +1,8 @@
 import * as vscode from 'vscode';
-import { DiaryStore, Scope } from '../storage/diaryStore';
+import { DiaryStore } from '../storage/diaryStore';
 import { ReviewMarker } from '../models/reviewMarker';
 import { getGitUser, getRelativePath } from '../utils/git';
-
-async function pickReviewScope(store: DiaryStore): Promise<Scope | undefined> {
-  const defaultScope = store.getDefaultScope();
-  const items = [
-    {
-      label: '$(globe) Share with team',
-      description: defaultScope === 'shared' ? '(default)' : '',
-      detail: 'Team sees this as human-reviewed',
-      scope: 'shared' as Scope,
-    },
-    {
-      label: '$(lock) Just for me',
-      description: defaultScope === 'personal' ? '(default)' : '',
-      detail: 'Personal tracking only',
-      scope: 'personal' as Scope,
-    },
-  ];
-  const picked = await vscode.window.showQuickPick(items, {
-    placeHolder: 'Who should see this review marker?',
-  });
-  return picked?.scope;
-}
+import { pickScope } from './scopePicker';
 
 export function registerReviewCommands(context: vscode.ExtensionContext, store: DiaryStore): void {
   context.subscriptions.push(
@@ -34,7 +13,7 @@ export function registerReviewCommands(context: vscode.ExtensionContext, store: 
       const filePath = getRelativePath(editor.document.uri);
       if (!filePath) { return; }
 
-      const scope = await pickReviewScope(store);
+      const scope = await pickScope(store);
       if (!scope) { return; }
 
       const selection = editor.selection;
@@ -65,7 +44,7 @@ export function registerReviewCommands(context: vscode.ExtensionContext, store: 
       const filePath = getRelativePath(editor.document.uri);
       if (!filePath) { return; }
 
-      const scope = await pickReviewScope(store);
+      const scope = await pickScope(store);
       if (!scope) { return; }
 
       const lineCount = editor.document.lineCount;

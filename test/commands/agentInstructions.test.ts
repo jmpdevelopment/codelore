@@ -13,6 +13,8 @@ afterEach(() => {
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
 
+import { ANNOTATION_CATEGORIES } from '../../src/models/annotation';
+
 // Test the core logic of updateFileContent and buildBlock independently
 const CODEDIARY_BLOCK_START = '# CodeDiary Integration';
 const CODEDIARY_BLOCK_END = '# End CodeDiary Integration';
@@ -21,10 +23,12 @@ const INSTRUCTION_TEXT = `When modifying files in this project, check for CodeDi
 
 1. Look for \`.codediary/\` directory at the project root — it contains per-file YAML annotations committed by the team.
 2. For a file like \`src/auth/middleware.ts\`, check \`.codediary/src/auth/middleware.ts.yaml\` for existing annotations.
-3. Each annotation has: line range, category (verified, needs_review, modified, confused, hallucination, intent, accepted), and text.
-4. Critical flags mark security-sensitive or high-risk regions — respect these and do not modify flagged code without explicit instruction.
-5. If you add or change code in an annotated region, mention the existing annotation context in your response.
-6. After making changes, suggest the developer add CodeDiary annotations for the modified regions.`;
+3. Each annotation has: line range, category (${ANNOTATION_CATEGORIES.join(', ')}), and text.
+4. Annotations may include \`dependencies\` — cross-file links to related code. When modifying linked files, check the annotations that reference them.
+5. Critical flags mark security-sensitive or high-risk regions — respect these and do not modify flagged code without explicit instruction.
+6. If you add or change code in an annotated region, mention the existing annotation context in your response.
+7. **Re-anchoring**: When you move, rename, or refactor code that has annotations, update the \`line_start\` and \`line_end\` fields in the corresponding \`.codediary/\` YAML file to match the new line positions. Also update \`anchor.content_hash\` if you change the content — the hash is a truncated SHA-256 of the trimmed non-empty lines joined by newlines. If the annotation has a \`signature_hash\`, update it based on the function/class signature line.
+8. After making changes, suggest the developer add CodeDiary annotations for the modified regions.`;
 
 function buildBlock(): string {
   return `${CODEDIARY_BLOCK_START}\n\n${INSTRUCTION_TEXT}\n\n${CODEDIARY_BLOCK_END}`;

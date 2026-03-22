@@ -3,7 +3,7 @@ import * as yaml from 'js-yaml';
 import * as path from 'path';
 import * as fs from 'fs';
 import { Annotation } from '../models/annotation';
-import { ReviewMarker } from '../models/reviewMarker';
+import { ReviewMarker, mergeReviewMarkers } from '../models/reviewMarker';
 import { CriticalFlag } from '../models/criticalFlag';
 
 /**
@@ -223,25 +223,7 @@ export class SharedStore {
   addReviewMarker(marker: ReviewMarker): void {
     const data = this.loadFile(marker.file);
     if (!data.review_markers) { data.review_markers = []; }
-
-    // Merge overlapping ranges
-    const nonOverlapping = data.review_markers.filter(
-      m => m.line_end < marker.line_start || m.line_start > marker.line_end,
-    );
-    const overlapping = data.review_markers.filter(
-      m => !(m.line_end < marker.line_start || m.line_start > marker.line_end),
-    );
-
-    let merged = marker;
-    for (const o of overlapping) {
-      merged = {
-        ...merged,
-        line_start: Math.min(merged.line_start, o.line_start),
-        line_end: Math.max(merged.line_end, o.line_end),
-      };
-    }
-
-    data.review_markers = [...nonOverlapping, merged];
+    data.review_markers = mergeReviewMarkers(data.review_markers, marker);
     this.saveFile(marker.file, data);
     this._onDidChange.fire();
   }

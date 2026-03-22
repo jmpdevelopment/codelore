@@ -4,7 +4,7 @@ import { DiaryStore } from '../storage/diaryStore';
 import { Annotation, AnnotationCategory, CATEGORY_META, FileDependency } from '../models/annotation';
 import { v4 as uuidv4 } from 'uuid';
 import { getGitUser, getRelativePath, getWorkspaceCwd, gitDiff, gitDiffAll } from '../utils/git';
-import { validLineRange, isValidCategory } from '../utils/validation';
+import { validLineRange, isValidCategory, isSafeRelativePath, stripJsonFences, truncateText } from '../utils/validation';
 
 /** Validate and extract dependency entries from AI-generated JSON. */
 function parseDependencies(raw: unknown): FileDependency[] | undefined {
@@ -13,11 +13,16 @@ function parseDependencies(raw: unknown): FileDependency[] | undefined {
   for (const d of raw) {
     if (!d || typeof d !== 'object') { continue; }
     if (typeof d.file !== 'string' || !d.file.trim()) { continue; }
+    const file = d.file.trim();
+    if (!isSafeRelativePath(file)) { continue; }
+    const range = (d.line_start !== undefined || d.line_end !== undefined)
+      ? validLineRange(d.line_start, d.line_end)
+      : undefined;
     deps.push({
-      file: d.file.trim(),
+      file,
       relationship: typeof d.relationship === 'string' ? d.relationship.trim() : 'related',
-      line_start: typeof d.line_start === 'number' ? d.line_start : undefined,
-      line_end: typeof d.line_end === 'number' ? d.line_end : undefined,
+      line_start: range?.line_start,
+      line_end: range?.line_end,
     });
   }
   return deps.length > 0 ? deps : undefined;
@@ -138,7 +143,7 @@ export class DiaryGenerator {
 
           progress.report({ message: `Analyzing with ${result.modelName}...` });
 
-          const entries = this.parseEntriesWithFile(result.text);
+          const entries = this.parseEntries(result.text, true);
           if (entries.length === 0) {
             vscode.window.showInformationMessage(
               `CodeDiary: No diary entries suggested (via ${result.modelName}).`,
@@ -180,7 +185,7 @@ export class DiaryGenerator {
         ? ` (replaces ${overlapping.length} existing)`
         : '';
       return {
-        label: `${entry.text.substring(0, 70)}`,
+        label: truncateText(entry.text, 70),
         description: `L${entry.line_start}-${entry.line_end} · ${entry.category}${overlapNote}`,
         picked: overlapping.length === 0, // Don't pre-select entries that would replace existing ones
         entry,
@@ -232,35 +237,9 @@ export class DiaryGenerator {
     this.store.addAnnotation(annotation);
   }
 
-  private parseEntries(raw: string): SuggestedEntry[] {
+  private parseEntries(raw: string, extractFile = false): (SuggestedEntry & { file?: string })[] {
     try {
-      const cleaned = raw.replace(/^```(?:json)?\n?/gm, '').replace(/\n?```$/gm, '').trim();
-      const parsed = JSON.parse(cleaned);
-      if (!Array.isArray(parsed)) { return []; }
-      const results: SuggestedEntry[] = [];
-      for (const e of parsed) {
-        if (!e || typeof e !== 'object') { continue; }
-        const range = validLineRange(e.line_start, e.line_end);
-        if (!range) { continue; }
-        if (!isValidCategory(e.category)) { continue; }
-        if (typeof e.text !== 'string' || !e.text.trim()) { continue; }
-        results.push({
-          category: e.category,
-          line_start: range.line_start,
-          line_end: range.line_end,
-          text: e.text.trim(),
-          dependencies: parseDependencies(e.dependencies),
-        });
-      }
-      return results;
-    } catch {
-      return [];
-    }
-  }
-
-  private parseEntriesWithFile(raw: string): (SuggestedEntry & { file?: string })[] {
-    try {
-      const cleaned = raw.replace(/^```(?:json)?\n?/gm, '').replace(/\n?```$/gm, '').trim();
+      const cleaned = stripJsonFences(raw);
       const parsed = JSON.parse(cleaned);
       if (!Array.isArray(parsed)) { return []; }
       const results: (SuggestedEntry & { file?: string })[] = [];
@@ -275,7 +254,7 @@ export class DiaryGenerator {
           line_start: range.line_start,
           line_end: range.line_end,
           text: e.text.trim(),
-          file: typeof e.file === 'string' ? e.file : undefined,
+          file: extractFile && typeof e.file === 'string' ? e.file : undefined,
           dependencies: parseDependencies(e.dependencies),
         });
       }

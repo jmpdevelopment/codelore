@@ -1,8 +1,9 @@
 import * as vscode from 'vscode';
-import { DiaryStore, Scope } from '../storage/diaryStore';
+import { DiaryStore } from '../storage/diaryStore';
 import { CriticalFlag, CriticalSeverity } from '../models/criticalFlag';
 import { getGitUser, getRelativePath } from '../utils/git';
-import { computeContentHash } from '../utils/anchorEngine';
+import { computeContentHash, computeSignatureHash } from '../utils/anchorEngine';
+import { pickScope } from './scopePicker';
 
 export function registerCriticalCommands(context: vscode.ExtensionContext, store: DiaryStore): void {
   context.subscriptions.push(
@@ -51,30 +52,13 @@ export function registerCriticalCommands(context: vscode.ExtensionContext, store
         }
       }
 
-      // Critical flags default to shared — the whole point is team visibility
-      const defaultScope = store.getDefaultScope();
-      const scopeItems = [
-        {
-          label: '$(globe) Team knowledge (persists)',
-          description: defaultScope === 'shared' ? '(default)' : '',
-          detail: 'Team sees this critical region — committed to git',
-          scope: 'shared' as Scope,
-        },
-        {
-          label: '$(note) Personal notes (private)',
-          description: defaultScope === 'personal' ? '(default)' : '',
-          detail: 'Personal tracking only — gitignored, just for you',
-          scope: 'personal' as Scope,
-        },
-      ];
-      const scopePick = await vscode.window.showQuickPick(scopeItems, {
-        placeHolder: 'Will this outlive your current work session?',
-      });
-      if (!scopePick) { return; }
+      const scope = await pickScope(store);
+      if (!scope) { return; }
 
       // Compute content anchor from current file content
       const fileLines = editor.document.getText().split('\n');
       const contentHash = computeContentHash(fileLines, lineStart, lineEnd);
+      const signatureHash = computeSignatureHash(fileLines, lineStart, lineEnd);
 
       const flag: CriticalFlag = {
         file: filePath,
@@ -83,11 +67,11 @@ export function registerCriticalCommands(context: vscode.ExtensionContext, store
         severity: severityPick.severity,
         description: description || undefined,
         human_reviewed: false,
-        anchor: { content_hash: contentHash, stale: false },
+        anchor: { content_hash: contentHash, signature_hash: signatureHash, stale: false },
       };
 
-      store.addCriticalFlag(flag, scopePick.scope);
-      const scopeLabel = scopePick.scope === 'shared' ? 'team' : 'working notes';
+      store.addCriticalFlag(flag, scope);
+      const scopeLabel = scope === 'shared' ? 'team' : 'working notes';
       vscode.window.showInformationMessage(
         `CodeDiary: Lines ${lineStart}-${lineEnd} marked as ${severityPick.severity} (${scopeLabel})`,
       );

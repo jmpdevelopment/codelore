@@ -1,31 +1,11 @@
 import * as vscode from 'vscode';
 import { v4 as uuidv4 } from 'uuid';
-import { DiaryStore, Scope } from '../storage/diaryStore';
+import { DiaryStore } from '../storage/diaryStore';
 import { Annotation, ANNOTATION_CATEGORIES, CATEGORY_META, AnnotationCategory, FileDependency } from '../models/annotation';
 import { getGitUser, getRelativePath } from '../utils/git';
 import { computeContentHash, computeSignatureHash } from '../utils/anchorEngine';
-
-async function pickScope(store: DiaryStore): Promise<Scope | undefined> {
-  const defaultScope = store.getDefaultScope();
-  const items = [
-    {
-      label: '$(globe) Team knowledge (persists)',
-      description: defaultScope === 'shared' ? '(default)' : '',
-      detail: 'Saved to .codediary/ — committed to git, visible to team',
-      scope: 'shared' as Scope,
-    },
-    {
-      label: '$(note) Personal notes (private)',
-      description: defaultScope === 'personal' ? '(default)' : '',
-      detail: 'Saved to .vscode/ — gitignored, just for you',
-      scope: 'personal' as Scope,
-    },
-  ];
-  const picked = await vscode.window.showQuickPick(items, {
-    placeHolder: 'Will this outlive your current work session?',
-  });
-  return picked?.scope;
-}
+import { truncateText } from '../utils/validation';
+import { pickScope } from './scopePicker';
 
 async function promptDependencies(): Promise<FileDependency[]> {
   const deps: FileDependency[] = [];
@@ -159,7 +139,14 @@ export function registerAnnotateCommands(context: vscode.ExtensionContext, store
       );
     }),
 
-    vscode.commands.registerCommand('codediary.editAnnotation', async (annotationId?: string) => {
+    vscode.commands.registerCommand('codediary.editAnnotation', async (arg?: string | { annotation?: { id: string } }) => {
+      // When called from sidebar inline button, arg is the AnnotationNode tree item
+      let annotationId: string | undefined;
+      if (typeof arg === 'string') {
+        annotationId = arg;
+      } else if (arg && typeof arg === 'object' && 'annotation' in arg) {
+        annotationId = arg.annotation?.id;
+      }
       if (!annotationId) {
         // Find annotations at current cursor
         const editor = vscode.window.activeTextEditor;
@@ -178,7 +165,7 @@ export function registerAnnotateCommands(context: vscode.ExtensionContext, store
         } else {
           const pick = await vscode.window.showQuickPick(
             annotations.map(a => ({
-              label: `${CATEGORY_META[a.category].label}: ${a.text.substring(0, 60)}`,
+              label: `${CATEGORY_META[a.category].label}: ${truncateText(a.text, 60)}`,
               id: a.id,
             })),
             { placeHolder: 'Select annotation to edit' },
@@ -200,7 +187,14 @@ export function registerAnnotateCommands(context: vscode.ExtensionContext, store
       store.updateAnnotation(annotationId, { text: newText });
     }),
 
-    vscode.commands.registerCommand('codediary.deleteAnnotation', async (annotationId?: string) => {
+    vscode.commands.registerCommand('codediary.deleteAnnotation', async (arg?: string | { annotation?: { id: string } }) => {
+      // When called from sidebar inline button, arg is the AnnotationNode tree item
+      let annotationId: string | undefined;
+      if (typeof arg === 'string') {
+        annotationId = arg;
+      } else if (arg && typeof arg === 'object' && 'annotation' in arg) {
+        annotationId = arg.annotation?.id;
+      }
       if (!annotationId) {
         const editor = vscode.window.activeTextEditor;
         if (!editor) { return; }
@@ -218,7 +212,7 @@ export function registerAnnotateCommands(context: vscode.ExtensionContext, store
         } else {
           const pick = await vscode.window.showQuickPick(
             annotations.map(a => ({
-              label: `${CATEGORY_META[a.category].label}: ${a.text.substring(0, 60)}`,
+              label: `${CATEGORY_META[a.category].label}: ${truncateText(a.text, 60)}`,
               id: a.id,
             })),
             { placeHolder: 'Select annotation to delete' },

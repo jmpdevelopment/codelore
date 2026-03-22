@@ -7,7 +7,7 @@ import {
   type Annotation,
   type FileDependency,
 } from '../../src/models/annotation';
-import type { ReviewMarker } from '../../src/models/reviewMarker';
+import { type ReviewMarker, mergeReviewMarkers } from '../../src/models/reviewMarker';
 import type { CriticalFlag, CriticalSeverity } from '../../src/models/criticalFlag';
 
 describe('Annotation model', () => {
@@ -119,6 +119,62 @@ describe('ReviewMarker model', () => {
       commit_hash: 'abc123',
     };
     expect(m.commit_hash).toBe('abc123');
+  });
+});
+
+describe('mergeReviewMarkers', () => {
+  const marker = (start: number, end: number): ReviewMarker => ({
+    file: 'src/foo.ts',
+    line_start: start,
+    line_end: end,
+    reviewer: 'alice',
+    reviewed_at: '2026-01-01T00:00:00Z',
+  });
+
+  it('adds to empty list', () => {
+    const result = mergeReviewMarkers([], marker(10, 20));
+    expect(result).toHaveLength(1);
+    expect(result[0].line_start).toBe(10);
+    expect(result[0].line_end).toBe(20);
+  });
+
+  it('keeps non-overlapping markers', () => {
+    const existing = [marker(1, 5)];
+    const result = mergeReviewMarkers(existing, marker(10, 20));
+    expect(result).toHaveLength(2);
+  });
+
+  it('merges overlapping markers', () => {
+    const existing = [marker(5, 15)];
+    const result = mergeReviewMarkers(existing, marker(10, 20));
+    expect(result).toHaveLength(1);
+    expect(result[0].line_start).toBe(5);
+    expect(result[0].line_end).toBe(20);
+  });
+
+  it('merges adjacent markers', () => {
+    const existing = [marker(1, 10)];
+    const result = mergeReviewMarkers(existing, marker(10, 20));
+    expect(result).toHaveLength(1);
+    expect(result[0].line_start).toBe(1);
+    expect(result[0].line_end).toBe(20);
+  });
+
+  it('merges multiple overlapping markers', () => {
+    const existing = [marker(1, 5), marker(8, 12), marker(30, 40)];
+    const result = mergeReviewMarkers(existing, marker(4, 15));
+    expect(result).toHaveLength(2); // non-overlapping 30-40 + merged 1-15
+    const merged = result.find(m => m.line_start === 1);
+    expect(merged).toBeDefined();
+    expect(merged!.line_end).toBe(15);
+  });
+
+  it('handles contained marker', () => {
+    const existing = [marker(1, 50)];
+    const result = mergeReviewMarkers(existing, marker(10, 20));
+    expect(result).toHaveLength(1);
+    expect(result[0].line_start).toBe(1);
+    expect(result[0].line_end).toBe(50);
   });
 });
 

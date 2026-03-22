@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { DiaryStore } from '../storage/diaryStore';
 import { CATEGORY_META, AnnotationCategory } from '../models/annotation';
 import { verifyAnchor } from '../utils/anchorEngine';
+import { getRelativePath } from '../utils/git';
 import { sanitizeMarkdownText } from '../utils/validation';
 
 export class AnnotationDecorator implements vscode.Disposable {
@@ -68,7 +69,7 @@ export class AnnotationDecorator implements vscode.Disposable {
 
   private updateEditor(editor: vscode.TextEditor): void {
 
-    const filePath = this.getRelativePath(editor.document.uri);
+    const filePath = getRelativePath(editor.document.uri);
     if (!filePath) { return; }
 
     const annotations = this.store.getAnnotationsForFile(filePath);
@@ -156,12 +157,6 @@ export class AnnotationDecorator implements vscode.Disposable {
     if (author) { md.appendMarkdown(`\n\n*— ${sanitizeMarkdownText(author)}*`); }
     if (createdAt) { md.appendMarkdown(` • ${new Date(createdAt).toLocaleString()}`); }
     return md;
-  }
-
-  private getRelativePath(uri: vscode.Uri): string | undefined {
-    const folder = vscode.workspace.getWorkspaceFolder(uri);
-    if (!folder) { return undefined; }
-    return vscode.workspace.asRelativePath(uri, false);
   }
 
   dispose(): void {

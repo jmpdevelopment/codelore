@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { DiaryStore } from '../storage/diaryStore';
 import { CriticalSeverity } from '../models/criticalFlag';
+import { getRelativePath } from '../utils/git';
 
 const SEVERITY_COLORS: Record<CriticalSeverity, string> = {
   critical: '#f44336',
@@ -58,7 +59,7 @@ export class CriticalDecorator implements vscode.Disposable {
 
   private updateEditor(editor: vscode.TextEditor): void {
 
-    const filePath = this.getRelativePath(editor.document.uri);
+    const filePath = getRelativePath(editor.document.uri);
     if (!filePath) { return; }
 
     const flags = this.store.getCriticalFlagsForFile(filePath);
@@ -98,12 +99,6 @@ export class CriticalDecorator implements vscode.Disposable {
 
     editor.setDecorations(this.unreviewedDecoration, unreviewed);
     editor.setDecorations(this.reviewedDecoration, reviewed);
-  }
-
-  private getRelativePath(uri: vscode.Uri): string | undefined {
-    const folder = vscode.workspace.getWorkspaceFolder(uri);
-    if (!folder) { return undefined; }
-    return vscode.workspace.asRelativePath(uri, false);
   }
 
   dispose(): void {

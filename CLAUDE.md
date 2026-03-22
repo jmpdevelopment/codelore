@@ -74,7 +74,7 @@ codediary/
 │       ├── anchorEngine.ts       # Content + signature hashing, drift detection, re-anchor search
 │       ├── git.ts                # Git diff, changed files, line range parsing
 │       └── validation.ts         # Path safety, markdown sanitization, input validation
-├── test/                         # Vitest unit tests (280 tests, 98%+ coverage)
+├── test/                         # Vitest unit tests (300 tests, 98%+ coverage)
 ├── .codediary/                   # Shared annotation store (committed to git)
 ├── package.json
 ├── tsconfig.json
@@ -269,7 +269,7 @@ Press `F5` in VSCode to launch the Extension Development Host for manual testing
 - Shared/personal dual-store architecture with privacy boundary (personal excluded from AI context)
 - Cross-file dependency links: annotations can declare relationships to other files, surfaced in pre-commit brief and save notifications
 - Security hardening: markdown sanitization, path traversal prevention, symlink-safe writes, scoped command trust
-- Unit test suite (280 tests, 98%+ line coverage)
+- Unit test suite (300 tests, 98%+ line coverage)
 
 ### Deferred (build only if users pull for them)
 - Knowledge coverage heatmap (churn vs annotation coverage)
