@@ -210,7 +210,7 @@ No AST parsing, no regex rules, no static patterns. Semantic understanding of "w
 | View | Description |
 |------|-------------|
 | **Pre-Commit Brief** | Diff-aware knowledge briefing — shows changed files with overlapping annotations, critical flags, and cross-file dependencies, sorted by risk |
-| **Change Plan** | All annotations grouped by file, filterable by category and path |
+| **Annotations** | All annotations grouped by file, filterable by category and path |
 | **Critical Review Queue** | All critical flags sorted by severity (unresolved first), filterable by severity and path |
 
 ## Configuration
@@ -257,7 +257,7 @@ Press `F5` in VSCode to launch the Extension Development Host for manual testing
 - AI-suggested diary entries from git diffs (via vscode.lm)
 - AI critical logic detection: diff-based and full-file scanning
 - AI knowledge feedback loop: existing annotations injected into AI suggestion prompts
-- Change Plan sidebar with file grouping, category and path filtering
+- Annotations sidebar with file grouping, category and path filtering
 - Critical Review Queue sorted by severity with severity and path filtering
 - Status bar with coverage summary
 - Annotation search across codebase (text, category, file path filters with jump to source)
