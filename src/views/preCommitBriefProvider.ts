@@ -367,7 +367,8 @@ export class PreCommitBriefProvider implements vscode.TreeDataProvider<BriefTree
     const cwd = getWorkspaceCwd();
     if (!cwd) { return []; }
 
-    const changedFiles = gitChangedFiles(cwd);
+    const changedFiles = gitChangedFiles(cwd)
+      .filter(f => !f.startsWith('.codediary/') && !f.endsWith('codediary.yaml'));
     if (changedFiles.length === 0) { return []; }
 
     // Build a map of incoming dependencies: which annotations point to which files

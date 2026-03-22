@@ -306,7 +306,8 @@
       "codediary-sidebar": [
         {
           "id": "codediary.changePlan",
-          "name": "Annotations"
+          "name": "Annotations",
+          "visibility": "collapsed"
         },
         {
           "id": "codediary.preCommitBrief",

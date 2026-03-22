@@ -11,7 +11,7 @@ class FileNode extends vscode.TreeItem {
     public readonly filePath: string,
     public readonly annotations: Annotation[],
   ) {
-    super(filePath, vscode.TreeItemCollapsibleState.Expanded);
+    super(filePath, vscode.TreeItemCollapsibleState.Collapsed);
     this.description = `${annotations.length} annotation${annotations.length !== 1 ? 's' : ''}`;
     this.iconPath = new vscode.ThemeIcon('file');
     this.contextValue = 'file';
