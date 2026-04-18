@@ -145,14 +145,9 @@
         "icon": "$(file-code)"
       },
       {
-        "command": "codediary.reanchor",
-        "title": "CodeDiary: Re-anchor Stale Annotations",
+        "command": "codediary.checkAnchors",
+        "title": "CodeDiary: Check Annotation Anchors",
         "icon": "$(pin)"
-      },
-      {
-        "command": "codediary.verifyAnchors",
-        "title": "CodeDiary: Verify Annotation Anchors",
-        "icon": "$(verified)"
       },
       {
         "command": "codediary.showPreCommitBrief",

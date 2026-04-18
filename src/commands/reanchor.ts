@@ -10,11 +10,20 @@ interface ReanchorPickItem extends vscode.QuickPickItem {
   originalIndex?: number;
 }
 
+/**
+ * Single anchor command: verifies all annotations + critical flags in the
+ * active file, then opens an interactive picker to re-anchor any drift.
+ * Replaces the older verify/reanchor split — verify by itself produced no
+ * useful action when something was stale, so the picker is the entry point.
+ */
 export function registerReanchorCommands(context: vscode.ExtensionContext, store: DiaryStore): void {
   context.subscriptions.push(
-    vscode.commands.registerCommand('codediary.reanchor', async () => {
+    vscode.commands.registerCommand('codediary.checkAnchors', async () => {
       const editor = vscode.window.activeTextEditor;
-      if (!editor) { return; }
+      if (!editor) {
+        vscode.window.showInformationMessage('CodeDiary: Open a file first.');
+        return;
+      }
 
       const filePath = getRelativePath(editor.document.uri);
       if (!filePath) { return; }
@@ -23,33 +32,35 @@ export function registerReanchorCommands(context: vscode.ExtensionContext, store
       const annotations = store.getAnnotationsForFile(filePath);
       const criticalFlags = store.getCriticalFlagsForFile(filePath);
 
-      // Check annotations
       const annItems = annotations.map(a => ({
         id: a.id,
         line_start: a.line_start,
         line_end: a.line_end,
         anchor: a.anchor,
       }));
-      const annResults = checkAnchors(fileLines, annItems);
-
-      // Check critical flags (use a synthetic id for flags)
       const flagItems = criticalFlags.map((f, i) => ({
         id: `flag-${i}`,
         line_start: f.line_start,
         line_end: f.line_end,
         anchor: f.anchor,
       }));
+
+      const annResults = checkAnchors(fileLines, annItems);
       const flagResults = checkAnchors(fileLines, flagItems);
 
       const staleAnnotations = annResults.filter(r => r.stale);
       const staleFlags = flagResults.filter(r => r.stale);
+      const totalChecked = annResults.length + flagResults.length;
 
       if (staleAnnotations.length === 0 && staleFlags.length === 0) {
-        vscode.window.showInformationMessage('CodeDiary: All anchors are up to date for this file.');
+        const without = (annotations.length + criticalFlags.length) - totalChecked;
+        const trail = without > 0 ? ` (${without} item${without === 1 ? '' : 's'} without an anchor — older entries)` : '';
+        vscode.window.showInformationMessage(
+          `CodeDiary: All ${totalChecked} anchor${totalChecked === 1 ? '' : 's'} verified for ${filePath}${trail}.`,
+        );
         return;
       }
 
-      // Build quick pick items for stale annotations
       const items: ReanchorPickItem[] = [];
 
       for (const result of staleAnnotations) {
@@ -135,7 +146,6 @@ export function registerReanchorCommands(context: vscode.ExtensionContext, store
           });
           reanchored++;
         } else if (!item.result.candidate) {
-          // User selected a "not found" item — mark as acknowledged stale
           if (item.itemType === 'annotation') {
             store.updateAnnotation(item.result.id, {
               anchor: { content_hash: '', stale: true },
@@ -149,52 +159,6 @@ export function registerReanchorCommands(context: vscode.ExtensionContext, store
       if (reanchored > 0) { parts.push(`${reanchored} re-anchored`); }
       if (dismissed > 0) { parts.push(`${dismissed} marked stale`); }
       vscode.window.showInformationMessage(`CodeDiary: ${parts.join(', ')}.`);
-    }),
-
-    vscode.commands.registerCommand('codediary.verifyAnchors', async () => {
-      const editor = vscode.window.activeTextEditor;
-      if (!editor) { return; }
-
-      const filePath = getRelativePath(editor.document.uri);
-      if (!filePath) { return; }
-
-      const fileLines = editor.document.getText().split('\n');
-      const annotations = store.getAnnotationsForFile(filePath);
-      const criticalFlags = store.getCriticalFlagsForFile(filePath);
-
-      const annItems = annotations.map(a => ({
-        id: a.id,
-        line_start: a.line_start,
-        line_end: a.line_end,
-        anchor: a.anchor,
-      }));
-      const flagItems = criticalFlags.map((f, i) => ({
-        id: `flag-${i}`,
-        line_start: f.line_start,
-        line_end: f.line_end,
-        anchor: f.anchor,
-      }));
-
-      const annResults = checkAnchors(fileLines, annItems);
-      const flagResults = checkAnchors(fileLines, flagItems);
-
-      const staleCount = [...annResults, ...flagResults].filter(r => r.stale).length;
-      const totalAnchored = [...annResults, ...flagResults].length;
-      const withoutAnchors = (annotations.length + criticalFlags.length) - totalAnchored;
-
-      if (staleCount === 0 && withoutAnchors === 0) {
-        vscode.window.showInformationMessage('CodeDiary: All anchors verified — no drift detected.');
-      } else if (staleCount === 0) {
-        vscode.window.showInformationMessage(`CodeDiary: ${totalAnchored} anchored items verified. ${withoutAnchors} legacy item(s) without anchors.`);
-      } else {
-        const action = await vscode.window.showWarningMessage(
-          `CodeDiary: ${staleCount} stale anchor(s) detected in this file.`,
-          'Re-anchor now',
-        );
-        if (action === 'Re-anchor now') {
-          vscode.commands.executeCommand('codediary.reanchor');
-        }
-      }
     }),
   );
 }
