@@ -41,19 +41,19 @@ describe('DiaryGenerator parsing', () => {
     it('parses valid JSON array', () => {
       const { parseEntries, dispose } = getParser();
       const raw = JSON.stringify([
-        { category: 'verified', line_start: 10, line_end: 20, text: 'Looks correct' },
-        { category: 'needs_review', line_start: 30, line_end: 40, text: 'Check this' },
+        { category: 'behavior', line_start: 10, line_end: 20, text: 'Looks correct' },
+        { category: 'rationale', line_start: 30, line_end: 40, text: 'Check this' },
       ]);
       const result = parseEntries(raw);
       expect(result).toHaveLength(2);
-      expect(result[0].category).toBe('verified');
+      expect(result[0].category).toBe('behavior');
       expect(result[1].text).toBe('Check this');
       dispose();
     });
 
     it('strips markdown code fences', () => {
       const { parseEntries, dispose } = getParser();
-      const raw = '```json\n[{"category":"intent","line_start":1,"line_end":5,"text":"note"}]\n```';
+      const raw = '```json\n[{"category":"rationale","line_start":1,"line_end":5,"text":"note"}]\n```';
       const result = parseEntries(raw);
       expect(result).toHaveLength(1);
       dispose();
@@ -62,10 +62,10 @@ describe('DiaryGenerator parsing', () => {
     it('filters entries missing required fields', () => {
       const { parseEntries, dispose } = getParser();
       const raw = JSON.stringify([
-        { category: 'verified', line_start: 10, text: 'ok' },
+        { category: 'behavior', line_start: 10, text: 'ok' },
         { line_start: 20, text: 'no category' },
-        { category: 'verified', text: 'no line_start' },
-        { category: 'verified', line_start: 30 },
+        { category: 'behavior', text: 'no line_start' },
+        { category: 'behavior', line_start: 30 },
       ]);
       const result = parseEntries(raw);
       expect(result).toHaveLength(1);
@@ -90,13 +90,27 @@ describe('DiaryGenerator parsing', () => {
       expect(parseEntries('[]')).toEqual([]);
       dispose();
     });
+
+    it('rejects legacy categories — only knowledge-first categories accepted', () => {
+      const { parseEntries, dispose } = getParser();
+      const raw = JSON.stringify([
+        { category: 'verified', line_start: 1, line_end: 5, text: 'legacy' },
+        { category: 'needs_review', line_start: 6, line_end: 10, text: 'legacy' },
+        { category: 'hallucination', line_start: 11, line_end: 15, text: 'legacy' },
+        { category: 'behavior', line_start: 16, line_end: 20, text: 'knowledge-first' },
+      ]);
+      const result = parseEntries(raw);
+      expect(result).toHaveLength(1);
+      expect(result[0].category).toBe('behavior');
+      dispose();
+    });
   });
 
   describe('parseEntries with extractFile', () => {
     it('extracts file field when extractFile is true', () => {
       const { parseEntries, dispose } = getParser();
       const raw = JSON.stringify([
-        { category: 'verified', line_start: 10, text: 'ok', file: 'src/foo.ts' },
+        { category: 'behavior', line_start: 10, text: 'ok', file: 'src/foo.ts' },
       ]);
       const result = parseEntries(raw, true);
       expect(result).toHaveLength(1);
@@ -107,7 +121,7 @@ describe('DiaryGenerator parsing', () => {
     it('does not extract file when extractFile is false', () => {
       const { parseEntries, dispose } = getParser();
       const raw = JSON.stringify([
-        { category: 'verified', line_start: 10, text: 'ok', file: 'src/foo.ts' },
+        { category: 'behavior', line_start: 10, text: 'ok', file: 'src/foo.ts' },
       ]);
       const result = parseEntries(raw);
       expect(result).toHaveLength(1);
@@ -142,7 +156,7 @@ describe('DiaryGenerator parsing', () => {
       const { parseEntries, dispose } = getParser();
       const raw = JSON.stringify([
         {
-          category: 'verified', line_start: 1, line_end: 5, text: 'note',
+          category: 'behavior', line_start: 1, line_end: 5, text: 'note',
           dependencies: [{ file: '/etc/passwd', relationship: 'reads' }],
         },
       ]);
@@ -156,7 +170,7 @@ describe('DiaryGenerator parsing', () => {
       const { parseEntries, dispose } = getParser();
       const raw = JSON.stringify([
         {
-          category: 'verified', line_start: 1, line_end: 5, text: 'note',
+          category: 'behavior', line_start: 1, line_end: 5, text: 'note',
           dependencies: [{ file: '../../../etc/passwd', relationship: 'reads' }],
         },
       ]);
@@ -170,7 +184,7 @@ describe('DiaryGenerator parsing', () => {
       const { parseEntries, dispose } = getParser();
       const raw = JSON.stringify([
         {
-          category: 'verified', line_start: 1, line_end: 5, text: 'note',
+          category: 'behavior', line_start: 1, line_end: 5, text: 'note',
           dependencies: [{ file: 'src/billing/calc.py', relationship: 'must stay in sync' }],
         },
       ]);
@@ -185,7 +199,7 @@ describe('DiaryGenerator parsing', () => {
       const { parseEntries, dispose } = getParser();
       const raw = JSON.stringify([
         {
-          category: 'verified', line_start: 1, line_end: 5, text: 'note',
+          category: 'behavior', line_start: 1, line_end: 5, text: 'note',
           dependencies: [{ file: 'src/foo.ts', relationship: 'related', line_start: -1, line_end: 10 }],
         },
       ]);

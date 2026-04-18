@@ -4,7 +4,7 @@ import { DiaryStore } from '../storage/diaryStore';
 import { Annotation, AnnotationCategory, CATEGORY_META, FileDependency } from '../models/annotation';
 import { v4 as uuidv4 } from 'uuid';
 import { getGitUser, getRelativePath, getWorkspaceCwd, gitDiff, gitDiffAll } from '../utils/git';
-import { validLineRange, isValidCategory, isSafeRelativePath, stripJsonFences, truncateText } from '../utils/validation';
+import { validLineRange, isValidKnowledgeCategory, isSafeRelativePath, stripJsonFences, truncateText } from '../utils/validation';
 
 /** Validate and extract dependency entries from AI-generated JSON. */
 function parseDependencies(raw: unknown): FileDependency[] | undefined {
@@ -41,13 +41,21 @@ IMPORTANT: If existing annotations or critical flags are provided, use them as c
 - Focus new entries on what the existing annotations DON'T already cover
 
 Respond with a JSON array of entries. Each entry has:
-- "category": one of "verified", "needs_review", "modified", "confused", "hallucination", "intent", "accepted", "business_rule"
+- "category": one of "behavior", "rationale", "constraint", "gotcha", "business_rule", "performance", "security", "human_note"
 - "line_start": starting line number in the new file
 - "line_end": ending line number
 - "text": the diary note (1-2 sentences, conversational tone)
 - "dependencies": (optional) array of cross-file dependency links: [{"file": "path/to/file.py", "relationship": "must stay in sync"}]
 
-Use the "business_rule" category when code implements a specific business rule, domain constraint, or regulatory requirement that should not be changed without stakeholder sign-off.
+Pick the category that best describes WHAT the reader needs to know:
+- "behavior": non-obvious runtime behavior the reader would otherwise miss
+- "rationale": why this was built this way — decisions, rejected alternatives
+- "constraint": invariant, precondition, or postcondition required for correctness
+- "gotcha": footgun, counterintuitive quirk, or known hazard
+- "business_rule": domain rule or regulatory requirement — do not change without stakeholder sign-off
+- "performance": hot path, complexity assumption, benchmark-sensitive region
+- "security": trust boundary, auth assumption, sanitization requirement
+- "human_note": free-form observation when nothing else fits
 
 When you detect that changed code is tightly coupled to another file (shared data models, paired calculations, coordinated state), include a "dependencies" entry to create a cross-file link.
 
@@ -247,7 +255,7 @@ export class DiaryGenerator {
         if (!e || typeof e !== 'object') { continue; }
         const range = validLineRange(e.line_start, e.line_end);
         if (!range) { continue; }
-        if (!isValidCategory(e.category)) { continue; }
+        if (!isValidKnowledgeCategory(e.category)) { continue; }
         if (typeof e.text !== 'string' || !e.text.trim()) { continue; }
         results.push({
           category: e.category,

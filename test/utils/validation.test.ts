@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isSafeRelativePath, sanitizeMarkdownText, stripJsonFences, truncateText } from '../../src/utils/validation';
+import { isSafeRelativePath, sanitizeMarkdownText, stripJsonFences, truncateText, isValidCategory, isValidKnowledgeCategory } from '../../src/utils/validation';
 
 describe('isSafeRelativePath', () => {
   it('accepts normal relative paths', () => {
@@ -102,5 +102,52 @@ describe('truncateText', () => {
 
   it('handles empty string', () => {
     expect(truncateText('', 10)).toBe('');
+  });
+});
+
+describe('isValidCategory', () => {
+  it('accepts knowledge categories', () => {
+    expect(isValidCategory('behavior')).toBe(true);
+    expect(isValidCategory('business_rule')).toBe(true);
+    expect(isValidCategory('security')).toBe(true);
+  });
+
+  it('accepts legacy categories (read path must tolerate v1 YAML)', () => {
+    expect(isValidCategory('verified')).toBe(true);
+    expect(isValidCategory('needs_review')).toBe(true);
+    expect(isValidCategory('hallucination')).toBe(true);
+  });
+
+  it('accepts ai_prompt', () => {
+    expect(isValidCategory('ai_prompt')).toBe(true);
+  });
+
+  it('rejects unknown values', () => {
+    expect(isValidCategory('made-up')).toBe(false);
+    expect(isValidCategory(42)).toBe(false);
+    expect(isValidCategory(undefined)).toBe(false);
+  });
+});
+
+describe('isValidKnowledgeCategory', () => {
+  it('accepts all 8 knowledge categories', () => {
+    for (const cat of ['behavior', 'rationale', 'constraint', 'gotcha', 'business_rule', 'performance', 'security', 'human_note']) {
+      expect(isValidKnowledgeCategory(cat)).toBe(true);
+    }
+  });
+
+  it('rejects legacy categories — new-annotation flows must not create them', () => {
+    for (const cat of ['verified', 'needs_review', 'modified', 'confused', 'hallucination', 'intent', 'accepted']) {
+      expect(isValidKnowledgeCategory(cat)).toBe(false);
+    }
+  });
+
+  it('rejects ai_prompt (ephemeral, not a knowledge category)', () => {
+    expect(isValidKnowledgeCategory('ai_prompt')).toBe(false);
+  });
+
+  it('rejects non-strings', () => {
+    expect(isValidKnowledgeCategory(42)).toBe(false);
+    expect(isValidKnowledgeCategory(undefined)).toBe(false);
   });
 });
