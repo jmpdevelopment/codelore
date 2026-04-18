@@ -194,6 +194,16 @@
           "group": "navigation@2"
         },
         {
+          "command": "codelore.checkAnchors",
+          "when": "view == codelore.changePlan",
+          "group": "navigation@3"
+        },
+        {
+          "command": "codelore.generateAgentInstructions",
+          "when": "view == codelore.changePlan || view == codelore.components",
+          "group": "navigation@4"
+        },
+        {
           "command": "codelore.refreshSidebar",
           "when": "view == codelore.changePlan || view == codelore.criticalQueue || view == codelore.components",
           "group": "navigation@5"
