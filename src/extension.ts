@@ -158,57 +158,79 @@ export function activate(context: vscode.ExtensionContext): void {
       vscode.commands.executeCommand('codediary.preCommitBrief.focus');
     }),
 
-    // AI commands
-    vscode.commands.registerCommand('codediary.suggestDiary', async () => {
-      const editor = vscode.window.activeTextEditor;
-      if (!editor) {
-        vscode.window.showInformationMessage('CodeDiary: Open a file first.');
-        return;
-      }
-      await diaryGenerator.suggestForFile(editor);
-    }),
-
-    vscode.commands.registerCommand('codediary.suggestDiaryAll', async () => {
-      await diaryGenerator.suggestForAllChanges();
-    }),
-
-    vscode.commands.registerCommand('codediary.scanForKnowledge', async () => {
-      const editor = vscode.window.activeTextEditor;
-      if (!editor) {
-        vscode.window.showInformationMessage('CodeDiary: Open a file first.');
-        return;
-      }
-      await diaryGenerator.scanForKnowledge(editor);
-    }),
-
     vscode.commands.registerCommand('codediary.proposeComponent', async () => {
       await componentProposer.propose();
-    }),
-
-    vscode.commands.registerCommand('codediary.scanCritical', async () => {
-      const editor = vscode.window.activeTextEditor;
-      if (!editor) {
-        vscode.window.showInformationMessage('CodeDiary: Open a file first.');
-        return;
-      }
-      await criticalDetector.scanCurrentFile(editor);
-    }),
-
-    vscode.commands.registerCommand('codediary.scanCriticalAll', async () => {
-      await criticalDetector.scanAllChanges();
     }),
 
     vscode.commands.registerCommand('codediary.changeModel', async () => {
       await lm.changeModel();
     }),
 
+    // Scan commands: file (interactive), component (batch), project (batch)
     vscode.commands.registerCommand('codediary.scanFile', async () => {
       const editor = vscode.window.activeTextEditor;
       if (!editor) {
         vscode.window.showInformationMessage('CodeDiary: Open a file first.');
         return;
       }
+      await diaryGenerator.scanForKnowledge(editor);
       await criticalDetector.scanFileContent(editor);
+    }),
+
+    vscode.commands.registerCommand('codediary.scanComponent', async () => {
+      const components = store.getComponents();
+      if (components.length === 0) {
+        vscode.window.showInformationMessage(
+          'CodeDiary: No components defined yet. Tag a file to create one, or use "Propose Components".',
+        );
+        return;
+      }
+      let chosenId: string | undefined;
+      if (components.length === 1) {
+        chosenId = components[0].id;
+      } else {
+        const picked = await vscode.window.showQuickPick(
+          components.map(c => ({
+            label: `$(symbol-namespace) ${c.name}`,
+            description: `${c.id} · ${c.files.length} file${c.files.length === 1 ? '' : 's'}`,
+            id: c.id,
+          })),
+          { placeHolder: 'Pick a component to scan' },
+        );
+        chosenId = picked?.id;
+      }
+      if (!chosenId) { return; }
+      const component = components.find(c => c.id === chosenId)!;
+      if (component.files.length === 0) {
+        vscode.window.showInformationMessage(
+          `CodeDiary: Component "${component.name}" has no files yet.`,
+        );
+        return;
+      }
+      await diaryGenerator.scanFiles(component.files, `component ${component.name}`);
+      await criticalDetector.scanFiles(component.files, `component ${component.name}`);
+    }),
+
+    vscode.commands.registerCommand('codediary.scanProject', async () => {
+      const files = await vscode.workspace.findFiles(
+        '**/*.{ts,tsx,js,jsx,mjs,cjs,py,go,rs,java,kt,swift,rb,php,cs,cpp,cc,c,h,hpp,sh}',
+        '**/{node_modules,.git,dist,build,out,coverage,.next,.turbo,vendor}/**',
+      );
+      if (files.length === 0) {
+        vscode.window.showInformationMessage('CodeDiary: No source files found in the workspace.');
+        return;
+      }
+      const confirm = await vscode.window.showWarningMessage(
+        `CodeDiary will scan ${files.length} files with the language model. This makes ${files.length * 2} LLM calls (knowledge + critical) and may incur cost. Continue?`,
+        { modal: true },
+        'Scan All Files',
+      );
+      if (confirm !== 'Scan All Files') { return; }
+      const relativePaths = files
+        .map(uri => vscode.workspace.asRelativePath(uri, false))
+        .sort();
+      await diaryGenerator.scanFiles(relativePaths, `project (${relativePaths.length} files)`);
+      await criticalDetector.scanFiles(relativePaths, `project (${relativePaths.length} files)`);
     }),
   );
 

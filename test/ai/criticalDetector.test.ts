@@ -140,3 +140,78 @@ describe('CriticalDetector.parseRegions', () => {
     dispose();
   });
 });
+
+describe('CriticalDetector.scanFiles batch mode', () => {
+  it('iterates files, auto-flags every region with human_reviewed=false', async () => {
+    fs.mkdirSync(path.join(tmpDir, 'src'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, 'src/a.ts'), 'export const A = 1;\n', 'utf8');
+    fs.writeFileSync(path.join(tmpDir, 'src/b.ts'), 'export const B = 2;\n', 'utf8');
+
+    const store = new DiaryStore();
+    const lm = new LmService();
+    const seenPaths: string[] = [];
+    (lm as any).generate = async (_system: string, user: string) => {
+      const match = user.match(/<file path="([^"]+)">/);
+      const filePath = match ? match[1] : '';
+      seenPaths.push(filePath);
+      return {
+        text: JSON.stringify([
+          { line_start: 1, line_end: 1, severity: 'high', description: `risk in ${filePath}` },
+        ]),
+        modelName: 'stub/model',
+      };
+    };
+    const detector = new CriticalDetector(lm, store);
+
+    await detector.scanFiles(['src/a.ts', 'src/b.ts'], 'test scope');
+
+    expect(seenPaths).toEqual(['src/a.ts', 'src/b.ts']);
+    const a = store.getCriticalFlagsForFile('src/a.ts');
+    const b = store.getCriticalFlagsForFile('src/b.ts');
+    expect(a).toHaveLength(1);
+    expect(b).toHaveLength(1);
+    expect(a[0].human_reviewed).toBe(false);
+    expect(a[0].description).toContain('src/a.ts');
+    store.dispose();
+  });
+
+  it('drops regions whose file does not match the source file', async () => {
+    fs.mkdirSync(path.join(tmpDir, 'src'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, 'src/a.ts'), 'export const A = 1;\n', 'utf8');
+
+    const store = new DiaryStore();
+    const lm = new LmService();
+    (lm as any).generate = async () => ({
+      text: JSON.stringify([
+        { file: 'src/a.ts', line_start: 1, line_end: 1, severity: 'high', description: 'real' },
+        { file: 'src/wandered.ts', line_start: 5, line_end: 5, severity: 'high', description: 'wrong' },
+      ]),
+      modelName: 'stub/model',
+    });
+    const detector = new CriticalDetector(lm, store);
+
+    await detector.scanFiles(['src/a.ts'], 'test');
+
+    const flags = store.getCriticalFlagsForFile('src/a.ts');
+    expect(flags).toHaveLength(1);
+    expect(flags[0].description).toBe('real');
+    expect(store.getCriticalFlagsForFile('src/wandered.ts')).toHaveLength(0);
+    store.dispose();
+  });
+
+  it('skips missing files silently', async () => {
+    fs.mkdirSync(path.join(tmpDir, 'src'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, 'src/real.ts'), 'export {};\n', 'utf8');
+
+    const store = new DiaryStore();
+    const lm = new LmService();
+    let calls = 0;
+    (lm as any).generate = async () => { calls++; return { text: '[]', modelName: 'stub' }; };
+    const detector = new CriticalDetector(lm, store);
+
+    await detector.scanFiles(['src/missing.ts', 'src/real.ts'], 'test');
+
+    expect(calls).toBe(1);
+    store.dispose();
+  });
+});

@@ -32,15 +32,6 @@ export function gitDiff(filePath: string, cwd: string): string | undefined {
   }
 }
 
-export function gitDiffAll(cwd: string): string | undefined {
-  try {
-    const diff = execFileSync('git', ['diff', 'HEAD'], { cwd, encoding: 'utf8' });
-    return diff.trim() || undefined;
-  } catch {
-    return undefined;
-  }
-}
-
 /** Returns list of files with uncommitted changes (staged + unstaged vs HEAD). */
 export function gitChangedFiles(cwd: string): string[] {
   try {

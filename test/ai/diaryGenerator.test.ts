@@ -38,8 +38,8 @@ describe('DiaryGenerator parsing', () => {
     const store = new DiaryStore();
     const lm = new LmService();
     const generator = new DiaryGenerator(lm, store);
-    const parseEntries = (raw: string, extractFile = false) =>
-      (generator as any).parseEntries.call(generator, raw, extractFile);
+    const parseEntries = (raw: string) =>
+      (generator as any).parseEntries.call(generator, raw);
     const numberLines = (generator as any).numberLines.bind(generator);
     return { parseEntries, numberLines, store, dispose: () => store.dispose() };
   }
@@ -109,30 +109,6 @@ describe('DiaryGenerator parsing', () => {
       const result = parseEntries(raw);
       expect(result).toHaveLength(1);
       expect(result[0].category).toBe('behavior');
-      dispose();
-    });
-  });
-
-  describe('parseEntries with extractFile', () => {
-    it('extracts file field when extractFile is true', () => {
-      const { parseEntries, dispose } = getParser();
-      const raw = JSON.stringify([
-        { category: 'behavior', line_start: 10, text: 'ok', file: 'src/foo.ts' },
-      ]);
-      const result = parseEntries(raw, true);
-      expect(result).toHaveLength(1);
-      expect(result[0].file).toBe('src/foo.ts');
-      dispose();
-    });
-
-    it('does not extract file when extractFile is false', () => {
-      const { parseEntries, dispose } = getParser();
-      const raw = JSON.stringify([
-        { category: 'behavior', line_start: 10, text: 'ok', file: 'src/foo.ts' },
-      ]);
-      const result = parseEntries(raw);
-      expect(result).toHaveLength(1);
-      expect(result[0].file).toBeUndefined();
       dispose();
     });
   });
@@ -365,27 +341,6 @@ describe('DiaryGenerator parsing', () => {
       store.dispose();
     });
 
-    it('formatAllComponentsContext enumerates every component id', () => {
-      writeComponent(tmpDir, 'billing', {
-        id: 'billing', name: 'Billing', description: 'invoice',
-        files: [],
-        source: 'human_authored',
-        created_at: '2026-04-18T00:00:00Z', updated_at: '2026-04-18T00:00:00Z',
-      });
-      writeComponent(tmpDir, 'reporting', {
-        id: 'reporting', name: 'Reporting', files: [],
-        source: 'human_authored',
-        created_at: '2026-04-18T00:00:00Z', updated_at: '2026-04-18T00:00:00Z',
-      });
-      const store = new DiaryStore();
-      const generator = new DiaryGenerator(new LmService(), store);
-      const block = generator.formatAllComponentsContext();
-      expect(block).toContain('billing (Billing)');
-      expect(block).toContain('invoice');
-      expect(block).toContain('reporting (Reporting)');
-      store.dispose();
-    });
-
     it('scanForKnowledge sends a full-file prompt (no diff) and persists accepted entries', async () => {
       writeComponent(tmpDir, 'billing', {
         id: 'billing', name: 'Billing',
@@ -464,6 +419,103 @@ describe('DiaryGenerator parsing', () => {
       const result = (generator as any).parseEntries(raw);
       expect(result[0].components).toEqual(['billing']);
       expect(result[1].components).toBeUndefined();
+      store.dispose();
+    });
+  });
+
+  describe('scanFiles batch mode', () => {
+    it('iterates files, auto-accepts every parsed entry as ai_generated', async () => {
+      fs.mkdirSync(path.join(tmpDir, 'src'), { recursive: true });
+      fs.writeFileSync(path.join(tmpDir, 'src/a.ts'), 'export const A = 1;\n', 'utf8');
+      fs.writeFileSync(path.join(tmpDir, 'src/b.ts'), 'export const B = 2;\n', 'utf8');
+
+      const store = new DiaryStore();
+      const lm = new LmService();
+      const seenPaths: string[] = [];
+      (lm as any).generate = async (_system: string, user: string) => {
+        const match = user.match(/<file path="([^"]+)">/);
+        const filePath = match ? match[1] : '';
+        seenPaths.push(filePath);
+        return {
+          text: JSON.stringify([
+            { category: 'behavior', line_start: 1, line_end: 1, text: `note for ${filePath}` },
+          ]),
+          modelName: 'stub/model',
+        };
+      };
+      const generator = new DiaryGenerator(lm, store);
+
+      await generator.scanFiles(['src/a.ts', 'src/b.ts'], 'test scope');
+
+      expect(seenPaths).toEqual(['src/a.ts', 'src/b.ts']);
+      const a = store.getAnnotationsForFile('src/a.ts');
+      const b = store.getAnnotationsForFile('src/b.ts');
+      expect(a).toHaveLength(1);
+      expect(b).toHaveLength(1);
+      expect(a[0].source).toBe('ai_generated');
+      expect(a[0].text).toContain('src/a.ts');
+      store.dispose();
+    });
+
+    it('skips missing files silently', async () => {
+      fs.mkdirSync(path.join(tmpDir, 'src'), { recursive: true });
+      fs.writeFileSync(path.join(tmpDir, 'src/real.ts'), 'export {};\n', 'utf8');
+
+      const store = new DiaryStore();
+      const lm = new LmService();
+      let calls = 0;
+      (lm as any).generate = async () => {
+        calls++;
+        return { text: '[]', modelName: 'stub/model' };
+      };
+      const generator = new DiaryGenerator(lm, store);
+
+      await generator.scanFiles(['src/missing.ts', 'src/real.ts'], 'test');
+
+      expect(calls).toBe(1);
+      store.dispose();
+    });
+
+    it('skips empty files without calling the LM', async () => {
+      fs.mkdirSync(path.join(tmpDir, 'src'), { recursive: true });
+      fs.writeFileSync(path.join(tmpDir, 'src/empty.ts'), '', 'utf8');
+
+      const store = new DiaryStore();
+      const lm = new LmService();
+      let calls = 0;
+      (lm as any).generate = async () => {
+        calls++;
+        return { text: '[]', modelName: 'stub/model' };
+      };
+      const generator = new DiaryGenerator(lm, store);
+
+      await generator.scanFiles(['src/empty.ts'], 'test');
+
+      expect(calls).toBe(0);
+      store.dispose();
+    });
+
+    it('continues batch on per-file LM failures', async () => {
+      fs.mkdirSync(path.join(tmpDir, 'src'), { recursive: true });
+      fs.writeFileSync(path.join(tmpDir, 'src/x.ts'), 'export const X = 1;\n', 'utf8');
+      fs.writeFileSync(path.join(tmpDir, 'src/y.ts'), 'export const Y = 2;\n', 'utf8');
+
+      const store = new DiaryStore();
+      const lm = new LmService();
+      let i = 0;
+      (lm as any).generate = async () => {
+        if (i++ === 0) { throw new Error('boom'); }
+        return {
+          text: JSON.stringify([{ category: 'behavior', line_start: 1, line_end: 1, text: 'ok' }]),
+          modelName: 'stub/model',
+        };
+      };
+      const generator = new DiaryGenerator(lm, store);
+
+      await generator.scanFiles(['src/x.ts', 'src/y.ts'], 'test');
+
+      expect(store.getAnnotationsForFile('src/x.ts')).toHaveLength(0);
+      expect(store.getAnnotationsForFile('src/y.ts')).toHaveLength(1);
       store.dispose();
     });
   });

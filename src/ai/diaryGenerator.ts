@@ -1,10 +1,12 @@
 import * as vscode from 'vscode';
+import * as fs from 'fs';
+import * as path from 'path';
 import { LmService } from './lmService';
 import { DiaryStore } from '../storage/diaryStore';
 import { Annotation, AnnotationCategory, CATEGORY_META, FileDependency } from '../models/annotation';
 import { Component } from '../models/component';
 import { v4 as uuidv4 } from 'uuid';
-import { getGitUser, getRelativePath, getWorkspaceCwd, gitDiff, gitDiffAll } from '../utils/git';
+import { getGitUser, getRelativePath, getWorkspaceCwd } from '../utils/git';
 import { validLineRange, isValidKnowledgeCategory, isSafeRelativePath, stripJsonFences, truncateText } from '../utils/validation';
 
 /** Validate and extract dependency entries from AI-generated JSON. */
@@ -42,17 +44,17 @@ function parseComponentTags(raw: unknown, knownIds: Set<string>): string[] | und
   return out.length > 0 ? out : undefined;
 }
 
-const SYSTEM_PROMPT = `You are CodeDiary, the primary author of institutional knowledge for this codebase. A human teammate will review your entries afterwards — your job is to write high-signal notes they would otherwise have to reverse-engineer from the diff.
+const SYSTEM_PROMPT = `You are CodeDiary, the primary author of institutional knowledge for this codebase. A human teammate will review your entries afterwards — your job is to write high-signal notes they would otherwise have to reverse-engineer from the source.
 
-You are given: a file path, a diff, the full file content (line-numbered), any existing annotations and critical flags, and (when available) the component subsystems this file belongs to. Use all of it.
+You are given: a file path, the full file content (line-numbered), any existing annotations and critical flags, and (when available) the component subsystems this file belongs to. Use all of it.
 
-For each thing a future reader will need to know that the code does not already spell out, emit one entry. Aim for a small number of dense notes, not a play-by-play of the diff. Skip trivial formatting, renames, and import churn.
+For each thing a future reader will need to know that the code does not already spell out, emit one entry. Aim for a small number of dense notes, not a play-by-play. Skip trivial formatting, renames, and import churn.
 
 Respond ONLY with a JSON array (no markdown fences, no prose). Each entry has:
 - "category": one of "behavior" | "rationale" | "constraint" | "gotcha" | "business_rule" | "performance" | "security" | "human_note"
 - "line_start": starting line number in the new file (1-based, from the numbered content)
 - "line_end": ending line number
-- "text": 1–2 sentences, concrete, written for a teammate who has not seen this diff
+- "text": 1–2 sentences, concrete, written for a teammate who has not seen this code
 - "components": (optional) array of component ids this entry belongs to — use only ids listed under <components> in the prompt; drop the field if none apply
 - "dependencies": (optional) array of cross-file coupling links, e.g. [{"file": "src/billing/calc.ts", "relationship": "must stay in sync"}]
 
@@ -84,55 +86,6 @@ export class DiaryGenerator {
     private lm: LmService,
     private store: DiaryStore,
   ) {}
-
-  async suggestForFile(editor: vscode.TextEditor): Promise<void> {
-    const filePath = getRelativePath(editor.document.uri);
-    if (!filePath) { return; }
-
-    const cwd = getWorkspaceCwd();
-    if (!cwd) { return; }
-
-    const diff = gitDiff(filePath, cwd);
-    if (!diff) {
-      vscode.window.showInformationMessage('CodeDiary: No changes detected for this file.');
-      return;
-    }
-
-    const fileContent = editor.document.getText();
-
-    await vscode.window.withProgress(
-      {
-        location: vscode.ProgressLocation.Notification,
-        title: `CodeDiary: Generating diary entries for ${filePath}...`,
-        cancellable: true,
-      },
-      async (progress, token) => {
-        try {
-          progress.report({ message: 'Connecting to language model...' });
-
-          const existingContext = this.formatExistingKnowledge(filePath);
-          const componentContext = this.formatComponentContext(filePath);
-          const prompt = `<file path="${filePath}">\n<diff>\n${diff}\n</diff>\n<content>\n${this.numberLines(fileContent)}\n</content>\n</file>${componentContext}${existingContext}`;
-          const result = await this.lm.generate(SYSTEM_PROMPT, prompt, token);
-          if (!result || token.isCancellationRequested) { return; }
-
-          progress.report({ message: `Analyzing with ${result.modelName}...` });
-
-          const entries = this.parseEntries(result.text);
-          if (entries.length === 0) {
-            vscode.window.showInformationMessage(
-              `CodeDiary: No diary entries suggested for ${filePath} (via ${result.modelName}).`,
-            );
-            return;
-          }
-
-          await this.presentSuggestions(filePath, entries, result.modelName);
-        } catch (err) {
-          vscode.window.showErrorMessage(`CodeDiary: Failed to generate diary entries: ${err instanceof Error ? err.message : String(err)}`);
-        }
-      },
-    );
-  }
 
   /**
    * Full-file knowledge scan (no diff required). Use this for unfamiliar code
@@ -183,63 +136,59 @@ export class DiaryGenerator {
     );
   }
 
-  async suggestForAllChanges(): Promise<void> {
+  /**
+   * Batch full-file knowledge scan over many files. Auto-accepts every parsed
+   * entry as `source: ai_generated` — no per-entry quick pick. Used by
+   * scanComponent / scanProject; the human reviews via the sidebar afterwards.
+   */
+  async scanFiles(filePaths: string[], scopeLabel: string): Promise<void> {
     const cwd = getWorkspaceCwd();
-    if (!cwd) { return; }
-
-    const diff = gitDiffAll(cwd);
-    if (!diff) {
-      vscode.window.showInformationMessage('CodeDiary: No uncommitted changes found.');
-      return;
-    }
+    if (!cwd || filePaths.length === 0) { return; }
 
     await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
-        title: 'CodeDiary: Generating session diary for all changes...',
+        title: `CodeDiary: Knowledge scan — ${scopeLabel}`,
         cancellable: true,
       },
       async (progress, token) => {
-        try {
-          progress.report({ message: 'Connecting to language model...' });
+        let added = 0;
+        let scanned = 0;
+        let modelName = '';
+        const increment = 100 / filePaths.length;
 
-          const componentContext = this.formatAllComponentsContext();
-          const prompt = `<diff>\n${diff}\n</diff>${componentContext}`;
-          const result = await this.lm.generate(SYSTEM_PROMPT, prompt, token);
-          if (!result || token.isCancellationRequested) { return; }
+        for (const filePath of filePaths) {
+          if (token.isCancellationRequested) { break; }
+          progress.report({ message: `(${scanned + 1}/${filePaths.length}) ${filePath}`, increment });
 
-          progress.report({ message: `Analyzing with ${result.modelName}...` });
+          try {
+            const abs = path.isAbsolute(filePath) ? filePath : path.join(cwd, filePath);
+            if (!fs.existsSync(abs)) { scanned++; continue; }
+            const fileContent = fs.readFileSync(abs, 'utf8');
+            if (!fileContent.trim()) { scanned++; continue; }
 
-          const entries = this.parseEntries(result.text, true);
-          if (entries.length === 0) {
-            vscode.window.showInformationMessage(
-              `CodeDiary: No diary entries suggested (via ${result.modelName}).`,
-            );
-            return;
-          }
+            const existingContext = this.formatExistingKnowledge(filePath);
+            const componentContext = this.formatComponentContext(filePath);
+            const prompt = `<file path="${filePath}">\n<scope>full-file knowledge scan (no diff) — cover the entire file, not just a changed range</scope>\n<content>\n${this.numberLines(fileContent)}\n</content>\n</file>${componentContext}${existingContext}`;
+            const result = await this.lm.generate(SYSTEM_PROMPT, prompt, token);
+            if (!result) { scanned++; continue; }
+            modelName = result.modelName;
 
-          // Group by file and present
-          const byFile = new Map<string, SuggestedEntry[]>();
-          for (const entry of entries) {
-            const file = entry.file || 'unknown';
-            if (!byFile.has(file)) { byFile.set(file, []); }
-            byFile.get(file)!.push(entry);
-          }
-
-          let accepted = 0;
-          for (const [file, fileEntries] of byFile) {
-            for (const entry of fileEntries) {
-              this.addAsSuggested(file, entry);
-              accepted++;
+            const entries = this.parseEntries(result.text);
+            for (const entry of entries) {
+              this.addAsSuggested(filePath, entry);
+              added++;
             }
+          } catch {
+            // Skip individual file failures so one bad file doesn't abort the batch.
           }
-
-          vscode.window.showInformationMessage(
-            `CodeDiary: ${accepted} diary entries added as suggestions (via ${result.modelName}). Review them in the sidebar.`,
-          );
-        } catch (err) {
-          vscode.window.showErrorMessage(`CodeDiary: Failed to generate diary entries: ${err instanceof Error ? err.message : String(err)}`);
+          scanned++;
         }
+
+        const via = modelName ? ` (via ${modelName})` : '';
+        vscode.window.showInformationMessage(
+          `CodeDiary: ${added} knowledge entries added across ${scanned} files${via}. Review them in the sidebar.`,
+        );
       },
     );
   }
@@ -305,13 +254,13 @@ export class DiaryGenerator {
     this.store.addAnnotation(annotation);
   }
 
-  private parseEntries(raw: string, extractFile = false): (SuggestedEntry & { file?: string })[] {
+  private parseEntries(raw: string): SuggestedEntry[] {
     try {
       const cleaned = stripJsonFences(raw);
       const parsed = JSON.parse(cleaned);
       if (!Array.isArray(parsed)) { return []; }
       const knownComponentIds = new Set(this.store.getComponents().map(c => c.id));
-      const results: (SuggestedEntry & { file?: string })[] = [];
+      const results: SuggestedEntry[] = [];
       for (const e of parsed) {
         if (!e || typeof e !== 'object') { continue; }
         const range = validLineRange(e.line_start, e.line_end);
@@ -323,7 +272,6 @@ export class DiaryGenerator {
           line_start: range.line_start,
           line_end: range.line_end,
           text: e.text.trim(),
-          file: extractFile && typeof e.file === 'string' ? e.file : undefined,
           dependencies: parseDependencies(e.dependencies),
           components: parseComponentTags(e.components, knownComponentIds),
         });
@@ -346,24 +294,6 @@ export class DiaryGenerator {
     lines.push('This file is tagged into the following component(s). Tag entries with these ids when relevant.');
     for (const c of mine) {
       lines.push(this.renderComponentBlock(c, filePath));
-    }
-    lines.push('</components>');
-    return lines.join('\n');
-  }
-
-  /**
-   * Whole-workspace component block for the multi-file flow. Keeps it short:
-   * just ids + names + one-line descriptions so the model knows which tags
-   * exist without us blasting every file list into the context window.
-   */
-  formatAllComponentsContext(): string {
-    const all = this.store.getComponents();
-    if (all.length === 0) { return ''; }
-    const lines: string[] = ['\n\n<components>'];
-    lines.push('Available component ids (tag entries with any that apply, using the id exactly):');
-    for (const c of all) {
-      const desc = c.description ? ` — ${c.description}` : '';
-      lines.push(`- ${c.id} (${c.name})${desc}`);
     }
     lines.push('</components>');
     return lines.join('\n');

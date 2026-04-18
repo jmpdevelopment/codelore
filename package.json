@@ -96,39 +96,24 @@
         "icon": "$(refresh)"
       },
       {
-        "command": "codediary.suggestDiary",
-        "title": "CodeDiary: Suggest Diary Entries (Current File)",
+        "command": "codediary.scanFile",
+        "title": "CodeDiary: Scan Current File (Knowledge + Critical)",
         "icon": "$(sparkle)"
       },
       {
-        "command": "codediary.suggestDiaryAll",
-        "title": "CodeDiary: Suggest Diary Entries (All Changes)",
-        "icon": "$(sparkle)"
+        "command": "codediary.scanComponent",
+        "title": "CodeDiary: Scan Component (Knowledge + Critical)",
+        "icon": "$(symbol-namespace)"
       },
       {
-        "command": "codediary.scanForKnowledge",
-        "title": "CodeDiary: Scan File for Institutional Knowledge",
-        "icon": "$(book)"
+        "command": "codediary.scanProject",
+        "title": "CodeDiary: Scan Entire Project (Knowledge + Critical)",
+        "icon": "$(globe)"
       },
       {
         "command": "codediary.proposeComponent",
         "title": "CodeDiary: Propose Components (AI)",
         "icon": "$(symbol-namespace)"
-      },
-      {
-        "command": "codediary.scanCritical",
-        "title": "CodeDiary: Scan Changes for Critical Logic (Diff Only)",
-        "icon": "$(shield)"
-      },
-      {
-        "command": "codediary.scanCriticalAll",
-        "title": "CodeDiary: Scan All Uncommitted Changes for Critical Logic (Diff Only)",
-        "icon": "$(shield)"
-      },
-      {
-        "command": "codediary.scanFile",
-        "title": "CodeDiary: Scan Entire File for Critical Logic (Full File)",
-        "icon": "$(shield)"
       },
       {
         "command": "codediary.changeModel",
@@ -214,7 +199,7 @@
         "mac": "cmd+shift+b"
       },
       {
-        "command": "codediary.scanForKnowledge",
+        "command": "codediary.scanFile",
         "key": "ctrl+shift+k",
         "mac": "cmd+shift+k",
         "when": "editorTextFocus"
@@ -242,20 +227,8 @@
           "group": "critical@1"
         },
         {
-          "command": "codediary.suggestDiary",
-          "group": "ai@1"
-        },
-        {
-          "command": "codediary.scanForKnowledge",
-          "group": "ai@2"
-        },
-        {
-          "command": "codediary.scanCritical",
-          "group": "ai@3"
-        },
-        {
           "command": "codediary.scanFile",
-          "group": "ai@4"
+          "group": "ai@1"
         },
         {
           "command": "codediary.resolveCritical",
