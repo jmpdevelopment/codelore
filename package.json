@@ -113,6 +113,11 @@
         "icon": "$(sparkle)"
       },
       {
+        "command": "codediary.scanForKnowledge",
+        "title": "CodeDiary: Scan File for Institutional Knowledge",
+        "icon": "$(book)"
+      },
+      {
         "command": "codediary.scanCritical",
         "title": "CodeDiary: Scan Changes for Critical Logic (Diff Only)",
         "icon": "$(shield)"
@@ -236,12 +241,16 @@
           "group": "ai@1"
         },
         {
-          "command": "codediary.scanCritical",
+          "command": "codediary.scanForKnowledge",
           "group": "ai@2"
         },
         {
-          "command": "codediary.scanFile",
+          "command": "codediary.scanCritical",
           "group": "ai@3"
+        },
+        {
+          "command": "codediary.scanFile",
+          "group": "ai@4"
         },
         {
           "command": "codediary.resolveCritical",

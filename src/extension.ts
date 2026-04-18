@@ -147,6 +147,15 @@ export function activate(context: vscode.ExtensionContext): void {
       await diaryGenerator.suggestForAllChanges();
     }),
 
+    vscode.commands.registerCommand('codediary.scanForKnowledge', async () => {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) {
+        vscode.window.showInformationMessage('CodeDiary: Open a file first.');
+        return;
+      }
+      await diaryGenerator.scanForKnowledge(editor);
+    }),
+
     vscode.commands.registerCommand('codediary.scanCritical', async () => {
       const editor = vscode.window.activeTextEditor;
       if (!editor) {

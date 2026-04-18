@@ -2,7 +2,14 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { __setWorkspaceFolder, __clearWorkspace, __setConfig } from '../__mocks__/vscode';
+import {
+  __setWorkspaceFolder,
+  __clearWorkspace,
+  __setConfig,
+  __setActiveTextEditor,
+  __queueQuickPick,
+  Uri,
+} from '../__mocks__/vscode';
 import { DiaryGenerator } from '../../src/ai/diaryGenerator';
 import { DiaryStore } from '../../src/storage/diaryStore';
 import { LmService } from '../../src/ai/lmService';
@@ -376,6 +383,63 @@ describe('DiaryGenerator parsing', () => {
       expect(block).toContain('billing (Billing)');
       expect(block).toContain('invoice');
       expect(block).toContain('reporting (Reporting)');
+      store.dispose();
+    });
+
+    it('scanForKnowledge sends a full-file prompt (no diff) and persists accepted entries', async () => {
+      writeComponent(tmpDir, 'billing', {
+        id: 'billing', name: 'Billing',
+        files: ['src/foo.ts'],
+        source: 'human_authored',
+        created_at: '2026-04-18T00:00:00Z', updated_at: '2026-04-18T00:00:00Z',
+      });
+
+      const filePath = path.join(tmpDir, 'src/foo.ts');
+      fs.mkdirSync(path.dirname(filePath), { recursive: true });
+      fs.writeFileSync(filePath, 'function charge() {\n  return 42;\n}\n', 'utf8');
+
+      const store = new DiaryStore();
+      const lm = new LmService();
+      let capturedPrompt = '';
+      (lm as any).generate = async (_system: string, user: string) => {
+        capturedPrompt = user;
+        return {
+          text: JSON.stringify([
+            { category: 'behavior', line_start: 1, line_end: 3, text: 'charge returns a fixed amount', components: ['billing'] },
+          ]),
+          modelName: 'stub/model',
+        };
+      };
+      const generator = new DiaryGenerator(lm, store);
+
+      const editor = {
+        document: {
+          uri: Uri.file(filePath),
+          getText: () => 'function charge() {\n  return 42;\n}\n',
+        },
+      };
+      __setActiveTextEditor(editor);
+
+      // presentSuggestions calls showQuickPick with the items; our mock returns
+      // a canned array representing the user's selection.
+      __queueQuickPick([
+        {
+          entry: { category: 'behavior', line_start: 1, line_end: 3, text: 'charge returns a fixed amount', components: ['billing'] },
+          overlapping: [],
+        },
+      ]);
+
+      await generator.scanForKnowledge(editor as any);
+
+      expect(capturedPrompt).toContain('<scope>full-file knowledge scan');
+      expect(capturedPrompt).not.toContain('<diff>');
+      expect(capturedPrompt).toContain('1: function charge()');
+      expect(capturedPrompt).toContain('<components>');
+
+      const stored = store.getAnnotationsForFile('src/foo.ts');
+      expect(stored).toHaveLength(1);
+      expect(stored[0].source).toBe('ai_generated');
+      expect(stored[0].components).toEqual(['billing']);
       store.dispose();
     });
 

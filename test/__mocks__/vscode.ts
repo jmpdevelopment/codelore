@@ -208,7 +208,11 @@ export const window = {
   showInformationMessage: async () => undefined as any,
   showWarningMessage: async () => undefined as any,
   showErrorMessage: async () => undefined as any,
-  withProgress: async () => undefined as any,
+  withProgress: async (_options: any, task: (progress: any, token: any) => any) => {
+    const progress = { report: (_v: any) => {} };
+    const token = { isCancellationRequested: false, onCancellationRequested: () => ({ dispose: () => {} }) };
+    return await task(progress, token);
+  },
 };
 
 export const commands = {

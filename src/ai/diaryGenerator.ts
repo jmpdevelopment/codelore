@@ -134,6 +134,55 @@ export class DiaryGenerator {
     );
   }
 
+  /**
+   * Full-file knowledge scan (no diff required). Use this for unfamiliar code
+   * or to backfill institutional knowledge on a file that has never been
+   * annotated. Entries are recorded as `source: ai_generated` and surface to
+   * the human for verification like any other AI suggestion.
+   */
+  async scanForKnowledge(editor: vscode.TextEditor): Promise<void> {
+    const filePath = getRelativePath(editor.document.uri);
+    if (!filePath) { return; }
+    const fileContent = editor.document.getText();
+    if (!fileContent.trim()) {
+      vscode.window.showInformationMessage('CodeDiary: File is empty.');
+      return;
+    }
+
+    await vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        title: `CodeDiary: Scanning ${filePath} for institutional knowledge...`,
+        cancellable: true,
+      },
+      async (progress, token) => {
+        try {
+          progress.report({ message: 'Connecting to language model...' });
+
+          const existingContext = this.formatExistingKnowledge(filePath);
+          const componentContext = this.formatComponentContext(filePath);
+          const prompt = `<file path="${filePath}">\n<scope>full-file knowledge scan (no diff) — cover the entire file, not just a changed range</scope>\n<content>\n${this.numberLines(fileContent)}\n</content>\n</file>${componentContext}${existingContext}`;
+          const result = await this.lm.generate(SYSTEM_PROMPT, prompt, token);
+          if (!result || token.isCancellationRequested) { return; }
+
+          progress.report({ message: `Analyzing with ${result.modelName}...` });
+
+          const entries = this.parseEntries(result.text);
+          if (entries.length === 0) {
+            vscode.window.showInformationMessage(
+              `CodeDiary: No new knowledge surfaced for ${filePath} (via ${result.modelName}).`,
+            );
+            return;
+          }
+
+          await this.presentSuggestions(filePath, entries, result.modelName);
+        } catch (err) {
+          vscode.window.showErrorMessage(`CodeDiary: Knowledge scan failed: ${err instanceof Error ? err.message : String(err)}`);
+        }
+      },
+    );
+  }
+
   async suggestForAllChanges(): Promise<void> {
     const cwd = getWorkspaceCwd();
     if (!cwd) { return; }
