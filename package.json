@@ -175,28 +175,16 @@
           "group": "annotation@1"
         },
         {
+          "command": "codelore.quickNote",
+          "group": "annotation@2"
+        },
+        {
           "command": "codelore.markCritical",
           "group": "critical@1"
         },
         {
           "command": "codelore.scanFile",
           "group": "ai@1"
-        },
-        {
-          "command": "codelore.resolveCritical",
-          "group": "critical@2"
-        },
-        {
-          "command": "codelore.removeCritical",
-          "group": "critical@3"
-        },
-        {
-          "command": "codelore.quickNote",
-          "group": "annotation@2"
-        },
-        {
-          "command": "codelore.copyAnnotationsForFile",
-          "group": "annotation@3"
         }
       ],
       "view/title": [
