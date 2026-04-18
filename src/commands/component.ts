@@ -45,6 +45,41 @@ async function promptForComponent(store: DiaryStore, placeholder: string): Promi
   return picked ? store.getComponent(picked.id) : undefined;
 }
 
+async function createNewComponent(store: DiaryStore): Promise<Component | undefined> {
+  const name = await vscode.window.showInputBox({
+    prompt: 'Component name',
+    placeHolder: 'e.g., Billing Engine',
+  });
+  if (!name) { return undefined; }
+  const id = slugify(name);
+  if (!isValidComponentId(id)) {
+    vscode.window.showErrorMessage(`CodeDiary: Could not derive a valid id from "${name}".`);
+    return undefined;
+  }
+  if (store.getComponent(id)) {
+    vscode.window.showWarningMessage(`CodeDiary: Component "${id}" already exists. Pick it from the list.`);
+    return undefined;
+  }
+  const description = await vscode.window.showInputBox({
+    prompt: '(Optional) short description',
+    placeHolder: 'What does this component do?',
+  });
+
+  const now = new Date().toISOString();
+  const created: Component = {
+    id,
+    name: name.trim(),
+    description: description?.trim() || undefined,
+    files: [],
+    source: 'human_authored',
+    created_at: now,
+    updated_at: now,
+    author: getGitUser(),
+  };
+  store.components.upsert(created);
+  return store.getComponent(id);
+}
+
 async function pickOrCreateComponent(store: DiaryStore): Promise<Component | undefined> {
   const existing = store.getComponents();
   const items: Array<vscode.QuickPickItem & { id: string }> = existing.map(c => ({
@@ -64,38 +99,7 @@ async function pickOrCreateComponent(store: DiaryStore): Promise<Component | und
   if (!picked) { return undefined; }
 
   if (picked.id === CREATE_NEW_ID) {
-    const name = await vscode.window.showInputBox({
-      prompt: 'Component name',
-      placeHolder: 'e.g., Billing Engine',
-    });
-    if (!name) { return undefined; }
-    const id = slugify(name);
-    if (!isValidComponentId(id)) {
-      vscode.window.showErrorMessage(`CodeDiary: Could not derive a valid id from "${name}".`);
-      return undefined;
-    }
-    if (store.getComponent(id)) {
-      vscode.window.showWarningMessage(`CodeDiary: Component "${id}" already exists. Pick it from the list.`);
-      return undefined;
-    }
-    const description = await vscode.window.showInputBox({
-      prompt: '(Optional) short description',
-      placeHolder: 'What does this component do?',
-    });
-
-    const now = new Date().toISOString();
-    const created: Component = {
-      id,
-      name: name.trim(),
-      description: description?.trim() || undefined,
-      files: [],
-      source: 'human_authored',
-      created_at: now,
-      updated_at: now,
-      author: getGitUser(),
-    };
-    store.components.upsert(created);
-    return store.getComponent(id);
+    return createNewComponent(store);
   }
 
   return store.getComponent(picked.id);
@@ -106,7 +110,7 @@ export function registerComponentCommands(
   store: DiaryStore,
 ): void {
   context.subscriptions.push(
-    vscode.commands.registerCommand('codediary.tagFileComponent', async () => {
+    vscode.commands.registerCommand('codediary.manageComponentsForFile', async () => {
       const editor = vscode.window.activeTextEditor;
       if (!editor) {
         vscode.window.showInformationMessage('CodeDiary: Open a file first.');
@@ -118,20 +122,67 @@ export function registerComponentCommands(
         return;
       }
 
-      const component = await pickOrCreateComponent(store);
-      if (!component) { return; }
-
-      if (component.files.includes(filePath)) {
+      const all = store.getComponents();
+      if (all.length === 0) {
+        // First-time path: skip the empty multi-select and go straight to create.
+        const created = await pickOrCreateComponent(store);
+        if (!created) { return; }
+        store.components.addFile(created.id, filePath);
         vscode.window.showInformationMessage(
-          `CodeDiary: ${filePath} is already tagged into "${component.name}".`,
+          `CodeDiary: Tagged ${filePath} into "${created.name}".`,
         );
         return;
       }
 
-      store.components.addFile(component.id, filePath);
-      vscode.window.showInformationMessage(
-        `CodeDiary: Tagged ${filePath} into "${component.name}".`,
-      );
+      const currentIds = new Set(store.getComponentsForFile(filePath).map(c => c.id));
+      const items: Array<vscode.QuickPickItem & { id: string }> = [
+        { label: '$(add) Create new component…', id: CREATE_NEW_ID },
+        ...all.map(c => ({
+          label: `$(symbol-namespace) ${c.name}`,
+          description: c.id,
+          detail: c.description,
+          picked: currentIds.has(c.id),
+          id: c.id,
+        })),
+      ];
+
+      const picked = await vscode.window.showQuickPick(items, {
+        canPickMany: true,
+        placeHolder: `Manage component memberships for ${filePath} (toggle to add/remove)`,
+      }) as Array<vscode.QuickPickItem & { id: string }> | undefined;
+      if (!picked) { return; }
+
+      const wantsNew = picked.some(p => p.id === CREATE_NEW_ID);
+      const pickedIds = new Set(picked.map(p => p.id).filter(id => id !== CREATE_NEW_ID));
+
+      const added: string[] = [];
+      const removed: string[] = [];
+      for (const id of pickedIds) {
+        if (!currentIds.has(id)) {
+          store.components.addFile(id, filePath);
+          added.push(store.getComponent(id)?.name ?? id);
+        }
+      }
+      for (const id of currentIds) {
+        if (!pickedIds.has(id)) {
+          store.components.removeFile(id, filePath);
+          removed.push(store.getComponent(id)?.name ?? id);
+        }
+      }
+
+      if (wantsNew) {
+        const created = await createNewComponent(store);
+        if (created) {
+          store.components.addFile(created.id, filePath);
+          added.push(created.name);
+        }
+      }
+
+      const parts: string[] = [];
+      if (added.length > 0) { parts.push(`tagged into ${added.join(', ')}`); }
+      if (removed.length > 0) { parts.push(`untagged from ${removed.join(', ')}`); }
+      if (parts.length === 0) { return; }
+      vscode.window.showInformationMessage(`CodeDiary: ${filePath} ${parts.join('; ')}.`);
     }),
 
     vscode.commands.registerCommand('codediary.editComponent', async (arg?: unknown) => {
@@ -200,36 +251,6 @@ export function registerComponentCommands(
 
       const uri = vscode.Uri.file(path.join(wsFolder.uri.fsPath, target));
       await vscode.commands.executeCommand('vscode.open', uri);
-    }),
-
-    vscode.commands.registerCommand('codediary.untagFileComponent', async () => {
-      const editor = vscode.window.activeTextEditor;
-      if (!editor) { return; }
-      const filePath = getRelativePath(editor.document.uri);
-      if (!filePath) { return; }
-
-      const current = store.getComponentsForFile(filePath);
-      if (current.length === 0) {
-        vscode.window.showInformationMessage(
-          `CodeDiary: ${filePath} is not tagged into any component.`,
-        );
-        return;
-      }
-
-      const picked = await vscode.window.showQuickPick(
-        current.map(c => ({
-          label: `$(symbol-namespace) ${c.name}`,
-          description: c.id,
-          id: c.id,
-        })),
-        { placeHolder: 'Which component should this file be untagged from?' },
-      );
-      if (!picked) { return; }
-
-      store.components.removeFile(picked.id, filePath);
-      vscode.window.showInformationMessage(
-        `CodeDiary: Untagged ${filePath} from "${picked.label.replace('$(symbol-namespace) ', '')}".`,
-      );
     }),
   );
 }

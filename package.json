@@ -58,13 +58,9 @@
         "title": "CodeDiary: Clear Personal Data"
       },
       {
-        "command": "codediary.tagFileComponent",
-        "title": "CodeDiary: Tag File into Component",
+        "command": "codediary.manageComponentsForFile",
+        "title": "CodeDiary: Manage Components for File",
         "icon": "$(symbol-namespace)"
-      },
-      {
-        "command": "codediary.untagFileComponent",
-        "title": "CodeDiary: Untag File from Component"
       },
       {
         "command": "codediary.editComponent",
@@ -234,7 +230,7 @@
           "group": "navigation@5"
         },
         {
-          "command": "codediary.tagFileComponent",
+          "command": "codediary.manageComponentsForFile",
           "when": "view == codediary.components",
           "group": "navigation@1"
         },

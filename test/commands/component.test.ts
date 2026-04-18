@@ -9,6 +9,8 @@ import {
   __queueQuickPick,
   __queueInputBox,
   __getExecutedCommands,
+  __setActiveTextEditor,
+  Uri,
 } from '../__mocks__/vscode';
 import * as vscode from '../__mocks__/vscode';
 import { DiaryStore } from '../../src/storage/diaryStore';
@@ -174,6 +176,114 @@ describe('codediary.jumpToComponent', () => {
     await vscode.commands.executeCommand('codediary.jumpToComponent');
 
     expect(__getExecutedCommands().find(c => c.id === 'vscode.open')).toBeUndefined();
+    store.dispose();
+  });
+});
+
+describe('codediary.manageComponentsForFile', () => {
+  function setActiveFile(rel: string): void {
+    const full = path.join(tmpDir, rel);
+    fs.mkdirSync(path.dirname(full), { recursive: true });
+    if (!fs.existsSync(full)) { fs.writeFileSync(full, '', 'utf8'); }
+    __setActiveTextEditor({ document: { uri: Uri.file(full) } });
+  }
+
+  it('creates the first component when none exist and tags the file', async () => {
+    setActiveFile('src/foo.ts');
+    const store = new DiaryStore();
+    registerComponentCommands(context, store);
+
+    __queueQuickPick({ id: '__create_new__' });
+    __queueInputBox('Billing', 'does billing');
+
+    await vscode.commands.executeCommand('codediary.manageComponentsForFile');
+
+    const components = store.getComponents();
+    expect(components).toHaveLength(1);
+    expect(components[0].id).toBe('billing');
+    expect(components[0].files).toEqual(['src/foo.ts']);
+    store.dispose();
+  });
+
+  it('tags and untags based on the diff between current and picked memberships', async () => {
+    seedComponent({ id: 'billing', name: 'Billing', files: ['src/foo.ts'] });
+    seedComponent({ id: 'reporting', name: 'Reporting', files: [] });
+    setActiveFile('src/foo.ts');
+    const store = new DiaryStore();
+    registerComponentCommands(context, store);
+
+    __queueQuickPick([
+      { id: 'reporting' },
+    ]);
+
+    await vscode.commands.executeCommand('codediary.manageComponentsForFile');
+
+    expect(store.getComponent('billing')!.files).toEqual([]);
+    expect(store.getComponent('reporting')!.files).toEqual(['src/foo.ts']);
+    store.dispose();
+  });
+
+  it('keeps a pre-selected component picked and adds a new one', async () => {
+    seedComponent({ id: 'billing', name: 'Billing', files: ['src/foo.ts'] });
+    seedComponent({ id: 'reporting', name: 'Reporting', files: [] });
+    setActiveFile('src/foo.ts');
+    const store = new DiaryStore();
+    registerComponentCommands(context, store);
+
+    __queueQuickPick([
+      { id: 'billing' },
+      { id: 'reporting' },
+    ]);
+
+    await vscode.commands.executeCommand('codediary.manageComponentsForFile');
+
+    expect(store.getComponent('billing')!.files).toEqual(['src/foo.ts']);
+    expect(store.getComponent('reporting')!.files).toEqual(['src/foo.ts']);
+    store.dispose();
+  });
+
+  it('creates a new component inline when the create-new item is picked alongside existing', async () => {
+    seedComponent({ id: 'billing', name: 'Billing', files: [] });
+    setActiveFile('src/foo.ts');
+    const store = new DiaryStore();
+    registerComponentCommands(context, store);
+
+    __queueQuickPick([
+      { id: 'billing' },
+      { id: '__create_new__' },
+    ]);
+    __queueInputBox('Reporting', '');
+
+    await vscode.commands.executeCommand('codediary.manageComponentsForFile');
+
+    expect(store.getComponent('billing')!.files).toEqual(['src/foo.ts']);
+    const reporting = store.getComponent('reporting');
+    expect(reporting).toBeDefined();
+    expect(reporting!.files).toEqual(['src/foo.ts']);
+    store.dispose();
+  });
+
+  it('does nothing when the multi-select is dismissed', async () => {
+    seedComponent({ id: 'billing', name: 'Billing', files: [] });
+    setActiveFile('src/foo.ts');
+    const store = new DiaryStore();
+    registerComponentCommands(context, store);
+
+    // no quick pick queued — returns undefined
+
+    await vscode.commands.executeCommand('codediary.manageComponentsForFile');
+
+    expect(store.getComponent('billing')!.files).toEqual([]);
+    store.dispose();
+  });
+
+  it('returns silently when there is no active editor', async () => {
+    const store = new DiaryStore();
+    registerComponentCommands(context, store);
+
+    await vscode.commands.executeCommand('codediary.manageComponentsForFile');
+
+    expect(store.getComponents()).toEqual([]);
     store.dispose();
   });
 });
