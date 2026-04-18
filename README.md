@@ -8,7 +8,7 @@
 
 On large, mature codebases, the bottleneck isn't writing code — it's comprehension. AI agents modify modules last touched years ago. The knowledge a developer gains while working through unfamiliar code with AI assistance — what a module actually does, why a quirk exists, which regions are dangerous — dies in Slack threads or walks out the door.
 
-CodeLore captures that knowledge as structured YAML alongside the source tree, surfaces it proactively when it matters (file open, file save, pre-commit), and feeds it back to AI agents and reviewers so they stop re-litigating the same things.
+CodeLore captures that knowledge as structured YAML alongside the source tree, surfaces it proactively when it matters (file open, file save), and feeds it back to AI agents and reviewers so they stop re-litigating the same things.
 
 Unlike inline comments, CodeLore annotations are a separate metadata layer — queryable, lifecycle-aware, and split into shared (committed to git) and personal (gitignored) scopes so candid notes don't leak.
 
@@ -30,7 +30,7 @@ Unlike inline comments, CodeLore annotations are a separate metadata layer — q
 2. Press **`Cmd+Shift+K`** to let CodeLore scan the file for institutional knowledge. The AI drafts annotations with `source: ai_generated`.
 3. Skim the drafts in the **Annotations** sidebar. For each one that's right, click the ✓ to verify it (stamps `ai_verified` + your handle).
 4. Add your own annotation on a line you understand better than the AI: select the range and press **`Cmd+Shift+L`**.
-5. Press **`Cmd+Shift+B`** to open the **Pre-Commit Brief** — it cross-references the annotations you have against the diff in your working tree. This is your primary consumption surface.
+5. `Generate Agent Instruction Files` from the command palette — the agents you already use (Claude Code, Cursor, Copilot) then read annotations as context before modifying code.
 
 ## The 8 knowledge categories
 
@@ -63,19 +63,18 @@ CodeLore is bidirectional: AI agents *read* annotations before modifying code an
 
 - **Reading:** `Generate Agent Instruction Files` writes a CodeLore block into `CLAUDE.md`, `.cursorrules`, `AGENTS.md`, `.github/copilot-instructions.md`, or `.windsurfrules`. The block tells the agent where knowledge lives, how to read it, and how to maintain content/signature anchors on refactor.
 - **Authoring:** The agent writes annotations directly into `.codelore/<path>.yaml` with `source: ai_generated`. Humans promote them to `ai_verified` with the inline ✓ action.
-- **Verification status is a field, not a category.** Every annotation has `source: ai_generated | ai_verified | human_authored`. The `ai_generated` ones are drafts; the Pre-Commit Brief flags them as unverified so reviewers can sweep them.
+- **Verification status is a field, not a category.** Every annotation has `source: ai_generated | ai_verified | human_authored`. The `ai_generated` ones are drafts; the Annotations sidebar badges them as unverified so reviewers can sweep them.
 - No custom LLM — uses `vscode.lm` so it runs on whatever model you already have (GitHub Copilot, Claude, etc.).
 
 ## Keyboard shortcuts
 
-CodeLore caps itself at 4 chords. Everything else is in the command palette.
+CodeLore caps itself at 3 chords. Everything else is in the command palette.
 
 | Shortcut | Action |
 |---|---|
 | `Cmd+Shift+L` | Add annotation on selection |
 | `Cmd+Shift+K` | Scan current file for knowledge + critical regions (AI) |
 | `Cmd+Shift+J` | Quick AI note (ephemeral, personal) |
-| `Cmd+Shift+B` | Open Pre-Commit Brief |
 
 On Windows/Linux, swap `Cmd` for `Ctrl`.
 
@@ -101,10 +100,10 @@ On file open, stale anchors get a ⚠ warning. `Check Annotation Anchors` scans 
 
 Knowledge finds you; you don't have to find it.
 
-- **Pre-Commit Brief** — cross-references `git diff HEAD` against annotations, critical flags, and cross-file dependencies. Files sorted by risk (unresolved critical first). Unverified AI annotations are badged.
-- **On file open** — unresolved critical flags pop a warning.
-- **On file save** — if your edits overlap known annotations or flags, a nudge appears: "Your changes overlap 2 critical flags — review before committing."
-- **Status bar** — annotation count and unreviewed-critical count at a glance. Click to open the brief.
+- **On file open** — unresolved critical flags pop a warning with a jump to the Critical Review Queue.
+- **On file save** — if your edits overlap known annotations, flags, or incoming cross-file dependencies, a nudge appears: "Your changes overlap 2 critical flags — review before committing."
+- **Status bar** — annotation count and unreviewed-critical count at a glance. Click to open the Annotations view.
+- **Agent review** — AI agents read the annotations alongside your diff, so pre-commit awareness of knowledge now flows through the same reviewer that reviews the code.
 
 ## FAQ
 

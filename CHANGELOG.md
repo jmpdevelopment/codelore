@@ -19,9 +19,6 @@ AI-driven refactors, team turnover, and noisy AI reviewers.
 - **Eight knowledge categories + AI prompt:** verified, needs review,
   modified, don't understand, potential hallucination, intent note,
   accepted as-is, business rule, and ephemeral AI prompt.
-- **Pre-Commit Brief.** Diff-aware sidebar showing changed files with
-  their overlapping annotations, critical flags, and cross-file
-  dependencies, sorted by risk.
 - **Critical regions.** Mark, resolve, and remove critical flags on
   high-risk code with severity and human-reviewed lifecycle.
 - **Content + signature anchoring.** Annotations survive whitespace
@@ -39,8 +36,8 @@ AI-driven refactors, team turnover, and noisy AI reviewers.
   exist, and on save when uncommitted changes overlap known annotations
   or cross-file dependencies.
 - **Cross-file dependencies.** Annotations can declare links to other
-  files; the brief and save notifications surface them at the right
-  moment.
+  files; save notifications and AI agents (via the generated
+  instruction files) surface them at the right moment.
 - **Security hardening.** Markdown sanitization, path traversal
   prevention, symlink-safe writes, scoped command trust in hovers.
 

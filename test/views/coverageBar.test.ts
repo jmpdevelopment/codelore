@@ -108,10 +108,10 @@ describe('CoverageBar', () => {
     store.dispose();
   });
 
-  it('click target is the pre-commit brief', () => {
+  it('click target is the annotations view', () => {
     const store = new LoreStore();
     const bar = new CoverageBar(store);
-    expect((bar as any).statusBarItem.command).toBe('codelore.showPreCommitBrief');
+    expect((bar as any).statusBarItem.command).toBe('codelore.showChangePlan');
     bar.dispose();
     store.dispose();
   });

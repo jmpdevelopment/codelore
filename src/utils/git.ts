@@ -69,3 +69,14 @@ export function parseChangedLineRanges(diff: string): ChangedLineRange[] {
   }
   return ranges;
 }
+
+/** Check if an item's line range overlaps any of the changed ranges. */
+export function rangesOverlap(lineStart: number, lineEnd: number, changedRanges: ChangedLineRange[]): boolean {
+  for (const range of changedRanges) {
+    const changeEnd = range.start + range.count - 1;
+    if (lineStart <= changeEnd && lineEnd >= range.start) {
+      return true;
+    }
+  }
+  return false;
+}

@@ -144,11 +144,6 @@
         "command": "codelore.checkAnchors",
         "title": "CodeLore: Check Annotation Anchors",
         "icon": "$(pin)"
-      },
-      {
-        "command": "codelore.showPreCommitBrief",
-        "title": "CodeLore: Show Pre-Commit Brief",
-        "icon": "$(checklist)"
       }
     ],
     "keybindings": [
@@ -163,11 +158,6 @@
         "key": "ctrl+shift+j",
         "mac": "cmd+shift+j",
         "when": "editorTextFocus"
-      },
-      {
-        "command": "codelore.showPreCommitBrief",
-        "key": "ctrl+shift+b",
-        "mac": "cmd+shift+b"
       },
       {
         "command": "codelore.scanFile",
@@ -221,7 +211,7 @@
         },
         {
           "command": "codelore.refreshSidebar",
-          "when": "view == codelore.changePlan || view == codelore.criticalQueue || view == codelore.preCommitBrief || view == codelore.components",
+          "when": "view == codelore.changePlan || view == codelore.criticalQueue || view == codelore.components",
           "group": "navigation@5"
         },
         {
@@ -323,10 +313,6 @@
           "id": "codelore.changePlan",
           "name": "Annotations",
           "visibility": "collapsed"
-        },
-        {
-          "id": "codelore.preCommitBrief",
-          "name": "Pre-Commit Brief"
         },
         {
           "id": "codelore.criticalQueue",

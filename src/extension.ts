@@ -5,7 +5,6 @@ import { CriticalDecorator } from './providers/criticalDecorator';
 import { KnowledgeNotifier } from './providers/knowledgeNotifier';
 import { ChangePlanProvider } from './views/changePlanProvider';
 import { CriticalQueueProvider } from './views/criticalQueueProvider';
-import { PreCommitBriefProvider } from './views/preCommitBriefProvider';
 import { ComponentsProvider } from './views/componentsProvider';
 import { CoverageBar } from './views/coverageBar';
 import { ComponentBar } from './views/componentBar';
@@ -38,13 +37,10 @@ export function activate(context: vscode.ExtensionContext): void {
   // Sidebar views
   const changePlanProvider = new ChangePlanProvider(store);
   const criticalQueueProvider = new CriticalQueueProvider(store);
-  const preCommitBriefProvider = new PreCommitBriefProvider(store);
   const componentsProvider = new ComponentsProvider(store);
   vscode.window.registerTreeDataProvider('codelore.changePlan', changePlanProvider);
   vscode.window.registerTreeDataProvider('codelore.criticalQueue', criticalQueueProvider);
-  vscode.window.registerTreeDataProvider('codelore.preCommitBrief', preCommitBriefProvider);
   vscode.window.registerTreeDataProvider('codelore.components', componentsProvider);
-  context.subscriptions.push(preCommitBriefProvider);
 
   // Status bar
   const coverageBar = new CoverageBar(store);
@@ -66,16 +62,11 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('codelore.refreshSidebar', () => {
       changePlanProvider.refresh();
       criticalQueueProvider.refresh();
-      preCommitBriefProvider.refresh();
       componentsProvider.refresh();
     }),
 
     vscode.commands.registerCommand('codelore.showChangePlan', () => {
       vscode.commands.executeCommand('codelore.changePlan.focus');
-    }),
-
-    vscode.commands.registerCommand('codelore.showPreCommitBrief', () => {
-      vscode.commands.executeCommand('codelore.preCommitBrief.focus');
     }),
 
     vscode.commands.registerCommand('codelore.proposeComponent', async () => {

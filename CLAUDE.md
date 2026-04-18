@@ -53,7 +53,6 @@ codelore/
 │   ├── views/
 │   │   ├── changePlanProvider.ts     # TreeView sidebar: annotations grouped by file
 │   │   ├── criticalQueueProvider.ts  # TreeView: sorted critical review queue
-│   │   ├── preCommitBriefProvider.ts # TreeView: diff-aware knowledge briefing
 │   │   └── coverageBar.ts           # Status bar: annotation + critical summary
 │   ├── commands/
 │   │   ├── annotate.ts           # Add/edit/delete annotations with scope picker
@@ -92,24 +91,14 @@ codelore/
 - **clearAll** only clears the personal store to protect team knowledge.
 - **Personal annotations are excluded from AI context** — private notes never leak into suggestions visible to the team.
 
-### Pre-Commit Brief (Diff-Centric Knowledge Delivery)
-
-The Pre-Commit Brief is the primary consumption surface. Instead of requiring developers to browse annotations, it answers: "What do I need to know about the code I'm about to commit?"
-
-- Reads `git diff HEAD` to identify changed files and line ranges
-- Cross-references changes with existing annotations and critical flags
-- Items overlapping changed lines are highlighted (⚡)
-- Cross-file dependencies from other annotations are surfaced as linked items
-- Files sorted by risk: unresolved critical flags first, then dependency count
-- Refreshes automatically on store changes and editor focus
-
 ### Proactive Notifications
 
 Knowledge shouldn't wait in a sidebar for someone to check it:
 
-- **On file open:** If the file has unresolved critical flags, a warning appears immediately with a link to the brief.
-- **On file save:** If uncommitted changes overlap known annotations, critical flags, or cross-file dependencies, a nudge appears. "Your changes overlap 2 critical flags — review before committing."
+- **On file open:** If the file has unresolved critical flags, a warning appears immediately with a link to the Critical Review Queue.
+- **On file save:** If uncommitted changes overlap known annotations, critical flags, or incoming cross-file dependencies, an informational nudge appears. "Your changes overlap 2 critical flags — review before committing."
 - **Anti-spam:** Each file only triggers once per session (resets when store changes).
+- **Pre-commit surface for AI reviewers:** The same annotations reach AI agents (Claude Code, Cursor, Copilot) via the generated instruction files, so pre-commit awareness of knowledge flows through whatever AI reviewer already reviews the diff.
 
 ### Content Anchoring
 
@@ -133,9 +122,7 @@ Whitespace changes (reformatting, prettier) don't break anchors. Tradeoff: two c
 Annotations can declare dependencies on other files via `FileDependency` entries:
 
 - Each dependency links to a target file (with optional line range) and describes the relationship (e.g., "must stay in sync", "calls this function", "shares this data model")
-- **Pre-Commit Brief** surfaces incoming dependencies: if you change `billing/calc.py` and an annotation on `reporting/monthly.py` declares a dependency on it, you see that link before committing
-- **Save notifications** warn when your edits touch files that other annotations depend on
-- Dependencies are sorted above regular annotations in the brief (after critical flags)
+- **Save notifications** warn when your edits touch files that other annotations depend on — e.g., change `billing/calc.py` and you'll see that `reporting/monthly.py` declared a dependency on it
 - AI suggestions can automatically detect and propose cross-file links when code is tightly coupled
 - Manual dependency linking is available during annotation creation via a prompted flow
 
@@ -181,7 +168,6 @@ palette via `menus.commandPalette` `when: false`.
 |---------|-------|------------|
 | `codelore.addAnnotation` | Add Annotation | `Cmd+Shift+L` |
 | `codelore.markCritical` | Mark as Critical | — |
-| `codelore.showPreCommitBrief` | Show Pre-Commit Brief | `Cmd+Shift+B` |
 | `codelore.scanFile` | Scan Current File (Knowledge + Critical) | `Cmd+Shift+K` |
 | `codelore.scanComponent` | Scan Component (Knowledge + Critical) | — |
 | `codelore.scanProject` | Scan Entire Project (Knowledge + Critical) | — |
@@ -202,7 +188,6 @@ palette via `menus.commandPalette` `when: false`.
 |------|-------------|
 | **Components** | Components with their tagged files; click a file to open it |
 | **Annotations** | All annotations grouped by file (collapsed by default), filterable by category and path |
-| **Pre-Commit Brief** | Diff-aware knowledge briefing — shows changed files with overlapping annotations, critical flags, and cross-file dependencies, sorted by risk |
 | **Critical Review Queue** | All critical flags sorted by severity (unresolved first), filterable by severity and path |
 
 ## Configuration
@@ -249,12 +234,11 @@ Press `F5` in VSCode to launch the Extension Development Host for manual testing
 - `source: ai_generated | ai_verified | human_authored` tracked as a separate field from category; inline ✓ action promotes AI drafts to verified
 - Critical flag lifecycle (flag with severity, resolve with comment, remove)
 - Components: tag-first grouping with a single `manageComponentsForFile` multi-select picker
-- Pre-Commit Brief: diff-aware knowledge surfacing sorted by risk
 - Proactive notifications on file open (critical flags) and save (overlap detection)
 - AI knowledge extraction + critical detection over full files via `scanFile`, `scanComponent`, and `scanProject`
 - AI-proposed components (`proposeComponent`) seeded from current annotations
 - AI feedback loop: existing annotations injected into prompts to prevent duplicates
-- Components, Annotations, Pre-Commit Brief, and Critical Review Queue sidebar views
+- Components, Annotations, and Critical Review Queue sidebar views
 - Status bar with coverage summary and active-file component membership
 - Annotation search across codebase (text, category, file path filters with jump to source)
 - Unified filter command (`codelore.filter`) that dispatches to category/component/severity/path dimensions
@@ -263,7 +247,7 @@ Press `F5` in VSCode to launch the Extension Development Host for manual testing
 - Copy annotations for current file to clipboard
 - Agent instruction file generation (CLAUDE.md, .cursorrules, copilot-instructions, AGENTS.md, .windsurfrules)
 - Shared/personal dual-store architecture with privacy boundary (personal excluded from AI context)
-- Cross-file dependency links: annotations can declare relationships to other files, surfaced in pre-commit brief and save notifications
+- Cross-file dependency links: annotations can declare relationships to other files, surfaced in save notifications and consumable by AI reviewers via generated instruction files
 - Security hardening: markdown sanitization, path traversal prevention, symlink-safe writes, scoped command trust
 - Unit test suite (390+ tests, 98%+ line coverage)
 

@@ -1,16 +1,15 @@
 import * as vscode from 'vscode';
 import { LoreStore } from '../storage/loreStore';
 import { EPHEMERAL_CATEGORIES, Annotation } from '../models/annotation';
-import { getRelativePath, getWorkspaceCwd, gitDiff, parseChangedLineRanges } from '../utils/git';
-import { rangesOverlap } from '../views/preCommitBriefProvider';
+import { getRelativePath, getWorkspaceCwd, gitDiff, parseChangedLineRanges, rangesOverlap } from '../utils/git';
 
 /**
  * Proactive notifications when a developer opens or modifies a file
  * that has relevant knowledge (critical flags, annotations).
  *
  * - On file open: if the file has unresolved critical flags, show a warning.
- * - On file save: if uncommitted changes overlap known annotations or critical
- *   flags, nudge the developer toward the Pre-Commit Brief.
+ * - On file save: if uncommitted changes overlap known annotations, critical
+ *   flags, or incoming cross-file dependencies, show an informational nudge.
  */
 export class KnowledgeNotifier implements vscode.Disposable {
   private disposables: vscode.Disposable[] = [];
@@ -55,9 +54,9 @@ export class KnowledgeNotifier implements vscode.Disposable {
       ? `CodeLore: This file has a ${highest.severity} critical flag — ${highest.description || 'no description'}`
       : `CodeLore: This file has ${unresolved.length} unresolved critical flags (highest: ${highest.severity})`;
 
-    vscode.window.showWarningMessage(message, 'Show Brief', 'Dismiss').then(choice => {
-      if (choice === 'Show Brief') {
-        vscode.commands.executeCommand('codelore.preCommitBrief.focus');
+    vscode.window.showWarningMessage(message, 'Show Queue', 'Dismiss').then(choice => {
+      if (choice === 'Show Queue') {
+        vscode.commands.executeCommand('codelore.criticalQueue.focus');
       }
     });
   }
@@ -113,11 +112,7 @@ export class KnowledgeNotifier implements vscode.Disposable {
 
     const message = `CodeLore: Your changes overlap ${parts.join(' and ')} — review before committing`;
 
-    vscode.window.showInformationMessage(message, 'Show Brief', 'Dismiss').then(choice => {
-      if (choice === 'Show Brief') {
-        vscode.commands.executeCommand('codelore.preCommitBrief.focus');
-      }
-    });
+    vscode.window.showInformationMessage(message, 'Dismiss');
   }
 
   /**
