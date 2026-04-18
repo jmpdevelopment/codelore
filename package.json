@@ -5,6 +5,14 @@
   "version": "0.1.0",
   "publisher": "codediary",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/codediary/codediary.git"
+  },
+  "bugs": {
+    "url": "https://github.com/codediary/codediary/issues"
+  },
+  "homepage": "https://github.com/codediary/codediary#readme",
   "engines": {
     "vscode": "^1.85.0"
   },
