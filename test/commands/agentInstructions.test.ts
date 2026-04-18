@@ -9,7 +9,12 @@ import {
   buildBlock,
   updateFileContent,
 } from '../../src/commands/agentInstructions';
-import { KNOWLEDGE_CATEGORIES, LEGACY_CATEGORIES } from '../../src/models/annotation';
+import { KNOWLEDGE_CATEGORIES } from '../../src/models/annotation';
+
+const LEGACY_CATEGORY_NAMES = [
+  'verified', 'needs_review', 'modified', 'confused',
+  'hallucination', 'intent', 'accepted',
+] as const;
 
 let tmpDir: string;
 
@@ -29,8 +34,7 @@ describe('Agent instruction text', () => {
   });
 
   it('does not advertise legacy categories', () => {
-    for (const cat of LEGACY_CATEGORIES) {
-      // legacy names must not appear as example categories
+    for (const cat of LEGACY_CATEGORY_NAMES) {
       expect(INSTRUCTION_TEXT).not.toMatch(new RegExp(`\`${cat}\``));
     }
   });

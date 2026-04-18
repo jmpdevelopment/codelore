@@ -2,9 +2,9 @@ import * as vscode from 'vscode';
 import * as yaml from 'js-yaml';
 import * as path from 'path';
 import * as fs from 'fs';
-import { Annotation, normalizeAnnotation } from '../models/annotation';
+import { Annotation, coerceSource } from '../models/annotation';
 import { CriticalFlag } from '../models/criticalFlag';
-import { SCHEMA_VERSION } from './schema';
+import { SCHEMA_VERSION, assertSupportedVersion } from './schema';
 
 /**
  * Per-file YAML storage in .codediary/ directory, committed to git.
@@ -23,15 +23,16 @@ interface FileData {
 }
 
 /**
- * Coerces arbitrary parsed YAML into a {@link FileData}, dropping the
- * top-level `version` marker (managed by {@link SCHEMA_VERSION} on write)
- * so it does not leak into the in-memory cache.
+ * Coerces arbitrary parsed YAML into a {@link FileData}, asserting the v2
+ * schema and dropping the top-level `version` marker so it does not leak
+ * into the in-memory cache. Throws on v1 (see {@link assertSupportedVersion}).
  */
-function stripVersion(parsed: unknown): FileData {
+function parseFileData(parsed: unknown, sourceLabel: string): FileData {
   if (!parsed || typeof parsed !== 'object') { return {}; }
+  assertSupportedVersion(parsed, sourceLabel);
   const { version: _v, ...rest } = parsed as FileData & { version?: unknown };
   if (rest.annotations) {
-    rest.annotations = rest.annotations.map(a => normalizeAnnotation(a) as Annotation);
+    rest.annotations = rest.annotations.map(a => ({ ...a, source: coerceSource(a.source) }));
   }
   return rest;
 }
@@ -91,8 +92,10 @@ export class SharedStore {
     if (!fs.existsSync(filePath)) { return {}; }
     try {
       const raw = fs.readFileSync(filePath, 'utf8');
-      return stripVersion(yaml.load(raw));
-    } catch {
+      return parseFileData(yaml.load(raw), filePath);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      vscode.window.showErrorMessage(`CodeDiary: ${message}`);
       return {};
     }
   }
@@ -165,8 +168,11 @@ export class SharedStore {
         const sourceFile = relative.replace(/\.yaml$/, '');
         try {
           const raw = fs.readFileSync(fullPath, 'utf8');
-          this.cache.set(sourceFile, stripVersion(yaml.load(raw)));
-        } catch { /* skip malformed files */ }
+          this.cache.set(sourceFile, parseFileData(yaml.load(raw), fullPath));
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          vscode.window.showErrorMessage(`CodeDiary: ${message}`);
+        }
       }
     }
   }

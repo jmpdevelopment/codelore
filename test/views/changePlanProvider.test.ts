@@ -15,7 +15,7 @@ function makeAnnotation(overrides: Partial<Annotation> = {}): Annotation {
     file: 'src/foo.ts',
     line_start: 10,
     line_end: 20,
-    category: 'verified',
+    category: 'behavior',
     text: 'Looks good',
     source: 'human_authored',
     created_at: '2026-01-01T00:00:00Z',
@@ -62,7 +62,7 @@ describe('ChangePlanProvider', () => {
   it('returns annotation nodes for file node children', () => {
     const store = new DiaryStore();
     store.addAnnotation(makeAnnotation({ id: 'a1', file: 'src/foo.ts' }));
-    store.addAnnotation(makeAnnotation({ id: 'a2', file: 'src/foo.ts', category: 'needs_review' }));
+    store.addAnnotation(makeAnnotation({ id: 'a2', file: 'src/foo.ts', category: 'gotcha' }));
     const provider = new ChangePlanProvider(store);
     const fileNodes = provider.getChildren();
     expect(fileNodes).toHaveLength(1);
@@ -84,11 +84,11 @@ describe('ChangePlanProvider', () => {
 
   it('filters by category', () => {
     const store = new DiaryStore();
-    store.addAnnotation(makeAnnotation({ id: 'a1', category: 'verified' }));
-    store.addAnnotation(makeAnnotation({ id: 'a2', category: 'needs_review' }));
+    store.addAnnotation(makeAnnotation({ id: 'a1', category: 'behavior' }));
+    store.addAnnotation(makeAnnotation({ id: 'a2', category: 'gotcha' }));
     const provider = new ChangePlanProvider(store);
 
-    provider.setFilter('verified');
+    provider.setFilter('behavior');
     const filtered = provider.getChildren();
     expect(filtered).toHaveLength(1);
     const annotations = provider.getChildren(filtered[0]);
@@ -198,12 +198,12 @@ describe('ChangePlanProvider', () => {
 
   it('combines category and path filters', () => {
     const store = new DiaryStore();
-    store.addAnnotation(makeAnnotation({ id: 'a1', file: 'src/auth/login.ts', category: 'verified' }));
-    store.addAnnotation(makeAnnotation({ id: 'a2', file: 'src/auth/tokens.ts', category: 'needs_review' }));
-    store.addAnnotation(makeAnnotation({ id: 'a3', file: 'src/billing/charge.ts', category: 'verified' }));
+    store.addAnnotation(makeAnnotation({ id: 'a1', file: 'src/auth/login.ts', category: 'behavior' }));
+    store.addAnnotation(makeAnnotation({ id: 'a2', file: 'src/auth/tokens.ts', category: 'gotcha' }));
+    store.addAnnotation(makeAnnotation({ id: 'a3', file: 'src/billing/charge.ts', category: 'behavior' }));
     const provider = new ChangePlanProvider(store);
 
-    provider.setFilter('verified');
+    provider.setFilter('behavior');
     provider.setPathFilter('src/auth');
     const filtered = provider.getChildren();
     expect(filtered).toHaveLength(1);
@@ -215,11 +215,11 @@ describe('ChangePlanProvider', () => {
     const store = new DiaryStore();
     const provider = new ChangePlanProvider(store);
 
-    expect(provider.getActiveFilters()).toEqual({ category: undefined, path: undefined });
+    expect(provider.getActiveFilters()).toEqual({ category: undefined, path: undefined, component: undefined });
 
-    provider.setFilter('verified');
+    provider.setFilter('behavior');
     provider.setPathFilter('src/auth');
-    expect(provider.getActiveFilters()).toEqual({ category: 'verified', path: 'src/auth' });
+    expect(provider.getActiveFilters()).toEqual({ category: 'behavior', path: 'src/auth', component: undefined });
     store.dispose();
   });
 
@@ -299,14 +299,17 @@ describe('ChangePlanProvider', () => {
 
   it('annotation nodes cover all category color mappings', () => {
     const store = new DiaryStore();
-    const categories = ['verified', 'needs_review', 'modified', 'confused', 'hallucination', 'intent', 'accepted'] as const;
+    const categories = [
+      'behavior', 'rationale', 'constraint', 'gotcha',
+      'performance', 'security', 'human_note', 'business_rule', 'ai_prompt',
+    ] as const;
     categories.forEach((cat, i) => {
       store.addAnnotation(makeAnnotation({ id: `a${i}`, category: cat, file: 'src/foo.ts' }));
     });
     const provider = new ChangePlanProvider(store);
     const fileNodes = provider.getChildren();
     const annotationNodes = provider.getChildren(fileNodes[0]);
-    expect(annotationNodes).toHaveLength(7);
+    expect(annotationNodes).toHaveLength(categories.length);
     // Each node should have an iconPath with a color
     for (const node of annotationNodes) {
       expect((node as any).iconPath).toBeDefined();

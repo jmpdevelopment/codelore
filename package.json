@@ -58,10 +58,6 @@
         "title": "CodeDiary: Clear Personal Data"
       },
       {
-        "command": "codediary.migrateToV2",
-        "title": "CodeDiary: Migrate Store to v2 (knowledge-first categories)"
-      },
-      {
         "command": "codediary.tagFileComponent",
         "title": "CodeDiary: Tag File into Component",
         "icon": "$(symbol-namespace)"

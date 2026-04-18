@@ -68,13 +68,6 @@ class AnnotationNode extends vscode.TreeItem {
       case 'human_note': return 'descriptionForeground';
       case 'business_rule': return 'list.errorForeground';
       case 'ai_prompt': return 'editorInfo.foreground';
-      case 'verified': return 'testing.iconPassed';
-      case 'needs_review': return 'list.warningForeground';
-      case 'modified': return 'editorInfo.foreground';
-      case 'confused': return 'list.warningForeground';
-      case 'hallucination': return 'list.errorForeground';
-      case 'intent': return 'charts.purple';
-      case 'accepted': return 'disabledForeground';
     }
   }
 }

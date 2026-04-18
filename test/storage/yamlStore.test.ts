@@ -15,7 +15,7 @@ function makeAnnotation(overrides: Partial<Annotation> = {}): Annotation {
     file: 'src/foo.ts',
     line_start: 10,
     line_end: 20,
-    category: 'verified',
+    category: 'behavior',
     text: 'Looks good',
     source: 'human_authored',
     created_at: '2026-01-01T00:00:00Z',
@@ -57,14 +57,15 @@ describe('YamlStore', () => {
     });
 
     it('loads existing data from YAML file', () => {
-      const yamlContent = `annotations:
+      const yamlContent = `version: 2
+annotations:
   - id: ann-1
     file: src/foo.ts
     line_start: 10
     line_end: 20
-    category: verified
+    category: behavior
     text: Looks good
-    source: manual
+    source: human_authored
     created_at: "2026-01-01T00:00:00Z"
 critical_flags: []
 `;
@@ -258,7 +259,7 @@ critical_flags: []
       expect(raw.startsWith('version: 2\n')).toBe(true);
     });
 
-    it('reads a v1 file (no version field) and upgrades on next write', () => {
+    it('rejects v1 files (no version field)', () => {
       const v1 = `annotations:
   - id: ann-legacy
     file: src/foo.ts
@@ -273,15 +274,9 @@ critical_flags: []
       fs.writeFileSync(path.join(tmpDir, '.vscode/codediary.yaml'), v1);
 
       const store = new YamlStore();
-      expect(store.getAnnotations()).toHaveLength(1);
-      expect(store.getAnnotations()[0].id).toBe('ann-legacy');
-
-      store.addAnnotation(makeAnnotation({ id: 'ann-new' }));
+      // v1 files are not loaded; user sees an error message.
+      expect(store.getAnnotations()).toEqual([]);
       store.dispose();
-
-      const raw = fs.readFileSync(path.join(tmpDir, '.vscode/codediary.yaml'), 'utf8');
-      expect(raw).toMatch(/^version: 2\n/);
-      expect(raw).not.toContain('version: 1');
     });
 
     it('reads a v2 file and preserves data', () => {
@@ -291,9 +286,9 @@ annotations:
     file: src/foo.ts
     line_start: 1
     line_end: 2
-    category: verified
+    category: behavior
     text: v2 annotation
-    source: manual
+    source: human_authored
     created_at: "2026-01-01T00:00:00Z"
 critical_flags: []
 `;
@@ -305,44 +300,23 @@ critical_flags: []
       store.dispose();
     });
 
-    it('normalizes legacy source values on load', () => {
-      const legacy = `annotations:
-  - id: a-manual
+    it('coerces unknown source values to human_authored on load', () => {
+      const yamlContent = `version: 2
+annotations:
+  - id: a-bad
     file: src/foo.ts
     line_start: 1
     line_end: 2
-    category: verified
+    category: behavior
     text: ok
-    source: manual
-    created_at: "2026-01-01T00:00:00Z"
-  - id: a-suggested
-    file: src/foo.ts
-    line_start: 3
-    line_end: 4
-    category: verified
-    text: ok
-    source: ai_suggested
-    created_at: "2026-01-01T00:00:00Z"
-  - id: a-accepted
-    file: src/foo.ts
-    line_start: 5
-    line_end: 6
-    category: verified
-    text: ok
-    source: ai_accepted
+    source: something_weird
     created_at: "2026-01-01T00:00:00Z"
 critical_flags: []
 `;
-      fs.writeFileSync(path.join(tmpDir, '.vscode/codediary.yaml'), legacy);
+      fs.writeFileSync(path.join(tmpDir, '.vscode/codediary.yaml'), yamlContent);
 
       const store = new YamlStore();
-      const sources = store.getAnnotations().reduce<Record<string, string>>((acc, a) => {
-        acc[a.id] = a.source;
-        return acc;
-      }, {});
-      expect(sources['a-manual']).toBe('human_authored');
-      expect(sources['a-suggested']).toBe('ai_generated');
-      expect(sources['a-accepted']).toBe('ai_verified');
+      expect(store.getAnnotations()[0].source).toBe('human_authored');
       store.dispose();
     });
 
@@ -353,9 +327,9 @@ annotations:
     file: src/foo.ts
     line_start: 1
     line_end: 2
-    category: verified
+    category: behavior
     text: hello
-    source: manual
+    source: human_authored
     created_at: "2026-01-01T00:00:00Z"
 critical_flags: []
 `;

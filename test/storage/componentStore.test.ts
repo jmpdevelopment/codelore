@@ -71,6 +71,7 @@ describe('ComponentStore', () => {
       fs.mkdirSync(dir, { recursive: true });
       fs.writeFileSync(path.join(dir, 'broken.yaml'), '!!! not: [valid yaml');
       fs.writeFileSync(path.join(dir, 'valid.yaml'), yaml.dump({
+        version: 2,
         id: 'valid',
         name: 'Valid',
         files: [],
@@ -89,6 +90,7 @@ describe('ComponentStore', () => {
       const dir = path.join(tmpDir, '.codediary', 'components');
       fs.mkdirSync(dir, { recursive: true });
       fs.writeFileSync(path.join(dir, 'bad.yaml'), yaml.dump({
+        version: 2,
         id: 'Not A Valid Slug',
         name: 'x',
         files: [],
@@ -102,7 +104,7 @@ describe('ComponentStore', () => {
       store.dispose();
     });
 
-    it('tolerates legacy v1 YAML without version field', () => {
+    it('rejects legacy v1 YAML without version field', () => {
       const dir = path.join(tmpDir, '.codediary', 'components');
       fs.mkdirSync(dir, { recursive: true });
       fs.writeFileSync(
@@ -118,7 +120,8 @@ describe('ComponentStore', () => {
       );
 
       const store = new ComponentStore();
-      expect(store.get('auth')).toBeDefined();
+      // v1 component YAMLs are not loaded; user sees an error message.
+      expect(store.get('auth')).toBeUndefined();
       store.dispose();
     });
   });

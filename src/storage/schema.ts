@@ -1,12 +1,25 @@
 /**
- * Current on-disk schema version for CodeDiary YAML files. Bumped from
- * implicit v1 (no `version:` field) to v2 alongside the knowledge-store pivot.
- * Writes always emit this version; reads accept missing (legacy v1) and v2.
+ * Current on-disk schema version for CodeDiary YAML files. v1 (no `version:`
+ * field) was the pre-pivot review-workflow schema; v2 is the knowledge-store
+ * schema introduced 2026-04-18 and is the only version this release supports.
  */
 export const SCHEMA_VERSION = 2;
 
-export function detectVersion(data: unknown): number {
-  if (!data || typeof data !== 'object') { return 1; }
+/**
+ * Throws if a parsed YAML document is on an unsupported schema version. v1
+ * files (or anything without an explicit `version: 2` marker) are rejected
+ * outright — there is no migration path in this release.
+ */
+export function assertSupportedVersion(data: unknown, sourceLabel: string): void {
+  if (!data || typeof data !== 'object') { return; }
   const version = (data as { version?: unknown }).version;
-  return typeof version === 'number' ? version : 1;
+  if (version === SCHEMA_VERSION) { return; }
+  if (version === undefined || version === 1) {
+    throw new Error(
+      `CodeDiary v1 schema is not supported (file: ${sourceLabel}); this release requires v2.`,
+    );
+  }
+  throw new Error(
+    `CodeDiary: unknown schema version ${String(version)} in ${sourceLabel} (expected ${SCHEMA_VERSION}).`,
+  );
 }

@@ -16,7 +16,7 @@ function makeAnnotation(overrides: Partial<Annotation> = {}): Annotation {
     file: 'src/foo.ts',
     line_start: 10,
     line_end: 20,
-    category: 'verified',
+    category: 'behavior',
     text: 'Looks good',
     source: 'human_authored',
     created_at: '2026-01-01T00:00:00Z',
@@ -87,11 +87,11 @@ describe('DiaryStore.search', () => {
   describe('category filter', () => {
     it('filters by annotation category', () => {
       const store = new DiaryStore();
-      store.addAnnotation(makeAnnotation({ id: 'a1', category: 'verified' }));
-      store.addAnnotation(makeAnnotation({ id: 'a2', category: 'needs_review' }));
-      store.addAnnotation(makeAnnotation({ id: 'a3', category: 'needs_review' }));
+      store.addAnnotation(makeAnnotation({ id: 'a1', category: 'behavior' }));
+      store.addAnnotation(makeAnnotation({ id: 'a2', category: 'gotcha' }));
+      store.addAnnotation(makeAnnotation({ id: 'a3', category: 'gotcha' }));
 
-      const results = store.search({ category: 'needs_review' });
+      const results = store.search({ category: 'gotcha' });
       expect(results).toHaveLength(2);
       expect(results.every(r => r.type === 'annotation')).toBe(true);
       store.dispose();
@@ -99,10 +99,10 @@ describe('DiaryStore.search', () => {
 
     it('excludes critical flags when category filter is set', () => {
       const store = new DiaryStore();
-      store.addAnnotation(makeAnnotation({ id: 'a1', category: 'verified' }));
+      store.addAnnotation(makeAnnotation({ id: 'a1', category: 'behavior' }));
       store.addCriticalFlag(makeFlag());
 
-      const results = store.search({ category: 'verified' });
+      const results = store.search({ category: 'behavior' });
       expect(results).toHaveLength(1);
       expect(results[0].type).toBe('annotation');
       store.dispose();
@@ -146,11 +146,11 @@ describe('DiaryStore.search', () => {
 
     it('combines category and file filters', () => {
       const store = new DiaryStore();
-      store.addAnnotation(makeAnnotation({ id: 'a1', file: 'src/auth/login.ts', category: 'needs_review' }));
-      store.addAnnotation(makeAnnotation({ id: 'a2', file: 'src/auth/login.ts', category: 'verified' }));
-      store.addAnnotation(makeAnnotation({ id: 'a3', file: 'src/billing/pay.ts', category: 'needs_review' }));
+      store.addAnnotation(makeAnnotation({ id: 'a1', file: 'src/auth/login.ts', category: 'gotcha' }));
+      store.addAnnotation(makeAnnotation({ id: 'a2', file: 'src/auth/login.ts', category: 'behavior' }));
+      store.addAnnotation(makeAnnotation({ id: 'a3', file: 'src/billing/pay.ts', category: 'gotcha' }));
 
-      const results = store.search({ category: 'needs_review', file: 'src/auth' });
+      const results = store.search({ category: 'gotcha', file: 'src/auth' });
       expect(results).toHaveLength(1);
       store.dispose();
     });

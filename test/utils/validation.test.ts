@@ -112,14 +112,14 @@ describe('isValidCategory', () => {
     expect(isValidCategory('security')).toBe(true);
   });
 
-  it('accepts legacy categories (read path must tolerate v1 YAML)', () => {
-    expect(isValidCategory('verified')).toBe(true);
-    expect(isValidCategory('needs_review')).toBe(true);
-    expect(isValidCategory('hallucination')).toBe(true);
-  });
-
   it('accepts ai_prompt', () => {
     expect(isValidCategory('ai_prompt')).toBe(true);
+  });
+
+  it('rejects legacy v1 categories', () => {
+    expect(isValidCategory('verified')).toBe(false);
+    expect(isValidCategory('needs_review')).toBe(false);
+    expect(isValidCategory('hallucination')).toBe(false);
   });
 
   it('rejects unknown values', () => {
@@ -136,7 +136,7 @@ describe('isValidKnowledgeCategory', () => {
     }
   });
 
-  it('rejects legacy categories — new-annotation flows must not create them', () => {
+  it('rejects legacy v1 categories', () => {
     for (const cat of ['verified', 'needs_review', 'modified', 'confused', 'hallucination', 'intent', 'accepted']) {
       expect(isValidKnowledgeCategory(cat)).toBe(false);
     }

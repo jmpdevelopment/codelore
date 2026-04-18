@@ -67,9 +67,6 @@ export function registerAnnotateCommands(context: vscode.ExtensionContext, store
       const lineStart = selection.start.line + 1;
       const lineEnd = selection.end.line + 1;
 
-      // Pick category — only knowledge-first categories surface in new-annotation
-      // flows. Legacy categories remain readable for existing annotations but
-      // are no longer offered for creation (migration via codediary.migrateToV2).
       const items = KNOWLEDGE_CATEGORIES.map(cat => ({
         label: `${CATEGORY_META[cat].icon} ${CATEGORY_META[cat].label}`,
         description: CATEGORY_META[cat].description,

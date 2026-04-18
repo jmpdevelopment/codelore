@@ -15,7 +15,7 @@ function makeAnnotation(overrides: Partial<Annotation> = {}): Annotation {
     file: 'src/foo.ts',
     line_start: 10,
     line_end: 20,
-    category: 'verified',
+    category: 'behavior',
     text: 'Looks good',
     source: 'human_authored',
     created_at: '2026-01-01T00:00:00Z',
@@ -58,7 +58,7 @@ describe('SharedStore', () => {
       fs.mkdirSync(yamlDir, { recursive: true });
       fs.writeFileSync(
         path.join(yamlDir, 'foo.ts.yaml'),
-        'annotations:\n  - id: a1\n    file: src/foo.ts\n    line_start: 1\n    line_end: 5\n    category: verified\n    text: ok\n    source: manual\n    created_at: "2026-01-01T00:00:00Z"\n',
+        'version: 2\nannotations:\n  - id: a1\n    file: src/foo.ts\n    line_start: 1\n    line_end: 5\n    category: behavior\n    text: ok\n    source: human_authored\n    created_at: "2026-01-01T00:00:00Z"\n',
       );
       const store = new SharedStore();
       expect(store.getAnnotations()).toHaveLength(1);
@@ -270,25 +270,12 @@ describe('SharedStore', () => {
       expect(raw.startsWith('version: 2\n')).toBe(true);
     });
 
-    it('loads a legacy v1 file (no version field)', () => {
-      const yamlDir = path.join(tmpDir, '.codediary', 'src');
-      fs.mkdirSync(yamlDir, { recursive: true });
-      fs.writeFileSync(
-        path.join(yamlDir, 'legacy.ts.yaml'),
-        'annotations:\n  - id: legacy\n    file: src/legacy.ts\n    line_start: 1\n    line_end: 2\n    category: verified\n    text: ok\n    source: manual\n    created_at: "2026-01-01T00:00:00Z"\n',
-      );
-      const store = new SharedStore();
-      expect(store.getAnnotations()).toHaveLength(1);
-      expect(store.getAnnotations()[0].id).toBe('legacy');
-      store.dispose();
-    });
-
     it('loads a v2 file with the version field present', () => {
       const yamlDir = path.join(tmpDir, '.codediary', 'src');
       fs.mkdirSync(yamlDir, { recursive: true });
       fs.writeFileSync(
         path.join(yamlDir, 'modern.ts.yaml'),
-        'version: 2\nannotations:\n  - id: modern\n    file: src/modern.ts\n    line_start: 1\n    line_end: 2\n    category: verified\n    text: ok\n    source: manual\n    created_at: "2026-01-01T00:00:00Z"\n',
+        'version: 2\nannotations:\n  - id: modern\n    file: src/modern.ts\n    line_start: 1\n    line_end: 2\n    category: behavior\n    text: ok\n    source: human_authored\n    created_at: "2026-01-01T00:00:00Z"\n',
       );
       const store = new SharedStore();
       expect(store.getAnnotations()).toHaveLength(1);
@@ -296,84 +283,40 @@ describe('SharedStore', () => {
       store.dispose();
     });
 
-    it('loads a directory mixing v1 and v2 files', () => {
-      const yamlDir = path.join(tmpDir, '.codediary', 'src');
-      fs.mkdirSync(yamlDir, { recursive: true });
-      fs.writeFileSync(
-        path.join(yamlDir, 'old.ts.yaml'),
-        'annotations:\n  - id: old\n    file: src/old.ts\n    line_start: 1\n    line_end: 2\n    category: verified\n    text: ok\n    source: manual\n    created_at: "2026-01-01T00:00:00Z"\n',
-      );
-      fs.writeFileSync(
-        path.join(yamlDir, 'new.ts.yaml'),
-        'version: 2\nannotations:\n  - id: new\n    file: src/new.ts\n    line_start: 1\n    line_end: 2\n    category: verified\n    text: ok\n    source: manual\n    created_at: "2026-01-01T00:00:00Z"\n',
-      );
-      const store = new SharedStore();
-      const ids = store.getAnnotations().map(a => a.id).sort();
-      expect(ids).toEqual(['new', 'old']);
-      store.dispose();
-    });
-
-    it('upgrades a v1 file to v2 on next write', () => {
-      const yamlDir = path.join(tmpDir, '.codediary', 'src');
-      fs.mkdirSync(yamlDir, { recursive: true });
-      const yamlPath = path.join(yamlDir, 'foo.ts.yaml');
-      fs.writeFileSync(
-        yamlPath,
-        'annotations:\n  - id: legacy\n    file: src/foo.ts\n    line_start: 1\n    line_end: 2\n    category: verified\n    text: ok\n    source: manual\n    created_at: "2026-01-01T00:00:00Z"\n',
-      );
-
-      const store = new SharedStore();
-      store.addAnnotation(makeAnnotation({ id: 'fresh', file: 'src/foo.ts' }));
-      store.dispose();
-
-      const raw = fs.readFileSync(yamlPath, 'utf8');
-      expect(raw).toMatch(/^version: 2\n/);
-      // Version marker must not appear twice.
-      expect(raw.match(/version:/g)?.length).toBe(1);
-    });
-
-    it('normalizes legacy source values on load', () => {
+    it('rejects v1 files (no version field)', () => {
       const yamlDir = path.join(tmpDir, '.codediary', 'src');
       fs.mkdirSync(yamlDir, { recursive: true });
       fs.writeFileSync(
         path.join(yamlDir, 'legacy.ts.yaml'),
+        'annotations:\n  - id: legacy\n    file: src/legacy.ts\n    line_start: 1\n    line_end: 2\n    category: verified\n    text: ok\n    source: manual\n    created_at: "2026-01-01T00:00:00Z"\n',
+      );
+      const store = new SharedStore();
+      // v1 files are not loaded; user sees an error message.
+      expect(store.getAnnotations()).toEqual([]);
+      store.dispose();
+    });
+
+    it('coerces unknown source values to human_authored on load', () => {
+      const yamlDir = path.join(tmpDir, '.codediary', 'src');
+      fs.mkdirSync(yamlDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(yamlDir, 'file.ts.yaml'),
         [
+          'version: 2',
           'annotations:',
-          '  - id: a-manual',
-          '    file: src/legacy.ts',
+          '  - id: a-bad',
+          '    file: src/file.ts',
           '    line_start: 1',
           '    line_end: 2',
-          '    category: verified',
+          '    category: behavior',
           '    text: ok',
-          '    source: manual',
-          '    created_at: "2026-01-01T00:00:00Z"',
-          '  - id: a-suggested',
-          '    file: src/legacy.ts',
-          '    line_start: 3',
-          '    line_end: 4',
-          '    category: verified',
-          '    text: ok',
-          '    source: ai_suggested',
-          '    created_at: "2026-01-01T00:00:00Z"',
-          '  - id: a-accepted',
-          '    file: src/legacy.ts',
-          '    line_start: 5',
-          '    line_end: 6',
-          '    category: verified',
-          '    text: ok',
-          '    source: ai_accepted',
+          '    source: something_weird',
           '    created_at: "2026-01-01T00:00:00Z"',
           '',
         ].join('\n'),
       );
       const store = new SharedStore();
-      const sources = store.getAnnotations().reduce<Record<string, string>>((acc, a) => {
-        acc[a.id] = a.source;
-        return acc;
-      }, {});
-      expect(sources['a-manual']).toBe('human_authored');
-      expect(sources['a-suggested']).toBe('ai_generated');
-      expect(sources['a-accepted']).toBe('ai_verified');
+      expect(store.getAnnotations()[0].source).toBe('human_authored');
       store.dispose();
     });
 
@@ -382,7 +325,7 @@ describe('SharedStore', () => {
       fs.mkdirSync(yamlDir, { recursive: true });
       fs.writeFileSync(
         path.join(yamlDir, 'modern.ts.yaml'),
-        'version: 2\nannotations:\n  - id: modern\n    file: src/modern.ts\n    line_start: 1\n    line_end: 2\n    category: verified\n    text: ok\n    source: manual\n    created_at: "2026-01-01T00:00:00Z"\n',
+        'version: 2\nannotations:\n  - id: modern\n    file: src/modern.ts\n    line_start: 1\n    line_end: 2\n    category: behavior\n    text: ok\n    source: human_authored\n    created_at: "2026-01-01T00:00:00Z"\n',
       );
       const store = new SharedStore();
       const ann = store.getAnnotations()[0] as unknown as Record<string, unknown>;

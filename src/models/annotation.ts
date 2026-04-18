@@ -1,7 +1,6 @@
 /**
- * Knowledge-first categories introduced by the 2026-04-18 pivot. These describe
- * properties of the code itself (behavior, constraints, hazards) rather than
- * workflow state (reviewed, accepted). Surfaced in new annotation pickers.
+ * Knowledge-first categories. These describe properties of the code itself
+ * (behavior, constraints, hazards) rather than workflow state.
  */
 export const KNOWLEDGE_CATEGORIES = [
   'behavior',
@@ -14,75 +13,27 @@ export const KNOWLEDGE_CATEGORIES = [
   'human_note',
 ] as const;
 
-/**
- * Pre-pivot review-workflow categories. Kept in the type + metadata so legacy
- * YAML still renders, but filtered out of new-annotation flows (see commit 1.7).
- * Migration in commit 1.6 rewrites them into {@link KNOWLEDGE_CATEGORIES}.
- */
-export const LEGACY_CATEGORIES = [
-  'verified',
-  'needs_review',
-  'modified',
-  'confused',
-  'hallucination',
-  'intent',
-  'accepted',
-] as const;
-
 export const ANNOTATION_CATEGORIES = [
   ...KNOWLEDGE_CATEGORIES,
-  ...LEGACY_CATEGORIES,
   'ai_prompt',
 ] as const;
 
 /** Categories excluded from PR export — ephemeral working notes */
 export const EPHEMERAL_CATEGORIES: ReadonlySet<AnnotationCategory> = new Set(['ai_prompt']);
 
-/**
- * Deterministic remap from {@link LEGACY_CATEGORIES} to {@link KNOWLEDGE_CATEGORIES}
- * applied by the v2 migration. Each legacy category collapses to a single
- * knowledge category — no heuristic, so migration is reproducible and
- * idempotent. Descriptions of legacy categories in {@link CATEGORY_META} call
- * out the specific target here.
- */
-export const LEGACY_TO_KNOWLEDGE: Record<(typeof LEGACY_CATEGORIES)[number], (typeof KNOWLEDGE_CATEGORIES)[number]> = {
-  verified: 'human_note',
-  needs_review: 'human_note',
-  modified: 'human_note',
-  confused: 'human_note',
-  hallucination: 'gotcha',
-  intent: 'rationale',
-  accepted: 'human_note',
-};
-
 export type AnnotationCategory = (typeof ANNOTATION_CATEGORIES)[number];
 
 export type AnnotationSource = 'ai_generated' | 'ai_verified' | 'human_authored';
 
-/** Legacy pre-pivot values; normalized to {@link AnnotationSource} at the store boundary. */
-export type LegacyAnnotationSource = 'manual' | 'ai_suggested' | 'ai_accepted';
+const VALID_SOURCES: ReadonlySet<string> = new Set<AnnotationSource>([
+  'ai_generated',
+  'ai_verified',
+  'human_authored',
+]);
 
-const LEGACY_SOURCE_MAP: Record<LegacyAnnotationSource, AnnotationSource> = {
-  manual: 'human_authored',
-  ai_suggested: 'ai_generated',
-  ai_accepted: 'ai_verified',
-};
-
-/**
- * Coerces a raw `source` value from disk into the current enum. Unknown values
- * fall back to `human_authored` so a corrupt or partially-migrated file never
- * surfaces an `undefined` source downstream.
- */
-export function normalizeSource(raw: unknown): AnnotationSource {
-  if (typeof raw !== 'string') { return 'human_authored'; }
-  if (raw in LEGACY_SOURCE_MAP) { return LEGACY_SOURCE_MAP[raw as LegacyAnnotationSource]; }
-  if (raw === 'ai_generated' || raw === 'ai_verified' || raw === 'human_authored') { return raw; }
-  return 'human_authored';
-}
-
-/** Normalizes source + reserved verification fields when loading from YAML. */
-export function normalizeAnnotation<T extends { source?: unknown }>(raw: T): T & { source: AnnotationSource } {
-  return { ...raw, source: normalizeSource(raw.source) };
+/** Coerces a parsed `source` to a valid enum value, defaulting to `human_authored`. */
+export function coerceSource(raw: unknown): AnnotationSource {
+  return typeof raw === 'string' && VALID_SOURCES.has(raw) ? (raw as AnnotationSource) : 'human_authored';
 }
 
 export interface ContentAnchor {
@@ -179,47 +130,5 @@ export const CATEGORY_META: Record<AnnotationCategory, { label: string; icon: st
     icon: '$(robot)',
     color: '#00bcd4',
     description: 'Quick note for AI agent — ephemeral, excluded from export',
-  },
-  verified: {
-    label: 'Verified',
-    icon: '$(check)',
-    color: '#4caf50',
-    description: 'Legacy — review-workflow category; migrated to human_note or rationale',
-  },
-  needs_review: {
-    label: 'Needs Review',
-    icon: '$(search)',
-    color: '#ff9800',
-    description: 'Legacy — review-workflow category; migrated to human_note',
-  },
-  modified: {
-    label: 'Modified',
-    icon: '$(edit)',
-    color: '#2196f3',
-    description: 'Legacy — review-workflow category; migrated to human_note',
-  },
-  confused: {
-    label: "Don't Understand",
-    icon: '$(question)',
-    color: '#ffeb3b',
-    description: 'Legacy — review-workflow category; migrated to human_note',
-  },
-  hallucination: {
-    label: 'Potential Hallucination',
-    icon: '$(warning)',
-    color: '#f44336',
-    description: 'Legacy — review-workflow category; migrated to gotcha',
-  },
-  intent: {
-    label: 'Intent Note',
-    icon: '$(comment)',
-    color: '#9c27b0',
-    description: 'Legacy — review-workflow category; migrated to rationale or human_note',
-  },
-  accepted: {
-    label: 'Accepted As-Is',
-    icon: '$(thumbsup)',
-    color: '#9e9e9e',
-    description: 'Legacy — review-workflow category; migrated to human_note',
   },
 };

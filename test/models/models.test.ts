@@ -3,9 +3,7 @@ import {
   ANNOTATION_CATEGORIES,
   CATEGORY_META,
   KNOWLEDGE_CATEGORIES,
-  LEGACY_CATEGORIES,
-  normalizeSource,
-  type AnnotationCategory,
+  coerceSource,
   type AnnotationSource,
   type Annotation,
   type FileDependency,
@@ -13,10 +11,9 @@ import {
 import type { CriticalFlag, CriticalSeverity } from '../../src/models/criticalFlag';
 
 describe('Annotation model', () => {
-  it('exposes 8 knowledge categories + 7 legacy + ai_prompt = 16 total', () => {
+  it('exposes 8 knowledge categories + ai_prompt = 9 total', () => {
     expect(KNOWLEDGE_CATEGORIES).toHaveLength(8);
-    expect(LEGACY_CATEGORIES).toHaveLength(7);
-    expect(ANNOTATION_CATEGORIES).toHaveLength(16);
+    expect(ANNOTATION_CATEGORIES).toHaveLength(9);
   });
 
   it('all categories have metadata', () => {
@@ -37,18 +34,6 @@ describe('Annotation model', () => {
     ]);
   });
 
-  it('legacy categories are marked as such in their metadata description', () => {
-    for (const cat of LEGACY_CATEGORIES) {
-      expect(CATEGORY_META[cat].description).toMatch(/^Legacy/);
-    }
-  });
-
-  it('knowledge categories are never marked as legacy', () => {
-    for (const cat of KNOWLEDGE_CATEGORIES) {
-      expect(CATEGORY_META[cat].description).not.toMatch(/^Legacy/);
-    }
-  });
-
   it('business_rule category has metadata', () => {
     const meta = CATEGORY_META.business_rule;
     expect(meta.label).toBe('Business Rule');
@@ -63,7 +48,7 @@ describe('Annotation model', () => {
       file: 'src/foo.ts',
       line_start: 1,
       line_end: 10,
-      category: 'verified',
+      category: 'behavior',
       text: 'test',
       source: 'human_authored',
       created_at: '2026-01-01T00:00:00Z',
@@ -82,7 +67,7 @@ describe('Annotation model', () => {
       file: 'src/foo.ts',
       line_start: 1,
       line_end: 10,
-      category: 'verified',
+      category: 'behavior',
       text: 'AI-written, human-confirmed',
       source: 'ai_verified',
       created_at: '2026-01-01T00:00:00Z',
@@ -120,7 +105,7 @@ describe('Annotation model', () => {
       file: 'src/foo.ts',
       line_start: 1,
       line_end: 10,
-      category: 'verified',
+      category: 'behavior',
       text: 'test',
       source: 'human_authored',
       created_at: '2026-01-01T00:00:00Z',
@@ -130,29 +115,24 @@ describe('Annotation model', () => {
   });
 });
 
-describe('normalizeSource', () => {
-  it('maps legacy manual to human_authored', () => {
-    expect(normalizeSource('manual')).toBe('human_authored');
-  });
-
-  it('maps legacy ai_suggested to ai_generated', () => {
-    expect(normalizeSource('ai_suggested')).toBe('ai_generated');
-  });
-
-  it('maps legacy ai_accepted to ai_verified', () => {
-    expect(normalizeSource('ai_accepted')).toBe('ai_verified');
-  });
-
+describe('coerceSource', () => {
   it('passes through current values unchanged', () => {
-    expect(normalizeSource('ai_generated')).toBe('ai_generated');
-    expect(normalizeSource('ai_verified')).toBe('ai_verified');
-    expect(normalizeSource('human_authored')).toBe('human_authored');
+    expect(coerceSource('ai_generated')).toBe('ai_generated');
+    expect(coerceSource('ai_verified')).toBe('ai_verified');
+    expect(coerceSource('human_authored')).toBe('human_authored');
   });
 
   it('falls back to human_authored for unknown or malformed values', () => {
-    expect(normalizeSource(undefined)).toBe('human_authored');
-    expect(normalizeSource('something_else')).toBe('human_authored');
-    expect(normalizeSource(42)).toBe('human_authored');
+    expect(coerceSource(undefined)).toBe('human_authored');
+    expect(coerceSource('something_else')).toBe('human_authored');
+    expect(coerceSource(42)).toBe('human_authored');
+    expect(coerceSource(null)).toBe('human_authored');
+  });
+
+  it('falls back to human_authored for legacy source names', () => {
+    expect(coerceSource('manual')).toBe('human_authored');
+    expect(coerceSource('ai_suggested')).toBe('human_authored');
+    expect(coerceSource('ai_accepted')).toBe('human_authored');
   });
 });
 

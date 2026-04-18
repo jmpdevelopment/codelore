@@ -32,9 +32,7 @@ export function isValidCategory(value: unknown): value is AnnotationCategory {
 
 /**
  * Stricter check for new-annotation creation flows: only the knowledge-first
- * categories are acceptable. Legacy review-workflow categories are kept
- * readable but are not valid targets when creating new annotations
- * (AI-suggested or human-authored). Prevents drift post-pivot.
+ * categories are acceptable (ai_prompt is ephemeral and excluded).
  */
 export function isValidKnowledgeCategory(value: unknown): value is (typeof KNOWLEDGE_CATEGORIES)[number] {
   return typeof value === 'string' && (KNOWLEDGE_CATEGORIES as readonly string[]).includes(value);

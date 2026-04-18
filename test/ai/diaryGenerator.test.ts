@@ -225,7 +225,7 @@ describe('DiaryGenerator parsing', () => {
         file: 'src/foo.ts',
         line_start: 10,
         line_end: 20,
-        category: 'verified',
+        category: 'behavior',
         text: 'Looks good',
         source: 'human_authored',
         created_at: '2026-01-01T00:00:00Z',
@@ -263,7 +263,7 @@ describe('DiaryGenerator parsing', () => {
       const result = generator.formatExistingKnowledge('src/foo.ts');
       expect(result).toContain('existing_knowledge');
       expect(result).toContain('billing off-by-one is intentional');
-      expect(result).toContain('Verified');
+      expect(result).toContain('Behavior');
       expect(result).toContain('L10-20');
       store.dispose();
     });

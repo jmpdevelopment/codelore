@@ -2,9 +2,9 @@ import * as vscode from 'vscode';
 import * as yaml from 'js-yaml';
 import * as path from 'path';
 import * as fs from 'fs';
-import { Annotation, normalizeAnnotation } from '../models/annotation';
+import { Annotation, coerceSource } from '../models/annotation';
 import { CriticalFlag } from '../models/criticalFlag';
-import { SCHEMA_VERSION } from './schema';
+import { SCHEMA_VERSION, assertSupportedVersion } from './schema';
 
 export interface DiaryData {
   narrative?: string;
@@ -78,12 +78,15 @@ export class YamlStore {
     try {
       const raw = fs.readFileSync(this.filePath, 'utf8');
       const parsed = yaml.load(raw) as Partial<DiaryData> | null;
+      assertSupportedVersion(parsed, this.filePath);
       this.data = {
         narrative: parsed?.narrative,
-        annotations: (parsed?.annotations ?? []).map(a => normalizeAnnotation(a) as Annotation),
+        annotations: (parsed?.annotations ?? []).map(a => ({ ...a, source: coerceSource(a.source) })),
         critical_flags: parsed?.critical_flags ?? [],
       };
-    } catch {
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      vscode.window.showErrorMessage(`CodeDiary: ${message}`);
       this.data = { annotations: [], critical_flags: [] };
     }
   }

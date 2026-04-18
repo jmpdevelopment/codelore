@@ -3,8 +3,8 @@ import * as yaml from 'js-yaml';
 import * as path from 'path';
 import * as fs from 'fs';
 import { Component, isValidComponentId } from '../models/component';
-import { normalizeSource } from '../models/annotation';
-import { SCHEMA_VERSION } from './schema';
+import { coerceSource } from '../models/annotation';
+import { SCHEMA_VERSION, assertSupportedVersion } from './schema';
 
 /**
  * Per-component YAML storage under `.codediary/components/`, committed to git.
@@ -35,7 +35,7 @@ function normalizeComponent(raw: unknown): Component | null {
       ? r.owners.filter((o): o is string => typeof o === 'string')
       : undefined,
     files,
-    source: normalizeSource(r.source),
+    source: coerceSource(r.source),
     created_at: r.created_at,
     updated_at: typeof r.updated_at === 'string' ? r.updated_at : r.created_at,
     author: typeof r.author === 'string' ? r.author : undefined,
@@ -102,11 +102,14 @@ export class ComponentStore {
         const raw = fs.readFileSync(fullPath, 'utf8');
         const parsed = yaml.load(raw);
         if (!parsed || typeof parsed !== 'object') { continue; }
-        // Strip version marker before normalization
+        assertSupportedVersion(parsed, fullPath);
         const { version: _v, ...payload } = parsed as Record<string, unknown>;
         const component = normalizeComponent(payload);
         if (component) { this.cache.set(component.id, component); }
-      } catch { /* skip malformed */ }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        vscode.window.showErrorMessage(`CodeDiary: ${message}`);
+      }
     }
   }
 
