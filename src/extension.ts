@@ -7,6 +7,7 @@ import { KnowledgeNotifier } from './providers/knowledgeNotifier';
 import { ChangePlanProvider } from './views/changePlanProvider';
 import { CriticalQueueProvider } from './views/criticalQueueProvider';
 import { PreCommitBriefProvider } from './views/preCommitBriefProvider';
+import { ComponentsProvider } from './views/componentsProvider';
 import { CoverageBar } from './views/coverageBar';
 import { registerAnnotateCommands } from './commands/annotate';
 import { registerReviewCommands } from './commands/markReviewed';
@@ -42,9 +43,11 @@ export function activate(context: vscode.ExtensionContext): void {
   const changePlanProvider = new ChangePlanProvider(store);
   const criticalQueueProvider = new CriticalQueueProvider(store);
   const preCommitBriefProvider = new PreCommitBriefProvider(store);
+  const componentsProvider = new ComponentsProvider(store);
   vscode.window.registerTreeDataProvider('codediary.changePlan', changePlanProvider);
   vscode.window.registerTreeDataProvider('codediary.criticalQueue', criticalQueueProvider);
   vscode.window.registerTreeDataProvider('codediary.preCommitBrief', preCommitBriefProvider);
+  vscode.window.registerTreeDataProvider('codediary.components', componentsProvider);
   context.subscriptions.push(preCommitBriefProvider);
 
   // Status bar
@@ -121,6 +124,7 @@ export function activate(context: vscode.ExtensionContext): void {
       changePlanProvider.refresh();
       criticalQueueProvider.refresh();
       preCommitBriefProvider.refresh();
+      componentsProvider.refresh();
     }),
 
     vscode.commands.registerCommand('codediary.showChangePlan', () => {

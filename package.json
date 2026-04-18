@@ -273,8 +273,13 @@
         },
         {
           "command": "codediary.refreshSidebar",
-          "when": "view == codediary.changePlan || view == codediary.criticalQueue || view == codediary.preCommitBrief",
+          "when": "view == codediary.changePlan || view == codediary.criticalQueue || view == codediary.preCommitBrief || view == codediary.components",
           "group": "navigation@5"
+        },
+        {
+          "command": "codediary.tagFileComponent",
+          "when": "view == codediary.components",
+          "group": "navigation@1"
         }
       ],
       "view/item/context": [
@@ -317,6 +322,10 @@
     },
     "views": {
       "codediary-sidebar": [
+        {
+          "id": "codediary.components",
+          "name": "Components"
+        },
         {
           "id": "codediary.changePlan",
           "name": "Annotations",
