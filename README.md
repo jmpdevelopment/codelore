@@ -51,11 +51,10 @@ Plus `ai_prompt` — ephemeral personal scratchpad for talking to the AI, never 
 
 ## Components
 
-Files don't live alone. Components group related files into logical subsystems (a module, a feature area, a service boundary). Tag a file into a component with the command palette or ask the AI to propose components via `Propose Components (AI)`.
+Files don't live alone. Components group related files into logical subsystems (a module, a feature area, a service boundary). Use `Manage Components for File` to multi-select which components the current file belongs to in one picker, or ask the AI to propose components via `Propose Components (AI)`.
 
 - Component definitions live at `.codediary/components/<slug>.yaml` with `name`, `description`, `owners`, `files`.
-- Tagging is the source of truth — membership is derived from the `components` field on annotations, so there is nothing to keep in sync.
-- The **Components** sidebar view lets you jump between files in the same component.
+- The **Components** sidebar view groups files by component; clicking a file opens it.
 - The status bar shows which component(s) your active editor belongs to.
 
 ## AI workflow
@@ -69,15 +68,14 @@ CodeDiary is bidirectional: AI agents *read* annotations before modifying code a
 
 ## Keyboard shortcuts
 
-CodeDiary caps itself at 5 chords. Everything else is in the command palette.
+CodeDiary caps itself at 4 chords. Everything else is in the command palette.
 
 | Shortcut | Action |
 |---|---|
 | `Cmd+Shift+J` | Add annotation on selection |
-| `Cmd+Shift+K` | Scan current file for institutional knowledge (AI) |
+| `Cmd+Shift+K` | Scan current file for knowledge + critical regions (AI) |
 | `Cmd+Shift+L` | Quick AI note (ephemeral, personal) |
 | `Cmd+Shift+B` | Open Pre-Commit Brief |
-| `Cmd+Shift+F` | Search annotations with filters |
 
 On Windows/Linux, swap `Cmd` for `Ctrl`.
 
@@ -86,11 +84,9 @@ On Windows/Linux, swap `Cmd` for `Ctrl`.
 CodeDiary has two stores:
 
 - **Shared** (`.codediary/`, committed to git): per-file YAML mirroring the source tree — `.codediary/src/auth/middleware.ts.yaml` holds annotations for `src/auth/middleware.ts`. Merge-conflict-safe. Survives turnover.
-- **Personal** (`.vscode/codediary.yaml`, gitignored): a single flat YAML for private notes ("I don't understand this") you don't want committed. Also holds the optional session narrative and any `ai_prompt` entries.
+- **Personal** (`.vscode/codediary.yaml`, gitignored): a single flat YAML for private notes ("I don't understand this") you don't want committed. Also holds any `ai_prompt` entries.
 
 Personal annotations never leak into AI context or team-facing views. `Clear Personal Data` wipes only the personal store.
-
-Schema is versioned; the store reads v1 and v2 and always writes v2. Run `CodeDiary: Migrate Store to v2` to rewrite v1 files in place (idempotent).
 
 ### Anchoring
 
@@ -99,7 +95,7 @@ Annotations are tied to code by two hashes, so they track the code across refact
 - **Content hash** — SHA-256 of the trimmed non-empty lines; whitespace-immune. A sliding-window search finds the region when it moves.
 - **Signature hash** — SHA-256 of the function/class signature line. Used as a fallback when the body changed but the declaration didn't. Supports Python and TypeScript/JavaScript.
 
-On file open, stale anchors get a ⚠ warning. `Re-anchor Stale Annotations` suggests updated positions — the developer confirms, no silent drift.
+On file open, stale anchors get a ⚠ warning. `Check Annotation Anchors` scans the active file and opens a picker of suggested re-anchor positions — the developer confirms, no silent drift.
 
 ## Proactive surfaces
 
@@ -113,8 +109,6 @@ Knowledge finds you; you don't have to find it.
 ## FAQ
 
 **Do I need an AI model configured?** No. CodeDiary is fully functional with manual annotation. AI features use `vscode.lm` and are opt-in.
-
-**What happens to review-workflow categories from older installs?** Legacy categories (`verified`, `needs_review`, `modified`, `confused`, `hallucination`, `intent`, `accepted`) are still read but never offered in new-annotation flows. Run `Migrate Store to v2` to rewrite them into the 8 knowledge categories.
 
 **Can AI agents write annotations on their own?** Yes — that's the intended model. The agent instruction block tells them to append to `.codediary/<path>.yaml` with `source: ai_generated`. Humans verify in review.
 
