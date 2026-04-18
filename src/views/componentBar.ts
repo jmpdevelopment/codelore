@@ -4,9 +4,9 @@ import { getRelativePath } from '../utils/git';
 
 /**
  * Status bar item showing which component(s) the active editor is tagged
- * into. Clicking the item runs `codelore.tagFileComponent` — "Untagged"
- * becomes the primary entry point for first-time tagging and for extending
- * a file into additional components.
+ * into. Clicking the item runs `codelore.manageComponentsForFile` —
+ * "Untagged" becomes the primary entry point for first-time tagging and
+ * for extending a file into additional components.
  *
  * Hidden when there is no active editor, the editor is not in the workspace,
  * or the workspace has no components defined yet.
@@ -20,7 +20,7 @@ export class ComponentBar implements vscode.Disposable {
       vscode.StatusBarAlignment.Left,
       49,
     );
-    this.statusBarItem.command = 'codelore.tagFileComponent';
+    this.statusBarItem.command = 'codelore.manageComponentsForFile';
 
     this.disposables.push(
       store.onDidChange(() => this.update()),

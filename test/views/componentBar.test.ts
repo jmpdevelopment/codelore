@@ -80,7 +80,7 @@ describe('ComponentBar', () => {
     const item = (bar as any).statusBarItem;
     expect(item.visible).toBe(true);
     expect(item.text).toBe('$(symbol-namespace) Untagged');
-    expect(item.command).toBe('codelore.tagFileComponent');
+    expect(item.command).toBe('codelore.manageComponentsForFile');
     bar.dispose();
     store.dispose();
   });
