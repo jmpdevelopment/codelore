@@ -156,6 +156,10 @@ export function activate(context: vscode.ExtensionContext): void {
       vscode.commands.executeCommand('codediary.changePlan.focus');
     }),
 
+    vscode.commands.registerCommand('codediary.showPreCommitBrief', () => {
+      vscode.commands.executeCommand('codediary.preCommitBrief.focus');
+    }),
+
     // AI commands
     vscode.commands.registerCommand('codediary.suggestDiary', async () => {
       const editor = vscode.window.activeTextEditor;

@@ -108,10 +108,10 @@ describe('CoverageBar', () => {
     store.dispose();
   });
 
-  it('has showChangePlan command', () => {
+  it('click target is the pre-commit brief', () => {
     const store = new DiaryStore();
     const bar = new CoverageBar(store);
-    expect((bar as any).statusBarItem.command).toBe('codediary.showChangePlan');
+    expect((bar as any).statusBarItem.command).toBe('codediary.showPreCommitBrief');
     bar.dispose();
     store.dispose();
   });

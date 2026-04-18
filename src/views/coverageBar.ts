@@ -10,7 +10,7 @@ export class CoverageBar implements vscode.Disposable {
       vscode.StatusBarAlignment.Left,
       50,
     );
-    this.statusBarItem.command = 'codediary.showChangePlan';
+    this.statusBarItem.command = 'codediary.showPreCommitBrief';
     this.statusBarItem.tooltip = 'CodeDiary — Knowledge Coverage';
     this.statusBarItem.show();
 

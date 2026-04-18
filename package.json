@@ -192,6 +192,11 @@
         "command": "codediary.verifyAnchors",
         "title": "CodeDiary: Verify Annotation Anchors",
         "icon": "$(verified)"
+      },
+      {
+        "command": "codediary.showPreCommitBrief",
+        "title": "CodeDiary: Show Pre-Commit Brief",
+        "icon": "$(checklist)"
       }
     ],
     "keybindings": [
@@ -206,6 +211,22 @@
         "key": "ctrl+shift+l",
         "mac": "cmd+shift+l",
         "when": "editorTextFocus"
+      },
+      {
+        "command": "codediary.showPreCommitBrief",
+        "key": "ctrl+shift+b",
+        "mac": "cmd+shift+b"
+      },
+      {
+        "command": "codediary.scanForKnowledge",
+        "key": "ctrl+shift+k",
+        "mac": "cmd+shift+k",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "codediary.searchAnnotations",
+        "key": "ctrl+shift+f",
+        "mac": "cmd+shift+f"
       }
     ],
     "menus": {
