@@ -2,6 +2,14 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import {
+  CODEDIARY_BLOCK_START,
+  CODEDIARY_BLOCK_END,
+  INSTRUCTION_TEXT,
+  buildBlock,
+  updateFileContent,
+} from '../../src/commands/agentInstructions';
+import { KNOWLEDGE_CATEGORIES, LEGACY_CATEGORIES } from '../../src/models/annotation';
 
 let tmpDir: string;
 
@@ -13,46 +21,46 @@ afterEach(() => {
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
 
-import { ANNOTATION_CATEGORIES } from '../../src/models/annotation';
+describe('Agent instruction text', () => {
+  it('lists every knowledge category', () => {
+    for (const cat of KNOWLEDGE_CATEGORIES) {
+      expect(INSTRUCTION_TEXT).toContain(`\`${cat}\``);
+    }
+  });
 
-// Test the core logic of updateFileContent and buildBlock independently
-const CODEDIARY_BLOCK_START = '# CodeDiary Integration';
-const CODEDIARY_BLOCK_END = '# End CodeDiary Integration';
+  it('does not advertise legacy categories', () => {
+    for (const cat of LEGACY_CATEGORIES) {
+      // legacy names must not appear as example categories
+      expect(INSTRUCTION_TEXT).not.toMatch(new RegExp(`\`${cat}\``));
+    }
+  });
 
-const INSTRUCTION_TEXT = `When modifying files in this project, check for CodeDiary annotations before making changes:
+  it('tells agents to author annotations, not just read them', () => {
+    expect(INSTRUCTION_TEXT).toMatch(/author/i);
+    expect(INSTRUCTION_TEXT).toContain('source: ai_generated');
+  });
 
-1. Look for \`.codediary/\` directory at the project root — it contains per-file YAML annotations committed by the team.
-2. For a file like \`src/auth/middleware.ts\`, check \`.codediary/src/auth/middleware.ts.yaml\` for existing annotations.
-3. Each annotation has: line range, category (${ANNOTATION_CATEGORIES.join(', ')}), and text.
-4. Annotations may include \`dependencies\` — cross-file links to related code. When modifying linked files, check the annotations that reference them.
-5. Critical flags mark security-sensitive or high-risk regions — respect these and do not modify flagged code without explicit instruction.
-6. If you add or change code in an annotated region, mention the existing annotation context in your response.
-7. **Re-anchoring**: When you move, rename, or refactor code that has annotations, update the \`line_start\` and \`line_end\` fields in the corresponding \`.codediary/\` YAML file to match the new line positions. Also update \`anchor.content_hash\` if you change the content — the hash is a truncated SHA-256 of the trimmed non-empty lines joined by newlines. If the annotation has a \`signature_hash\`, update it based on the function/class signature line.
-8. After making changes, suggest the developer add CodeDiary annotations for the modified regions.`;
+  it('documents components and their storage path', () => {
+    expect(INSTRUCTION_TEXT).toContain('.codediary/components/');
+  });
 
-function buildBlock(): string {
-  return `${CODEDIARY_BLOCK_START}\n\n${INSTRUCTION_TEXT}\n\n${CODEDIARY_BLOCK_END}`;
-}
+  it('explains v2 anchoring (content_hash + signature_hash)', () => {
+    expect(INSTRUCTION_TEXT).toContain('content_hash');
+    expect(INSTRUCTION_TEXT).toContain('signature_hash');
+  });
 
-function updateFileContent(existing: string, block: string): string {
-  const startIdx = existing.indexOf(CODEDIARY_BLOCK_START);
-  const endIdx = existing.indexOf(CODEDIARY_BLOCK_END);
+  it('warns about unverified ai_generated annotations', () => {
+    expect(INSTRUCTION_TEXT).toContain('ai_generated');
+    expect(INSTRUCTION_TEXT).toMatch(/ai_verified|verified|human-verified/);
+  });
+});
 
-  if (startIdx !== -1 && endIdx !== -1) {
-    return existing.substring(0, startIdx) + block + existing.substring(endIdx + CODEDIARY_BLOCK_END.length);
-  }
-
-  const trimmed = existing.trimEnd();
-  return trimmed ? trimmed + '\n\n' + block + '\n' : block + '\n';
-}
-
-describe('Agent instruction generation', () => {
-  it('buildBlock creates valid instruction block', () => {
+describe('Agent instruction block assembly', () => {
+  it('buildBlock wraps the text in start/end markers', () => {
     const block = buildBlock();
-    expect(block).toContain(CODEDIARY_BLOCK_START);
-    expect(block).toContain(CODEDIARY_BLOCK_END);
-    expect(block).toContain('.codediary/');
-    expect(block).toContain('Critical flags');
+    expect(block.startsWith(CODEDIARY_BLOCK_START)).toBe(true);
+    expect(block.endsWith(CODEDIARY_BLOCK_END)).toBe(true);
+    expect(block).toContain(INSTRUCTION_TEXT);
   });
 
   it('updateFileContent appends to empty file', () => {
@@ -79,7 +87,6 @@ describe('Agent instruction generation', () => {
     expect(result).not.toContain('Old instructions.');
     expect(result).toContain(INSTRUCTION_TEXT);
     expect(result).toContain('# Other Section');
-    // Should only have one start marker
     expect(result.split(CODEDIARY_BLOCK_START).length).toBe(2);
   });
 
@@ -123,19 +130,16 @@ describe('Agent instruction generation', () => {
     const block = buildBlock();
     const filePath = path.join(tmpDir, 'AGENTS.md');
 
-    // First write
     fs.writeFileSync(filePath, '# Agents\n', 'utf8');
     let content = fs.readFileSync(filePath, 'utf8');
     content = updateFileContent(content, block);
     fs.writeFileSync(filePath, content, 'utf8');
 
-    // Second write (update)
     content = fs.readFileSync(filePath, 'utf8');
     content = updateFileContent(content, block);
     fs.writeFileSync(filePath, content, 'utf8');
 
     const final = fs.readFileSync(filePath, 'utf8');
-    // Only one block
     expect(final.split(CODEDIARY_BLOCK_START).length).toBe(2);
     expect(final.split(CODEDIARY_BLOCK_END).length).toBe(2);
   });
