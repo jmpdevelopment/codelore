@@ -66,8 +66,9 @@ describe('ComponentProposer.parseProposals', () => {
       },
     ]);
     const result = p.parseProposals(raw, valid, new Set());
-    expect(result).toHaveLength(1);
-    expect(result[0].files).toEqual(['src/billing/calc.ts', 'src/billing/invoice.ts']);
+    expect(result.proposals).toHaveLength(1);
+    expect(result.proposals[0].files).toEqual(['src/billing/calc.ts', 'src/billing/invoice.ts']);
+    expect(result.failure).toBeUndefined();
   });
 
   it('drops proposals whose files all fall outside the candidate set', () => {
@@ -75,7 +76,9 @@ describe('ComponentProposer.parseProposals', () => {
     const raw = JSON.stringify([
       { id: 'phantom', name: 'Phantom', files: ['nope.ts'] },
     ]);
-    expect(p.parseProposals(raw, new Set(['real.ts']), new Set())).toEqual([]);
+    const result = p.parseProposals(raw, new Set(['real.ts']), new Set());
+    expect(result.proposals).toEqual([]);
+    expect(result.failure).toBe('no_valid_entries');
   });
 
   it('derives an id from the name when id is missing or invalid', () => {
@@ -85,7 +88,7 @@ describe('ComponentProposer.parseProposals', () => {
       { id: 'INVALID ID', name: 'Reporting', files: ['src/bar.ts'] },
     ]);
     const result = p.parseProposals(raw, new Set(['src/foo.ts', 'src/bar.ts']), new Set());
-    expect(result.map(r => r.id)).toEqual(['billing-engine', 'reporting']);
+    expect(result.proposals.map(r => r.id)).toEqual(['billing-engine', 'reporting']);
   });
 
   it('skips proposals that collide with existing component ids', () => {
@@ -95,7 +98,7 @@ describe('ComponentProposer.parseProposals', () => {
       { id: 'reporting', name: 'Reporting', files: ['src/bar.ts'] },
     ]);
     const result = p.parseProposals(raw, new Set(['src/foo.ts', 'src/bar.ts']), new Set(['billing']));
-    expect(result.map(r => r.id)).toEqual(['reporting']);
+    expect(result.proposals.map(r => r.id)).toEqual(['reporting']);
   });
 
   it('deduplicates files within a single proposal', () => {
@@ -104,12 +107,36 @@ describe('ComponentProposer.parseProposals', () => {
       { id: 'billing', name: 'Billing', files: ['src/foo.ts', 'src/foo.ts'] },
     ]);
     const result = p.parseProposals(raw, new Set(['src/foo.ts']), new Set());
-    expect(result[0].files).toEqual(['src/foo.ts']);
+    expect(result.proposals[0].files).toEqual(['src/foo.ts']);
   });
 
-  it('returns an empty array for non-JSON input', () => {
+  it('matches paths despite leading ./ or case differences', () => {
     const p = makeProposer();
-    expect(p.parseProposals('not json', new Set(), new Set())).toEqual([]);
+    const raw = JSON.stringify([
+      { id: 'billing', name: 'Billing', files: ['./src/Billing/Calc.ts', 'SRC/billing/invoice.ts'] },
+    ]);
+    const valid = new Set(['src/billing/calc.ts', 'src/billing/invoice.ts']);
+    const result = p.parseProposals(raw, valid, new Set());
+    expect(result.proposals[0].files).toEqual(['src/billing/calc.ts', 'src/billing/invoice.ts']);
+  });
+
+  it('reports invalid_json when input is not JSON', () => {
+    const p = makeProposer();
+    const result = p.parseProposals('not json', new Set(), new Set());
+    expect(result.proposals).toEqual([]);
+    expect(result.failure).toBe('invalid_json');
+  });
+
+  it('reports not_array when input is a JSON object', () => {
+    const p = makeProposer();
+    const result = p.parseProposals('{"oops":true}', new Set(), new Set());
+    expect(result.failure).toBe('not_array');
+  });
+
+  it('reports empty_array when model returns []', () => {
+    const p = makeProposer();
+    const result = p.parseProposals('[]', new Set(['src/foo.ts']), new Set());
+    expect(result.failure).toBe('empty_array');
   });
 });
 

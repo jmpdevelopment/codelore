@@ -7,6 +7,11 @@ export interface LmResult {
 
 export class LmService {
   private selectedModelId: string | undefined;
+  private output = vscode.window.createOutputChannel('CodeLore');
+
+  getOutputChannel(): vscode.OutputChannel {
+    return this.output;
+  }
 
   async getModel(): Promise<vscode.LanguageModelChat | undefined> {
     const models = await vscode.lm.selectChatModels();
@@ -72,14 +77,26 @@ export class LmService {
       vscode.LanguageModelChatMessage.User(`${systemPrompt}\n\n${userPrompt}`),
     ];
 
+    const startedAt = new Date();
+    this.output.appendLine(`\n[${startedAt.toISOString()}] ${modelName} request`);
+    this.output.appendLine('--- system ---');
+    this.output.appendLine(systemPrompt);
+    this.output.appendLine('--- user ---');
+    this.output.appendLine(userPrompt);
+
     try {
       const response = await model.sendRequest(messages, {}, token);
       let result = '';
       for await (const chunk of response.text) {
         result += chunk;
       }
-      return { text: result.trim(), modelName };
+      const trimmed = result.trim();
+      this.output.appendLine('--- response ---');
+      this.output.appendLine(trimmed);
+      return { text: trimmed, modelName };
     } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.output.appendLine(`--- error ---\n${message}`);
       if (err instanceof vscode.LanguageModelError) {
         vscode.window.showErrorMessage(`CodeLore AI: ${err.message}`);
       } else if (err instanceof Error) {

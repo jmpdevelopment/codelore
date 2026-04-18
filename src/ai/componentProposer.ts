@@ -23,6 +23,36 @@ export interface ProposedComponent {
   files: string[];
 }
 
+export type ParseFailureReason =
+  | 'invalid_json'
+  | 'not_array'
+  | 'empty_array'
+  | 'no_valid_entries';
+
+export interface ParseResult {
+  proposals: ProposedComponent[];
+  failure?: ParseFailureReason;
+}
+
+function normalizePath(p: string): string {
+  return p.replace(/^\.\//, '').toLowerCase();
+}
+
+function explainFailure(reason: ParseFailureReason | undefined): string {
+  switch (reason) {
+    case 'invalid_json':
+      return 'model response was not valid JSON';
+    case 'not_array':
+      return 'model returned JSON but not an array';
+    case 'empty_array':
+      return 'model returned an empty array';
+    case 'no_valid_entries':
+      return 'model returned proposals but none matched input files';
+    default:
+      return 'parser returned no proposals';
+  }
+}
+
 const MAX_WORKSPACE_FILES = 200;
 const SOURCE_INCLUDE_GLOB = '**/*.{ts,tsx,js,jsx,mjs,cjs,py,go,rs,java,kt,swift,rb,php,cs,cpp,cc,c,h,hpp,sh}';
 const SOURCE_EXCLUDE_GLOB = '**/{node_modules,.git,dist,build,out,coverage,.next,.turbo,vendor}/**';
@@ -91,15 +121,20 @@ export class ComponentProposer {
 
           progress.report({ message: `Parsing proposals from ${result.modelName}...` });
 
-          const proposals = this.parseProposals(result.text, new Set(files), existingIds);
-          if (proposals.length === 0) {
-            vscode.window.showInformationMessage(
-              `CodeLore: No component proposals surfaced (via ${result.modelName}).`,
+          const parsed = this.parseProposals(result.text, new Set(files), existingIds);
+          if (parsed.proposals.length === 0) {
+            const detail = explainFailure(parsed.failure);
+            const action = await vscode.window.showInformationMessage(
+              `CodeLore: No component proposals surfaced (via ${result.modelName}) — ${detail}`,
+              'Show Details',
             );
+            if (action === 'Show Details') {
+              this.lm.getOutputChannel().show(true);
+            }
             return;
           }
 
-          await this.presentProposals(proposals, result.modelName);
+          await this.presentProposals(parsed.proposals, result.modelName);
         } catch (err) {
           vscode.window.showErrorMessage(
             `CodeLore: Component proposal failed: ${err instanceof Error ? err.message : String(err)}`,
@@ -139,41 +174,59 @@ export class ComponentProposer {
     return lines.join('\n');
   }
 
-  parseProposals(raw: string, validFiles: Set<string>, existingIds: Set<string>): ProposedComponent[] {
+  parseProposals(raw: string, validFiles: Set<string>, existingIds: Set<string>): ParseResult {
+    let parsed: unknown;
     try {
-      const cleaned = stripJsonFences(raw);
-      const parsed = JSON.parse(cleaned);
-      if (!Array.isArray(parsed)) { return []; }
-      const out: ProposedComponent[] = [];
-      const seenIds = new Set<string>();
-      for (const p of parsed) {
-        if (!p || typeof p !== 'object') { continue; }
-        const nameRaw = typeof p.name === 'string' ? p.name.trim() : '';
-        if (!nameRaw) { continue; }
-        let id = typeof p.id === 'string' ? p.id.trim() : '';
-        if (!isValidComponentId(id)) { id = slugify(nameRaw); }
-        if (!isValidComponentId(id)) { continue; }
-        if (existingIds.has(id) || seenIds.has(id)) { continue; }
-        const files: string[] = Array.isArray(p.files)
-          ? (p.files as unknown[]).filter(
-              (f): f is string => typeof f === 'string' && validFiles.has(f),
-            )
-          : [];
-        if (files.length === 0) { continue; }
-        seenIds.add(id);
-        out.push({
-          id,
-          name: nameRaw,
-          description: typeof p.description === 'string' && p.description.trim()
-            ? p.description.trim()
-            : undefined,
-          files: [...new Set<string>(files)],
-        });
-      }
-      return out;
+      parsed = JSON.parse(stripJsonFences(raw));
     } catch {
-      return [];
+      return { proposals: [], failure: 'invalid_json' };
     }
+    if (!Array.isArray(parsed)) {
+      return { proposals: [], failure: 'not_array' };
+    }
+    if (parsed.length === 0) {
+      return { proposals: [], failure: 'empty_array' };
+    }
+
+    const fileLookup = new Map<string, string>();
+    for (const f of validFiles) {
+      fileLookup.set(normalizePath(f), f);
+    }
+
+    const out: ProposedComponent[] = [];
+    const seenIds = new Set<string>();
+    for (const p of parsed) {
+      if (!p || typeof p !== 'object') { continue; }
+      const entry = p as Record<string, unknown>;
+      const nameRaw = typeof entry.name === 'string' ? entry.name.trim() : '';
+      if (!nameRaw) { continue; }
+      let id = typeof entry.id === 'string' ? entry.id.trim() : '';
+      if (!isValidComponentId(id)) { id = slugify(nameRaw); }
+      if (!isValidComponentId(id)) { continue; }
+      if (existingIds.has(id) || seenIds.has(id)) { continue; }
+      const fileCandidates: string[] = Array.isArray(entry.files)
+        ? (entry.files as unknown[]).filter((f): f is string => typeof f === 'string')
+        : [];
+      const files: string[] = [];
+      for (const candidate of fileCandidates) {
+        const matched = fileLookup.get(normalizePath(candidate));
+        if (matched) { files.push(matched); }
+      }
+      if (files.length === 0) { continue; }
+      seenIds.add(id);
+      out.push({
+        id,
+        name: nameRaw,
+        description: typeof entry.description === 'string' && entry.description.trim()
+          ? entry.description.trim()
+          : undefined,
+        files: [...new Set<string>(files)],
+      });
+    }
+    if (out.length === 0) {
+      return { proposals: [], failure: 'no_valid_entries' };
+    }
+    return { proposals: out };
   }
 
   private async presentProposals(proposals: ProposedComponent[], modelName: string): Promise<void> {
