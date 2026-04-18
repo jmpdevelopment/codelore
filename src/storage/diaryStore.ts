@@ -13,6 +13,13 @@ export interface SearchFilter {
   text?: string;
   category?: AnnotationCategory;
   file?: string;
+  /**
+   * Component id. Matches annotations explicitly tagged with the component
+   * AND annotations on files that belong to the component (file-level
+   * membership), so the filter works even before annotations are individually
+   * tagged. For critical flags, only file-level membership applies.
+   */
+  component?: string;
 }
 
 export interface SearchResult {
@@ -239,11 +246,22 @@ export class DiaryStore {
     const matchesText = (text: string) =>
       !textLower || text.toLowerCase().includes(textLower);
 
+    const componentFiles = filter.component
+      ? new Set(this.components.get(filter.component)?.files ?? [])
+      : undefined;
+
+    const annotationMatchesComponent = (a: Annotation): boolean => {
+      if (!filter.component) { return true; }
+      if (a.components?.includes(filter.component)) { return true; }
+      return componentFiles!.has(a.file);
+    };
+
     // Search annotations
     const addAnnotations = (annotations: Annotation[], scope: Scope) => {
       for (const a of annotations) {
         if (!matchesFile(a.file)) { continue; }
         if (filter.category && a.category !== filter.category) { continue; }
+        if (!annotationMatchesComponent(a)) { continue; }
         if (!matchesText(a.text)) { continue; }
         results.push({
           type: 'annotation',
@@ -265,6 +283,7 @@ export class DiaryStore {
       const addFlags = (flags: CriticalFlag[], scope: Scope) => {
         for (const f of flags) {
           if (!matchesFile(f.file)) { continue; }
+          if (filter.component && !componentFiles!.has(f.file)) { continue; }
           if (!matchesText(f.description || '')) { continue; }
           const status = f.human_reviewed ? 'resolved' : 'unreviewed';
           results.push({

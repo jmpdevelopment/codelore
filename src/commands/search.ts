@@ -9,6 +9,7 @@ async function pickSearchFilter(store: DiaryStore): Promise<SearchFilter | undef
     { label: '$(search) Search all annotations', id: 'all' },
     { label: '$(filter) Filter by category', id: 'category' },
     { label: '$(file) Filter by file/folder path', id: 'file' },
+    { label: '$(symbol-namespace) Filter by component', id: 'component' },
     { label: '$(shield) Show all critical flags', id: 'critical' },
   ];
 
@@ -31,13 +32,34 @@ async function pickSearchFilter(store: DiaryStore): Promise<SearchFilter | undef
     filter.category = picked.category;
   }
 
+  if (mode.id === 'component') {
+    const components = store.getComponents();
+    if (components.length === 0) {
+      vscode.window.showInformationMessage(
+        'CodeDiary: No components defined yet. Tag a file to create one.',
+      );
+      return undefined;
+    }
+    const picked = await vscode.window.showQuickPick(
+      components.map(c => ({
+        label: `$(symbol-namespace) ${c.name}`,
+        description: `${c.id} · ${c.files.length} file${c.files.length === 1 ? '' : 's'}`,
+        detail: c.description,
+        id: c.id,
+      })),
+      { placeHolder: 'Select component to search within' },
+    );
+    if (!picked) { return undefined; }
+    filter.component = picked.id;
+  }
+
   if (mode.id === 'critical') {
     // Return with no filter — search() includes critical flags when no category filter
     // But we want ONLY critical flags, so we'll handle this in the command
     return { text: '', file: '', category: undefined };
   }
 
-  if (mode.id === 'file' || mode.id === 'all' || mode.id === 'category') {
+  if (mode.id === 'file' || mode.id === 'all' || mode.id === 'category' || mode.id === 'component') {
     if (mode.id === 'file') {
       const filePath = await vscode.window.showInputBox({
         prompt: 'File or folder path to search (partial match)',

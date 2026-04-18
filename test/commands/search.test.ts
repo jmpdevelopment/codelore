@@ -6,6 +6,7 @@ import { __setWorkspaceFolder, __clearWorkspace, __setConfig } from '../__mocks_
 import { DiaryStore } from '../../src/storage/diaryStore';
 import { Annotation } from '../../src/models/annotation';
 import { CriticalFlag } from '../../src/models/criticalFlag';
+import { Component } from '../../src/models/component';
 
 let tmpDir: string;
 
@@ -201,6 +202,84 @@ describe('DiaryStore.search', () => {
       const personal = results.filter(r => r.scope === 'personal');
       expect(shared.length).toBeGreaterThanOrEqual(1);
       expect(personal.length).toBeGreaterThanOrEqual(1);
+      store.dispose();
+    });
+  });
+
+  describe('component filter', () => {
+    function seedComponent(c: Partial<Component> & { id: string; name: string; files: string[] }): void {
+      const yaml = require('js-yaml');
+      const full = {
+        version: 2,
+        id: c.id,
+        name: c.name,
+        files: c.files,
+        source: c.source ?? 'human_authored',
+        created_at: c.created_at ?? '2026-04-18T00:00:00Z',
+        updated_at: c.updated_at ?? '2026-04-18T00:00:00Z',
+      };
+      const file = path.join(tmpDir, '.codediary', 'components', `${c.id}.yaml`);
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      fs.writeFileSync(file, yaml.dump(full), 'utf8');
+    }
+
+    it('matches annotations on files that belong to the component', () => {
+      seedComponent({ id: 'billing', name: 'Billing', files: ['src/billing/calc.ts'] });
+      const store = new DiaryStore();
+      store.addAnnotation(makeAnnotation({ id: 'a1', file: 'src/billing/calc.ts' }));
+      store.addAnnotation(makeAnnotation({ id: 'a2', file: 'src/auth/login.ts' }));
+
+      const results = store.search({ component: 'billing' });
+      expect(results).toHaveLength(1);
+      expect(results[0].file).toBe('src/billing/calc.ts');
+      store.dispose();
+    });
+
+    it('matches annotations explicitly tagged with the component even on untagged files', () => {
+      seedComponent({ id: 'billing', name: 'Billing', files: [] });
+      const store = new DiaryStore();
+      store.addAnnotation(makeAnnotation({
+        id: 'a1', file: 'src/anywhere.ts', components: ['billing'],
+      }));
+      store.addAnnotation(makeAnnotation({ id: 'a2', file: 'src/anywhere.ts' }));
+
+      const results = store.search({ component: 'billing' });
+      expect(results).toHaveLength(1);
+      expect(results[0].label).toContain(makeAnnotation().text);
+      store.dispose();
+    });
+
+    it('returns nothing when the component does not exist', () => {
+      const store = new DiaryStore();
+      store.addAnnotation(makeAnnotation({ id: 'a1', file: 'src/billing/calc.ts' }));
+
+      expect(store.search({ component: 'nonexistent' })).toEqual([]);
+      store.dispose();
+    });
+
+    it('restricts critical flags to files in the component', () => {
+      seedComponent({ id: 'billing', name: 'Billing', files: ['src/billing/calc.ts'] });
+      const store = new DiaryStore();
+      store.addCriticalFlag(makeFlag({ file: 'src/billing/calc.ts', description: 'invariant' }));
+      store.addCriticalFlag(makeFlag({ file: 'src/auth/login.ts', description: 'token check', line_start: 30, line_end: 40 }));
+
+      const results = store.search({ component: 'billing' });
+      const critical = results.filter(r => r.type === 'critical_flag');
+      expect(critical).toHaveLength(1);
+      expect(critical[0].file).toBe('src/billing/calc.ts');
+      store.dispose();
+    });
+
+    it('combines with text filter', () => {
+      seedComponent({ id: 'billing', name: 'Billing', files: ['src/billing/a.ts', 'src/billing/b.ts'] });
+      const store = new DiaryStore();
+      store.addAnnotation(makeAnnotation({ id: 'a1', file: 'src/billing/a.ts', text: 'invoice rounding' }));
+      store.addAnnotation(makeAnnotation({ id: 'a2', file: 'src/billing/b.ts', text: 'tax math' }));
+      store.addAnnotation(makeAnnotation({ id: 'a3', file: 'src/auth/login.ts', text: 'invoice handler' }));
+
+      const results = store.search({ component: 'billing', text: 'invoice' });
+      expect(results).toHaveLength(1);
+      expect(results[0].file).toBe('src/billing/a.ts');
       store.dispose();
     });
   });
