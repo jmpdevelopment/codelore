@@ -25,12 +25,14 @@ import { CriticalSeverity } from './models/criticalFlag';
 import { LmService } from './ai/lmService';
 import { DiaryGenerator } from './ai/diaryGenerator';
 import { CriticalDetector } from './ai/criticalDetector';
+import { ComponentProposer } from './ai/componentProposer';
 
 export function activate(context: vscode.ExtensionContext): void {
   const store = new DiaryStore();
   const lm = new LmService();
   const diaryGenerator = new DiaryGenerator(lm, store);
   const criticalDetector = new CriticalDetector(lm, store);
+  const componentProposer = new ComponentProposer(lm, store);
   context.subscriptions.push({ dispose: () => store.dispose() });
 
   // Decoration providers
@@ -154,6 +156,10 @@ export function activate(context: vscode.ExtensionContext): void {
         return;
       }
       await diaryGenerator.scanForKnowledge(editor);
+    }),
+
+    vscode.commands.registerCommand('codediary.proposeComponent', async () => {
+      await componentProposer.propose();
     }),
 
     vscode.commands.registerCommand('codediary.scanCritical', async () => {

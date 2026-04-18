@@ -118,6 +118,11 @@
         "icon": "$(book)"
       },
       {
+        "command": "codediary.proposeComponent",
+        "title": "CodeDiary: Propose Components (AI)",
+        "icon": "$(symbol-namespace)"
+      },
+      {
         "command": "codediary.scanCritical",
         "title": "CodeDiary: Scan Changes for Critical Logic (Diff Only)",
         "icon": "$(shield)"
@@ -299,6 +304,11 @@
           "command": "codediary.tagFileComponent",
           "when": "view == codediary.components",
           "group": "navigation@1"
+        },
+        {
+          "command": "codediary.proposeComponent",
+          "when": "view == codediary.components",
+          "group": "navigation@2"
         }
       ],
       "view/item/context": [
