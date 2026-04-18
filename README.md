@@ -24,13 +24,23 @@ Unlike inline comments, CodeLore annotations are a separate metadata layer — q
 2. Press `F5` in VSCode to launch the Extension Development Host.
 3. For a packaged `.vsix`, run `npx vsce package` and install via *Extensions → Install from VSIX*.
 
-## First 60 seconds
+## Getting started
 
-1. Open a file you want to understand.
-2. Press **`Cmd+Shift+K`** to let CodeLore scan the file for institutional knowledge. The AI drafts annotations with `source: ai_generated`.
-3. Skim the drafts in the **Annotations** sidebar. For each one that's right, click the ✓ to verify it (stamps `ai_verified` + your handle).
-4. Add your own annotation on a line you understand better than the AI: select the range and press **`Cmd+Shift+L`**.
-5. `Generate Agent Instruction Files` from the command palette — the agents you already use (Claude Code, Cursor, Copilot) then read annotations as context before modifying code.
+Two paths, depending on where you are:
+
+### Bootstrapping a mature codebase
+
+1. Open the **CodeLore** sidebar. The Components view is empty — start there.
+2. Run **`Propose Components (AI)`**. The AI reads file paths and proposes subsystem groupings; you accept the ones that fit.
+3. Run **`Scan Project`** from the command palette. If components are missing it offers to propose first. It then makes one LLM call per source file and drops AI-drafted annotations into the store.
+4. Review drafts in the **Annotations** sidebar. Click ✓ on the ones that are right to promote them to `ai_verified`; edit or delete the rest.
+5. Run **`Generate Agent Instruction Files`** so Claude Code / Cursor / Copilot read annotations as context before modifying code.
+
+### Annotating as you work
+
+1. Open a file you want to understand, press **`Cmd+Shift+K`** to scan just that file.
+2. Select a range you know better than the AI and press **`Cmd+Shift+L`** to add a human annotation.
+3. Use **`Cmd+Shift+J`** for a fast `human_note` when you just want to drop an observation.
 
 ## The 8 knowledge categories
 
@@ -49,11 +59,26 @@ Annotations describe properties of the code, not workflow state:
 
 ## Components
 
-Files don't live alone. Components group related files into logical subsystems (a module, a feature area, a service boundary). Use `Manage Components for File` to multi-select which components the current file belongs to in one picker, or ask the AI to propose components via `Propose Components (AI)`.
+Files don't live alone. Components group related files into logical subsystems (a module, a feature area, a service boundary) so annotations can be scanned and browsed by area instead of flat-per-file.
 
-- Component definitions live at `.codelore/components/<slug>.yaml` with `name`, `description`, `owners`, `files`.
-- The **Components** sidebar view groups files by component; clicking a file opens it.
-- The status bar shows which component(s) your active editor belongs to.
+Two ways to define them:
+
+- **`Propose Components (AI)`** — the AI reads file paths (uncommitted changes, then annotated files, then workspace source) and proposes 3–10 groupings. You pick which to accept. Best for a first-pass partition of an unfamiliar codebase.
+- **`Manage Components for File`** — multi-select picker tagging the active file into existing components, or creating a new one inline. Best for ongoing maintenance.
+
+Component definitions live at `.codelore/components/<slug>.yaml` with `name`, `description`, `owners`, `files`. The **Components** sidebar groups files by component; the status bar shows which component(s) your active editor belongs to.
+
+## Scanning
+
+Three scopes, one shape — each drafts annotations and critical flags in a single LLM call per file:
+
+| Command | Scope | When to use |
+|---|---|---|
+| `Scan Current File` (`Cmd+Shift+K`) | Active editor | Exploring one file |
+| `Scan Component` | Every file tagged into a component | Building knowledge for a subsystem |
+| `Scan Project` | Every source file in the workspace | First-time bootstrap of a repo |
+
+`Scan Project` on a component-less workspace first offers to propose components so the new annotations land tagged into subsystems. Drafts surface with `source: ai_generated`; click ✓ in the Annotations sidebar to promote them.
 
 ## AI workflow
 
