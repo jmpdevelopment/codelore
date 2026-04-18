@@ -5,6 +5,7 @@ import * as fs from 'fs';
 import { Annotation } from '../models/annotation';
 import { ReviewMarker, mergeReviewMarkers } from '../models/reviewMarker';
 import { CriticalFlag } from '../models/criticalFlag';
+import { SCHEMA_VERSION } from './schema';
 
 export interface DiaryData {
   narrative?: string;
@@ -108,7 +109,8 @@ export class YamlStore {
         }
       }
     } catch { return; }
-    const content = yaml.dump(this.data, { lineWidth: 120, noRefs: true });
+    const payload = { version: SCHEMA_VERSION, ...this.data };
+    const content = yaml.dump(payload, { lineWidth: 120, noRefs: true });
     fs.writeFileSync(this.filePath, content, 'utf8');
   }
 

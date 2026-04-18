@@ -5,6 +5,7 @@ import * as fs from 'fs';
 import { Annotation } from '../models/annotation';
 import { ReviewMarker, mergeReviewMarkers } from '../models/reviewMarker';
 import { CriticalFlag } from '../models/criticalFlag';
+import { SCHEMA_VERSION } from './schema';
 
 /**
  * Per-file YAML storage in .codediary/ directory, committed to git.
@@ -21,6 +22,17 @@ interface FileData {
   annotations?: Annotation[];
   review_markers?: ReviewMarker[];
   critical_flags?: CriticalFlag[];
+}
+
+/**
+ * Coerces arbitrary parsed YAML into a {@link FileData}, dropping the
+ * top-level `version` marker (managed by {@link SCHEMA_VERSION} on write)
+ * so it does not leak into the in-memory cache.
+ */
+function stripVersion(parsed: unknown): FileData {
+  if (!parsed || typeof parsed !== 'object') { return {}; }
+  const { version: _v, ...rest } = parsed as FileData & { version?: unknown };
+  return rest;
 }
 
 export class SharedStore {
@@ -78,7 +90,7 @@ export class SharedStore {
     if (!fs.existsSync(filePath)) { return {}; }
     try {
       const raw = fs.readFileSync(filePath, 'utf8');
-      return (yaml.load(raw) as FileData) || {};
+      return stripVersion(yaml.load(raw));
     } catch {
       return {};
     }
@@ -118,7 +130,8 @@ export class SharedStore {
         }
       }
     } catch { return; }
-    const content = yaml.dump(data, { lineWidth: 120, noRefs: true });
+    const payload = { version: SCHEMA_VERSION, ...data };
+    const content = yaml.dump(payload, { lineWidth: 120, noRefs: true });
     fs.writeFileSync(filePath, content, 'utf8');
     this.cache.set(sourceFile, data);
   }
@@ -152,8 +165,7 @@ export class SharedStore {
         const sourceFile = relative.replace(/\.yaml$/, '');
         try {
           const raw = fs.readFileSync(fullPath, 'utf8');
-          const data = (yaml.load(raw) as FileData) || {};
-          this.cache.set(sourceFile, data);
+          this.cache.set(sourceFile, stripVersion(yaml.load(raw)));
         } catch { /* skip malformed files */ }
       }
     }

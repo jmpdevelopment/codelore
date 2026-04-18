@@ -335,6 +335,88 @@ critical_flags: []
     });
   });
 
+  describe('schema version', () => {
+    it('writes version: 2 at the top of the file', () => {
+      const store = new YamlStore();
+      store.addAnnotation(makeAnnotation());
+      store.dispose();
+
+      const raw = fs.readFileSync(path.join(tmpDir, '.vscode/codediary.yaml'), 'utf8');
+      expect(raw.startsWith('version: 2\n')).toBe(true);
+    });
+
+    it('reads a v1 file (no version field) and upgrades on next write', () => {
+      const v1 = `annotations:
+  - id: ann-legacy
+    file: src/foo.ts
+    line_start: 1
+    line_end: 2
+    category: verified
+    text: legacy
+    source: manual
+    created_at: "2026-01-01T00:00:00Z"
+review_markers: []
+critical_flags: []
+`;
+      fs.writeFileSync(path.join(tmpDir, '.vscode/codediary.yaml'), v1);
+
+      const store = new YamlStore();
+      expect(store.getAnnotations()).toHaveLength(1);
+      expect(store.getAnnotations()[0].id).toBe('ann-legacy');
+
+      store.addAnnotation(makeAnnotation({ id: 'ann-new' }));
+      store.dispose();
+
+      const raw = fs.readFileSync(path.join(tmpDir, '.vscode/codediary.yaml'), 'utf8');
+      expect(raw).toMatch(/^version: 2\n/);
+      expect(raw).not.toContain('version: 1');
+    });
+
+    it('reads a v2 file and preserves data', () => {
+      const v2 = `version: 2
+annotations:
+  - id: ann-v2
+    file: src/foo.ts
+    line_start: 1
+    line_end: 2
+    category: verified
+    text: v2 annotation
+    source: manual
+    created_at: "2026-01-01T00:00:00Z"
+review_markers: []
+critical_flags: []
+`;
+      fs.writeFileSync(path.join(tmpDir, '.vscode/codediary.yaml'), v2);
+
+      const store = new YamlStore();
+      expect(store.getAnnotations()).toHaveLength(1);
+      expect(store.getAnnotations()[0].id).toBe('ann-v2');
+      store.dispose();
+    });
+
+    it('does not leak the version field into the annotation data', () => {
+      const v2 = `version: 2
+annotations:
+  - id: ann-v2
+    file: src/foo.ts
+    line_start: 1
+    line_end: 2
+    category: verified
+    text: hello
+    source: manual
+    created_at: "2026-01-01T00:00:00Z"
+review_markers: []
+critical_flags: []
+`;
+      fs.writeFileSync(path.join(tmpDir, '.vscode/codediary.yaml'), v2);
+
+      const store = new YamlStore();
+      const ann = store.getAnnotations()[0] as unknown as Record<string, unknown>;
+      expect(ann).not.toHaveProperty('version');
+      store.dispose();
+    });
+  });
+
   describe('save', () => {
     it('creates parent directory if it does not exist', () => {
       __setConfig({ 'codediary.storagePath': 'deep/nested/dir/codediary.yaml' });

@@ -335,6 +335,95 @@ describe('SharedStore', () => {
     });
   });
 
+  describe('schema version', () => {
+    it('writes version: 2 at the top of each per-file YAML', () => {
+      const store = new SharedStore();
+      store.addAnnotation(makeAnnotation({ file: 'src/foo.ts' }));
+      store.dispose();
+
+      const raw = fs.readFileSync(
+        path.join(tmpDir, '.codediary', 'src', 'foo.ts.yaml'),
+        'utf8',
+      );
+      expect(raw.startsWith('version: 2\n')).toBe(true);
+    });
+
+    it('loads a legacy v1 file (no version field)', () => {
+      const yamlDir = path.join(tmpDir, '.codediary', 'src');
+      fs.mkdirSync(yamlDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(yamlDir, 'legacy.ts.yaml'),
+        'annotations:\n  - id: legacy\n    file: src/legacy.ts\n    line_start: 1\n    line_end: 2\n    category: verified\n    text: ok\n    source: manual\n    created_at: "2026-01-01T00:00:00Z"\n',
+      );
+      const store = new SharedStore();
+      expect(store.getAnnotations()).toHaveLength(1);
+      expect(store.getAnnotations()[0].id).toBe('legacy');
+      store.dispose();
+    });
+
+    it('loads a v2 file with the version field present', () => {
+      const yamlDir = path.join(tmpDir, '.codediary', 'src');
+      fs.mkdirSync(yamlDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(yamlDir, 'modern.ts.yaml'),
+        'version: 2\nannotations:\n  - id: modern\n    file: src/modern.ts\n    line_start: 1\n    line_end: 2\n    category: verified\n    text: ok\n    source: manual\n    created_at: "2026-01-01T00:00:00Z"\n',
+      );
+      const store = new SharedStore();
+      expect(store.getAnnotations()).toHaveLength(1);
+      expect(store.getAnnotations()[0].id).toBe('modern');
+      store.dispose();
+    });
+
+    it('loads a directory mixing v1 and v2 files', () => {
+      const yamlDir = path.join(tmpDir, '.codediary', 'src');
+      fs.mkdirSync(yamlDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(yamlDir, 'old.ts.yaml'),
+        'annotations:\n  - id: old\n    file: src/old.ts\n    line_start: 1\n    line_end: 2\n    category: verified\n    text: ok\n    source: manual\n    created_at: "2026-01-01T00:00:00Z"\n',
+      );
+      fs.writeFileSync(
+        path.join(yamlDir, 'new.ts.yaml'),
+        'version: 2\nannotations:\n  - id: new\n    file: src/new.ts\n    line_start: 1\n    line_end: 2\n    category: verified\n    text: ok\n    source: manual\n    created_at: "2026-01-01T00:00:00Z"\n',
+      );
+      const store = new SharedStore();
+      const ids = store.getAnnotations().map(a => a.id).sort();
+      expect(ids).toEqual(['new', 'old']);
+      store.dispose();
+    });
+
+    it('upgrades a v1 file to v2 on next write', () => {
+      const yamlDir = path.join(tmpDir, '.codediary', 'src');
+      fs.mkdirSync(yamlDir, { recursive: true });
+      const yamlPath = path.join(yamlDir, 'foo.ts.yaml');
+      fs.writeFileSync(
+        yamlPath,
+        'annotations:\n  - id: legacy\n    file: src/foo.ts\n    line_start: 1\n    line_end: 2\n    category: verified\n    text: ok\n    source: manual\n    created_at: "2026-01-01T00:00:00Z"\n',
+      );
+
+      const store = new SharedStore();
+      store.addAnnotation(makeAnnotation({ id: 'fresh', file: 'src/foo.ts' }));
+      store.dispose();
+
+      const raw = fs.readFileSync(yamlPath, 'utf8');
+      expect(raw).toMatch(/^version: 2\n/);
+      // Version marker must not appear twice.
+      expect(raw.match(/version:/g)?.length).toBe(1);
+    });
+
+    it('does not leak the version field into cached annotation data', () => {
+      const yamlDir = path.join(tmpDir, '.codediary', 'src');
+      fs.mkdirSync(yamlDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(yamlDir, 'modern.ts.yaml'),
+        'version: 2\nannotations:\n  - id: modern\n    file: src/modern.ts\n    line_start: 1\n    line_end: 2\n    category: verified\n    text: ok\n    source: manual\n    created_at: "2026-01-01T00:00:00Z"\n',
+      );
+      const store = new SharedStore();
+      const ann = store.getAnnotations()[0] as unknown as Record<string, unknown>;
+      expect(ann).not.toHaveProperty('version');
+      store.dispose();
+    });
+  });
+
   describe('no workspace', () => {
     it('all write operations are no-ops without workspace', () => {
       __clearWorkspace();
