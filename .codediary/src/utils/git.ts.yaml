@@ -1,3 +1,4 @@
+version: 2
 annotations:
   - id: f1108fcd-e147-4054-b062-056e249de528
     file: src/utils/git.ts
@@ -5,7 +6,7 @@ annotations:
     line_end: 22
     category: business_rule
     text: Do not change as its critical for this extension without SME review
-    source: manual
+    source: human_authored
     created_at: '2026-03-22T14:18:59.445Z'
     author: jmpdevelopment
     anchor:

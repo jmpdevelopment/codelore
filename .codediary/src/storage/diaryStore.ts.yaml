@@ -1,3 +1,4 @@
+version: 2
 annotations:
   - id: 3590cc0b-3455-4ad6-adb4-1e50e05c2dd1
     file: src/storage/diaryStore.ts
@@ -5,11 +6,11 @@ annotations:
     line_end: 67
     category: business_rule
     text: >-
-      Shared annotations come first in the merged array. This ordering is an invariant — if
-      deduplication is ever added, shared must win over personal. Changing the order breaks the
-      assumption that getAnnotationScope() returns 'shared' for the first match.
-    source: manual
-    created_at: "2026-03-22T16:00:00Z"
+      Shared annotations come first in the merged array. This ordering is an invariant — if deduplication is ever added,
+      shared must win over personal. Changing the order breaks the assumption that getAnnotationScope() returns 'shared'
+      for the first match.
+    source: human_authored
+    created_at: '2026-03-22T16:00:00Z'
     author: jmp
   - id: e8eceb5e-6898-4a15-ac8e-802674ad6f50
     file: src/storage/diaryStore.ts
@@ -17,9 +18,9 @@ annotations:
     line_end: 245
     category: business_rule
     text: >-
-      clearAll only wipes the personal store. This is a critical safety decision — accidentally
-      clearing shared team knowledge would be catastrophic and irreversible. The UI label
-      "Clear Personal Data" reinforces this, do not rename it to "Clear All" or similar.
-    source: manual
-    created_at: "2026-03-22T16:00:00Z"
+      clearAll only wipes the personal store. This is a critical safety decision — accidentally clearing shared team
+      knowledge would be catastrophic and irreversible. The UI label "Clear Personal Data" reinforces this, do not
+      rename it to "Clear All" or similar.
+    source: human_authored
+    created_at: '2026-03-22T16:00:00Z'
     author: jmp

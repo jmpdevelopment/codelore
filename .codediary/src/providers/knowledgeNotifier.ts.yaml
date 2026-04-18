@@ -1,3 +1,4 @@
+version: 2
 annotations:
   - id: a19ecae2-1a18-4174-96fc-77344af15de7
     file: src/providers/knowledgeNotifier.ts
@@ -5,33 +6,32 @@ annotations:
     line_end: 33
     category: business_rule
     text: >-
-      Anti-spam logic: notifiedOnOpen and notifiedOnSave Sets prevent repeated notifications for the
-      same file. Both sets are cleared when the store changes (new annotations added), so a file can
-      re-trigger after knowledge is updated. Without this, every save would pop a notification.
-    source: manual
-    created_at: "2026-03-22T16:00:00Z"
+      Anti-spam logic: notifiedOnOpen and notifiedOnSave Sets prevent repeated notifications for the same file. Both
+      sets are cleared when the store changes (new annotations added), so a file can re-trigger after knowledge is
+      updated. Without this, every save would pop a notification.
+    source: human_authored
+    created_at: '2026-03-22T16:00:00Z'
     author: jmp
   - id: a8349321-1b97-40f6-933f-e7365ddc16bd
     file: src/providers/knowledgeNotifier.ts
     line_start: 80
     line_end: 82
-    category: intent
+    category: rationale
     text: >-
-      Ephemeral categories (ai_prompt) are excluded from save notifications. AI prompt notes are
-      working notes, not knowledge — they should not trigger "your changes overlap annotations"
-      warnings.
-    source: manual
-    created_at: "2026-03-22T16:00:00Z"
+      Ephemeral categories (ai_prompt) are excluded from save notifications. AI prompt notes are working notes, not
+      knowledge — they should not trigger "your changes overlap annotations" warnings.
+    source: human_authored
+    created_at: '2026-03-22T16:00:00Z'
     author: jmp
   - id: ad1ed001-a6f0-4434-bf79-a8cd6a3b9156
     file: src/providers/knowledgeNotifier.ts
     line_start: 126
     line_end: 132
-    category: intent
+    category: rationale
     text: >-
-      findIncomingDependencies scans ALL annotations to find ones that depend on the current file.
-      This is O(total_annotations) on every save — acceptable for typical project sizes but could
-      be optimized with a reverse index if annotation count exceeds ~10k.
-    source: manual
-    created_at: "2026-03-22T16:00:00Z"
+      findIncomingDependencies scans ALL annotations to find ones that depend on the current file. This is
+      O(total_annotations) on every save — acceptable for typical project sizes but could be optimized with a reverse
+      index if annotation count exceeds ~10k.
+    source: human_authored
+    created_at: '2026-03-22T16:00:00Z'
     author: jmp
