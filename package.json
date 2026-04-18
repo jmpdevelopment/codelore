@@ -123,8 +123,8 @@
       },
       {
         "command": "codelore.quickNote",
-        "title": "CodeLore: Quick AI Note (Ephemeral)",
-        "icon": "$(robot)"
+        "title": "CodeLore: Quick Note",
+        "icon": "$(comment)"
       },
       {
         "command": "codelore.copyAnnotationsForFile",
