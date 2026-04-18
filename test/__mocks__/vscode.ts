@@ -82,6 +82,7 @@ export enum ProgressLocation {
 
 let _workspaceFolders: { uri: Uri; name: string; index: number }[] | undefined;
 let _configValues: Record<string, any> = {};
+let _activeTextEditor: any = undefined;
 
 /** Test helper: set the mock workspace folder */
 export function __setWorkspaceFolder(fsPath: string): void {
@@ -91,6 +92,7 @@ export function __setWorkspaceFolder(fsPath: string): void {
 /** Test helper: clear workspace */
 export function __clearWorkspace(): void {
   _workspaceFolders = undefined;
+  _activeTextEditor = undefined;
 }
 
 /** Test helper: set config values */
@@ -98,11 +100,20 @@ export function __setConfig(values: Record<string, any>): void {
   _configValues = values;
 }
 
+/** Test helper: set the active text editor (provide a fake editor object or undefined) */
+export function __setActiveTextEditor(editor: any): void {
+  _activeTextEditor = editor;
+}
+
 export const workspace = {
   get workspaceFolders() { return _workspaceFolders; },
   getWorkspaceFolder(uri: Uri) {
     if (!_workspaceFolders) return undefined;
-    return _workspaceFolders[0];
+    const base = _workspaceFolders[0].uri.fsPath;
+    const target = typeof uri === 'string' ? uri : uri.fsPath;
+    return target === base || target.startsWith(base + '/') || target.startsWith(base + '\\')
+      ? _workspaceFolders[0]
+      : undefined;
   },
   asRelativePath(uri: Uri | string, _includeWorkspace?: boolean): string {
     const p = typeof uri === 'string' ? uri : uri.fsPath;
@@ -145,15 +156,16 @@ export const window = {
   }),
   createStatusBarItem: (_alignment?: StatusBarAlignment, _priority?: number) => ({
     text: '',
-    tooltip: '',
+    tooltip: '' as any,
     command: '',
-    show: () => {},
-    hide: () => {},
+    visible: false,
+    show() { this.visible = true; },
+    hide() { this.visible = false; },
     dispose: () => {},
   }),
   onDidChangeActiveTextEditor: (_cb: any) => ({ dispose: () => {} }),
   onDidChangeVisibleTextEditors: (_cb: any) => ({ dispose: () => {} }),
-  get activeTextEditor() { return undefined as any; },
+  get activeTextEditor() { return _activeTextEditor; },
   get visibleTextEditors() { return [] as any[]; },
   showQuickPick: async () => undefined as any,
   showInputBox: async () => undefined as any,

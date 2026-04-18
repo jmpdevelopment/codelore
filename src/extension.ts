@@ -9,6 +9,7 @@ import { CriticalQueueProvider } from './views/criticalQueueProvider';
 import { PreCommitBriefProvider } from './views/preCommitBriefProvider';
 import { ComponentsProvider } from './views/componentsProvider';
 import { CoverageBar } from './views/coverageBar';
+import { ComponentBar } from './views/componentBar';
 import { registerAnnotateCommands } from './commands/annotate';
 import { registerReviewCommands } from './commands/markReviewed';
 import { registerCriticalCommands } from './commands/markCritical';
@@ -52,7 +53,8 @@ export function activate(context: vscode.ExtensionContext): void {
 
   // Status bar
   const coverageBar = new CoverageBar(store);
-  context.subscriptions.push(coverageBar);
+  const componentBar = new ComponentBar(store);
+  context.subscriptions.push(coverageBar, componentBar);
 
   // Commands
   registerAnnotateCommands(context, store);
