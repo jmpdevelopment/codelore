@@ -2,12 +2,13 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { DiaryStore } from '../storage/diaryStore';
 import { Annotation, CATEGORY_META, EPHEMERAL_CATEGORIES, FileDependency } from '../models/annotation';
+import { Component } from '../models/component';
 import { CriticalFlag } from '../models/criticalFlag';
 import { ReviewMarker } from '../models/reviewMarker';
 import { gitChangedFiles, gitDiff, getWorkspaceCwd, parseChangedLineRanges, ChangedLineRange } from '../utils/git';
 import { isSafeRelativePath, sanitizeMarkdownText, truncateText } from '../utils/validation';
 
-type BriefTreeItem = SummaryNode | BriefFileNode | KnowledgeNode | DependencyNode | NoChangesNode;
+type BriefTreeItem = SummaryNode | ComponentGroupNode | BriefFileNode | KnowledgeNode | DependencyNode | NoChangesNode;
 
 // ── Summary header ──────────────────────────────────────────────────
 
@@ -170,15 +171,23 @@ class KnowledgeNode extends vscode.TreeItem {
       const ann = item as Annotation;
       const meta = CATEGORY_META[ann.category];
       const prefix = overlapsChange ? '⚡ ' : '';
+      const unverifiedBadge = ann.source === 'ai_generated' ? '🤖 ' : '';
       super(
-        `${prefix}${meta.label}: ${truncateText(ann.text.split('\n')[0], 60)}`,
+        `${prefix}${unverifiedBadge}${meta.label}: ${truncateText(ann.text.split('\n')[0], 60)}`,
         vscode.TreeItemCollapsibleState.None,
       );
-      this.description = `L${ann.line_start}-${ann.line_end}`;
+      const descParts = [`L${ann.line_start}-${ann.line_end}`];
+      if (ann.source === 'ai_generated') { descParts.push('unverified AI'); }
+      this.description = descParts.join(' · ');
 
       const tooltipParts = [
         `**${meta.label}**\n\n${sanitizeMarkdownText(ann.text)}`,
       ];
+      if (ann.source === 'ai_generated') {
+        tooltipParts.push('\n\n🤖 **Unverified AI annotation** — review and click the verify action to confirm');
+      } else if (ann.source === 'ai_verified' && ann.verified_by) {
+        tooltipParts.push(`\n\n✓ Verified by ${sanitizeMarkdownText(ann.verified_by)}`);
+      }
       if (overlapsChange) {
         tooltipParts.push('\n\n⚡ **Overlaps your changes**');
       }
@@ -250,6 +259,98 @@ class DependencyNode extends vscode.TreeItem {
   }
 }
 
+// ── Component group node ────────────────────────────────────────────
+
+/**
+ * Header for a set of changed files belonging to the same component
+ * (or to no component — the "Untagged" bucket). Only rendered when
+ * the workspace defines at least one component.
+ */
+class ComponentGroupNode extends vscode.TreeItem {
+  constructor(
+    public readonly groupId: string | null,
+    public readonly groupLabel: string,
+    public readonly knowledge: FileKnowledge[],
+  ) {
+    super(groupLabel, vscode.TreeItemCollapsibleState.Expanded);
+    const fileCount = knowledge.length;
+    const unresolvedCritical = knowledge.reduce(
+      (sum, fk) => sum + fk.overlappingCritical.filter(f => !f.human_reviewed).length,
+      0,
+    );
+    const parts = [`${fileCount} file${fileCount !== 1 ? 's' : ''}`];
+    if (unresolvedCritical > 0) {
+      parts.push(`${unresolvedCritical} critical`);
+    }
+    this.description = parts.join(' · ');
+    this.iconPath = groupId
+      ? new vscode.ThemeIcon('symbol-namespace')
+      : new vscode.ThemeIcon('circle-slash', new vscode.ThemeColor('disabledForeground'));
+    this.contextValue = groupId ? 'briefComponent' : 'briefUntagged';
+  }
+}
+
+/**
+ * Buckets changed files by component membership. A file in multiple components
+ * appears under each — duplication is intentional so users see every relevant
+ * subsystem, even when ownership overlaps. Files in zero components fall into
+ * an "Untagged" bucket. Returned groups are sorted: highest unresolved-critical
+ * count first, then file count, then component name; the untagged bucket is
+ * always last.
+ */
+export interface ComponentGroup {
+  componentId: string | null;
+  label: string;
+  knowledge: FileKnowledge[];
+}
+
+export function groupKnowledgeByComponent(
+  knowledge: FileKnowledge[],
+  components: Component[],
+): ComponentGroup[] {
+  const componentByFile = new Map<string, Component[]>();
+  for (const c of components) {
+    for (const f of c.files) {
+      const existing = componentByFile.get(f);
+      if (existing) { existing.push(c); }
+      else { componentByFile.set(f, [c]); }
+    }
+  }
+
+  const groups = new Map<string, ComponentGroup>();
+  const ensureGroup = (id: string | null, label: string): ComponentGroup => {
+    const key = id ?? '__untagged__';
+    let group = groups.get(key);
+    if (!group) {
+      group = { componentId: id, label, knowledge: [] };
+      groups.set(key, group);
+    }
+    return group;
+  };
+
+  for (const fk of knowledge) {
+    const matching = componentByFile.get(fk.filePath) ?? [];
+    if (matching.length === 0) {
+      ensureGroup(null, 'Untagged files').knowledge.push(fk);
+    } else {
+      for (const c of matching) {
+        ensureGroup(c.id, c.name).knowledge.push(fk);
+      }
+    }
+  }
+
+  return [...groups.values()].sort((a, b) => {
+    if ((a.componentId === null) !== (b.componentId === null)) {
+      return a.componentId === null ? 1 : -1;
+    }
+    const aCrit = a.knowledge.reduce((s, fk) => s + fk.overlappingCritical.filter(f => !f.human_reviewed).length, 0);
+    const bCrit = b.knowledge.reduce((s, fk) => s + fk.overlappingCritical.filter(f => !f.human_reviewed).length, 0);
+    if (aCrit !== bCrit) { return bCrit - aCrit; }
+    if (a.knowledge.length !== b.knowledge.length) { return b.knowledge.length - a.knowledge.length; }
+    return a.label.localeCompare(b.label);
+  });
+}
+
 // ── Provider ────────────────────────────────────────────────────────
 
 export class PreCommitBriefProvider implements vscode.TreeDataProvider<BriefTreeItem>, vscode.Disposable {
@@ -281,6 +382,10 @@ export class PreCommitBriefProvider implements vscode.TreeDataProvider<BriefTree
       return this.getFileChildren(element.knowledge);
     }
 
+    if (element instanceof ComponentGroupNode) {
+      return this.sortFileKnowledge(element.knowledge).map(fk => new BriefFileNode(fk));
+    }
+
     if (element) { return []; }
 
     // Root level
@@ -291,7 +396,8 @@ export class PreCommitBriefProvider implements vscode.TreeDataProvider<BriefTree
       return [new NoChangesNode()];
     }
 
-    // Compute totals for summary
+    // Compute totals for summary (count each changed file once even if it
+    // surfaces under multiple component groups below).
     let totalCritical = 0;
     let totalAnnotations = 0;
     let totalReviewed = 0;
@@ -307,8 +413,25 @@ export class PreCommitBriefProvider implements vscode.TreeDataProvider<BriefTree
       new SummaryNode(knowledge.length, totalCritical, totalAnnotations, totalReviewed, totalDependencies),
     ];
 
-    // Sort files: unresolved critical overlaps first, then dependencies, then by annotation count, then alphabetical
-    const sorted = [...knowledge].sort((a, b) => {
+    const components = this.store.getComponents();
+    if (components.length > 0) {
+      const groups = groupKnowledgeByComponent(knowledge, components);
+      for (const g of groups) {
+        items.push(new ComponentGroupNode(g.componentId, g.label, g.knowledge));
+      }
+      return items;
+    }
+
+    // No components defined — fall back to the flat layout.
+    for (const fk of this.sortFileKnowledge(knowledge)) {
+      items.push(new BriefFileNode(fk));
+    }
+
+    return items;
+  }
+
+  private sortFileKnowledge(knowledge: FileKnowledge[]): FileKnowledge[] {
+    return [...knowledge].sort((a, b) => {
       const aCrit = a.overlappingCritical.filter(f => !f.human_reviewed).length;
       const bCrit = b.overlappingCritical.filter(f => !f.human_reviewed).length;
       if (aCrit !== bCrit) { return bCrit - aCrit; }
@@ -320,12 +443,6 @@ export class PreCommitBriefProvider implements vscode.TreeDataProvider<BriefTree
       if (aKnowledge !== bKnowledge) { return bKnowledge - aKnowledge; }
       return a.filePath.localeCompare(b.filePath);
     });
-
-    for (const fk of sorted) {
-      items.push(new BriefFileNode(fk));
-    }
-
-    return items;
   }
 
   private getFileChildren(knowledge: FileKnowledge): BriefTreeItem[] {
