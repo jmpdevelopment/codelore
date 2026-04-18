@@ -78,6 +78,11 @@ export enum ProgressLocation {
   Notification = 15,
 }
 
+export enum QuickPickItemKind {
+  Default = 0,
+  Separator = -1,
+}
+
 // --- Configurable workspace mock ---
 
 let _workspaceFolders: { uri: Uri; name: string; index: number }[] | undefined;

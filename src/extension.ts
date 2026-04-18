@@ -17,8 +17,7 @@ import { registerQuickNoteCommands } from './commands/quickNote';
 import { registerAgentInstructionCommands } from './commands/agentInstructions';
 import { registerReanchorCommands } from './commands/reanchor';
 import { registerComponentCommands } from './commands/component';
-import { ANNOTATION_CATEGORIES, CATEGORY_META, AnnotationCategory } from './models/annotation';
-import { CriticalSeverity } from './models/criticalFlag';
+import { registerFilterCommand } from './commands/filter';
 import { LmService } from './ai/lmService';
 import { DiaryGenerator } from './ai/diaryGenerator';
 import { CriticalDetector } from './ai/criticalDetector';
@@ -63,86 +62,9 @@ export function activate(context: vscode.ExtensionContext): void {
   registerAgentInstructionCommands(context, store);
   registerReanchorCommands(context, store);
   registerComponentCommands(context, store);
+  registerFilterCommand(context, store, changePlanProvider, criticalQueueProvider);
 
-  // Filter command
   context.subscriptions.push(
-    vscode.commands.registerCommand('codediary.filterByCategory', async () => {
-      const items: Array<{ label: string; category: AnnotationCategory | undefined }> = [
-        { label: '$(close) Clear Filter', category: undefined },
-        ...ANNOTATION_CATEGORIES.map(cat => ({
-          label: `${CATEGORY_META[cat].icon} ${CATEGORY_META[cat].label}`,
-          category: cat as AnnotationCategory | undefined,
-        })),
-      ];
-      const picked = await vscode.window.showQuickPick(items, {
-        placeHolder: 'Filter annotations by category',
-      });
-      if (picked !== undefined) {
-        changePlanProvider.setFilter(picked.category);
-      }
-    }),
-
-    vscode.commands.registerCommand('codediary.filterByPath', async () => {
-      const current = changePlanProvider.getActiveFilters().path;
-      const input = await vscode.window.showInputBox({
-        prompt: 'Filter by file/folder path (leave empty to clear)',
-        placeHolder: 'e.g. src/auth or middleware.ts',
-        value: current || '',
-      });
-      if (input === undefined) { return; }
-      const pathFilter = input.trim() || undefined;
-      changePlanProvider.setPathFilter(pathFilter);
-      criticalQueueProvider.setPathFilter(pathFilter);
-    }),
-
-    vscode.commands.registerCommand('codediary.filterBySeverity', async () => {
-      const items: Array<{ label: string; severity: CriticalSeverity | undefined }> = [
-        { label: '$(close) Clear Filter', severity: undefined },
-        { label: '$(error) Critical', severity: 'critical' },
-        { label: '$(warning) High', severity: 'high' },
-        { label: '$(info) Medium', severity: 'medium' },
-      ];
-      const picked = await vscode.window.showQuickPick(items, {
-        placeHolder: 'Filter critical flags by severity',
-      });
-      if (picked !== undefined) {
-        criticalQueueProvider.setSeverityFilter(picked.severity);
-      }
-    }),
-
-    vscode.commands.registerCommand('codediary.filterByComponent', async () => {
-      const components = store.getComponents();
-      if (components.length === 0) {
-        vscode.window.showInformationMessage(
-          'CodeDiary: No components defined yet. Tag a file to create one.',
-        );
-        return;
-      }
-      const items: Array<{ label: string; description?: string; id: string | undefined }> = [
-        { label: '$(close) Clear Filter', id: undefined },
-        ...components.map(c => ({
-          label: `$(symbol-namespace) ${c.name}`,
-          description: `${c.id} · ${c.files.length} file${c.files.length === 1 ? '' : 's'}`,
-          id: c.id as string | undefined,
-        })),
-      ];
-      const picked = await vscode.window.showQuickPick(items, {
-        placeHolder: 'Filter annotations by component',
-      });
-      if (picked !== undefined) {
-        changePlanProvider.setComponentFilter(picked.id);
-      }
-    }),
-
-    vscode.commands.registerCommand('codediary.clearFilters', () => {
-      changePlanProvider.setFilter(undefined);
-      changePlanProvider.setPathFilter(undefined);
-      changePlanProvider.setComponentFilter(undefined);
-      criticalQueueProvider.setPathFilter(undefined);
-      criticalQueueProvider.setSeverityFilter(undefined);
-      vscode.window.showInformationMessage('CodeDiary: All filters cleared');
-    }),
-
     vscode.commands.registerCommand('codediary.refreshSidebar', () => {
       changePlanProvider.refresh();
       criticalQueueProvider.refresh();

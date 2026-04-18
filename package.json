@@ -81,14 +81,9 @@
         "title": "CodeDiary: Set Change Narrative"
       },
       {
-        "command": "codediary.filterByCategory",
-        "title": "CodeDiary: Filter by Category",
+        "command": "codediary.filter",
+        "title": "CodeDiary: Filter",
         "icon": "$(filter)"
-      },
-      {
-        "command": "codediary.filterByComponent",
-        "title": "CodeDiary: Filter by Component",
-        "icon": "$(symbol-namespace)"
       },
       {
         "command": "codediary.refreshSidebar",
@@ -123,21 +118,6 @@
         "command": "codediary.searchAnnotations",
         "title": "CodeDiary: Search Annotations",
         "icon": "$(search)"
-      },
-      {
-        "command": "codediary.filterByPath",
-        "title": "CodeDiary: Filter by File/Folder Path",
-        "icon": "$(folder)"
-      },
-      {
-        "command": "codediary.filterBySeverity",
-        "title": "CodeDiary: Filter Critical by Severity",
-        "icon": "$(shield)"
-      },
-      {
-        "command": "codediary.clearFilters",
-        "title": "CodeDiary: Clear All Filters",
-        "icon": "$(clear-all)"
       },
       {
         "command": "codediary.resolveCritical",
@@ -249,29 +229,9 @@
       ],
       "view/title": [
         {
-          "command": "codediary.filterByCategory",
-          "when": "view == codediary.changePlan",
-          "group": "navigation@2"
-        },
-        {
-          "command": "codediary.filterByComponent",
-          "when": "view == codediary.changePlan",
-          "group": "navigation@2"
-        },
-        {
-          "command": "codediary.filterByPath",
+          "command": "codediary.filter",
           "when": "view == codediary.changePlan || view == codediary.criticalQueue",
-          "group": "navigation@3"
-        },
-        {
-          "command": "codediary.filterBySeverity",
-          "when": "view == codediary.criticalQueue",
           "group": "navigation@2"
-        },
-        {
-          "command": "codediary.clearFilters",
-          "when": "view == codediary.changePlan || view == codediary.criticalQueue",
-          "group": "navigation@4"
         },
         {
           "command": "codediary.refreshSidebar",
