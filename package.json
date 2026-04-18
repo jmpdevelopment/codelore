@@ -2,7 +2,7 @@
   "name": "codelore",
   "displayName": "CodeLore",
   "description": "Institutional knowledge capture for large codebases undergoing AI-accelerated development. Annotate, review, and build shared understanding as AI agents modify your code.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "jmpdevelopment",
   "license": "MIT",
   "icon": "icon.png",

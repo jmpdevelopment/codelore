@@ -2,6 +2,78 @@
 
 All notable changes to the CodeLore extension are documented here. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] — 2026-04-18
+
+Onboarding, diagnostics, and a unified scan pipeline. Follow-up to the
+0.1.0 launch focused on making the first-run experience discoverable
+and the AI scan path cheaper and debuggable.
+
+### Added
+
+- **Sidebar welcome views.** Components and Annotations now show inline
+  buttons on an empty repo — Propose Components, Scan Project, Add
+  Annotation, Scan Current File, and a pointer to Generate Agent
+  Instruction Files — so new users discover the bootstrap flow without
+  reading docs.
+- **Title-bar actions for setup and maintenance.** Generate Agent
+  Instruction Files is surfaced on the Components and Annotations
+  views; Check Annotation Anchors is surfaced on Annotations.
+- **Scan diagnostics.** A "CodeLore" output channel logs every LLM
+  prompt and response. Propose Components failures now report a
+  specific reason (invalid JSON, empty array, no matching paths) with a
+  "Show Details" action on the notification.
+- **Component bootstrap on first scan.** `Scan Project` on a
+  component-less workspace offers to propose components first so
+  AI-generated annotations land tagged into subsystems.
+- **Component Proposer fallback.** When a repo has no recent git
+  changes and no existing annotations, the proposer now seeds from
+  workspace source files (capped at 200).
+
+### Changed
+
+- **Unified scan pipeline.** `Scan File`, `Scan Component`, and `Scan
+  Project` now make a single LLM call per file that emits knowledge
+  annotations and critical flags together. Halves token and latency
+  cost versus the previous two-pass approach.
+- **Propose Components path matching** normalizes leading `./` and
+  case so the common hallucination of
+  `./src/Billing/Calc.ts` vs. `src/billing/calc.ts` now matches
+  instead of silently dropping the proposal.
+- **Annotations view** no longer collapses by default — annotations
+  are the primary unit and shouldn't require a click to see.
+- **Quick Note** (`Cmd+Shift+J`) writes a plain `human_note` honoring
+  the configured default scope. Retitled from "Quick AI Note" and
+  given a neutral icon so the label matches the behavior.
+- **Status bar wording** switched from "N notes" to "N annotation(s)"
+  so the count is category-agnostic.
+- **Scan command labels** dropped the "(Knowledge + Critical)" suffix
+  now that the single merged call makes it redundant.
+- **Editor right-click submenu** slimmed: Resolve/Remove Critical and
+  Copy Annotations removed (unguarded; available elsewhere with the
+  right context), and Quick Note reordered to sit directly after Add
+  Annotation.
+
+### Removed
+
+- **Pre-Commit Brief sidebar.** Save-time overlap notifications plus
+  the generated agent instruction files already cover the same signal
+  for both humans and AI reviewers.
+- **`ai_prompt` category and Clear Personal Data command.** The
+  ephemeral prompt category is gone; `KNOWLEDGE_CATEGORIES` collapsed
+  into `ANNOTATION_CATEGORIES` (eight categories remain).
+- **CriticalDetector.** Folded into LoreGenerator as part of the
+  unified scan.
+- **Refresh button on sidebar title bars.** Every storage source
+  already runs a FileSystemWatcher; the views can't go stale. The
+  command stays registered in the palette as an escape hatch.
+
+### Fixed
+
+- **Component status bar pill** click was wired to a renamed command
+  and failed silently — now opens the component picker as intended.
+- **Propose Components silent failures** on fresh repos now surface a
+  specific reason instead of a generic "No proposals surfaced".
+
 ## [0.1.0] — 2026-04-18
 
 Initial public release. CodeLore is a VSCode extension that captures
@@ -43,4 +115,5 @@ AI-driven refactors, team turnover, and noisy AI reviewers.
 - **Security hardening.** Markdown sanitization, path traversal
   prevention, symlink-safe writes, scoped command trust in hovers.
 
+[0.2.0]: https://marketplace.visualstudio.com/items?itemName=jmpdevelopment.codelore
 [0.1.0]: https://marketplace.visualstudio.com/items?itemName=jmpdevelopment.codelore
