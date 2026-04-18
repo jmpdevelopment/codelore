@@ -159,8 +159,11 @@ No AST parsing, no regex rules, no static patterns. Semantic understanding of "w
 
 Palette-visible commands the user types. Context-menu-only commands
 (`editAnnotation`, `deleteAnnotation`, `editComponent`, `verifyAnnotation`,
-`resolveCritical`, `removeCritical`, `refreshSidebar`) are hidden from the
-palette via `menus.commandPalette` `when: false`.
+`resolveCritical`, `removeCritical`) are hidden from the palette via
+`menus.commandPalette` `when: false`. The file watchers on every storage
+source keep the sidebars fresh automatically; `refreshSidebar` remains
+registered as an escape-hatch command in the palette but no longer lives
+in the view title bar.
 
 | Command | Title | Keybinding |
 |---------|-------|------------|
@@ -178,6 +181,7 @@ palette via `menus.commandPalette` `when: false`.
 | `codelore.filter` | Filter | — |
 | `codelore.searchAnnotations` | Search Annotations | — |
 | `codelore.changeModel` | Change AI Model | — |
+| `codelore.refreshSidebar` | Refresh | — |
 
 ## Sidebar Views
 

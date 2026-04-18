@@ -204,11 +204,6 @@
           "group": "navigation@4"
         },
         {
-          "command": "codelore.refreshSidebar",
-          "when": "view == codelore.changePlan || view == codelore.criticalQueue || view == codelore.components",
-          "group": "navigation@5"
-        },
-        {
           "command": "codelore.manageComponentsForFile",
           "when": "view == codelore.components",
           "group": "navigation@1"
@@ -252,10 +247,6 @@
         }
       ],
       "commandPalette": [
-        {
-          "command": "codelore.refreshSidebar",
-          "when": "false"
-        },
         {
           "command": "codelore.editAnnotation",
           "when": "false"
