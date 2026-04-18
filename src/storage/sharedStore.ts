@@ -3,7 +3,6 @@ import * as yaml from 'js-yaml';
 import * as path from 'path';
 import * as fs from 'fs';
 import { Annotation, normalizeAnnotation } from '../models/annotation';
-import { ReviewMarker, mergeReviewMarkers } from '../models/reviewMarker';
 import { CriticalFlag } from '../models/criticalFlag';
 import { SCHEMA_VERSION } from './schema';
 
@@ -13,14 +12,13 @@ import { SCHEMA_VERSION } from './schema';
  * Structure mirrors the source tree:
  *   .codediary/src/auth/middleware.ts.yaml
  *
- * Each file contains annotations, review_markers, and critical_flags
- * for that source file only. This keeps merge conflicts scoped to
- * individual files — two devs rarely annotate the same file at once.
+ * Each file contains annotations and critical_flags for that source
+ * file only. This keeps merge conflicts scoped to individual files —
+ * two devs rarely annotate the same file at once.
  */
 
 interface FileData {
   annotations?: Annotation[];
-  review_markers?: ReviewMarker[];
   critical_flags?: CriticalFlag[];
 }
 
@@ -105,7 +103,6 @@ export class SharedStore {
 
     // If empty, remove the file
     const hasData = (data.annotations?.length ?? 0) > 0
-      || (data.review_markers?.length ?? 0) > 0
       || (data.critical_flags?.length ?? 0) > 0;
 
     if (!hasData) {
@@ -221,38 +218,6 @@ export class SharedStore {
     }
   }
 
-  // --- Review Markers ---
-
-  getReviewMarkers(): ReviewMarker[] {
-    const all: ReviewMarker[] = [];
-    for (const data of this.cache.values()) {
-      if (data.review_markers) { all.push(...data.review_markers); }
-    }
-    return all;
-  }
-
-  getReviewMarkersForFile(file: string): ReviewMarker[] {
-    return this.cache.get(file)?.review_markers ?? [];
-  }
-
-  addReviewMarker(marker: ReviewMarker): void {
-    const data = this.loadFile(marker.file);
-    if (!data.review_markers) { data.review_markers = []; }
-    data.review_markers = mergeReviewMarkers(data.review_markers, marker);
-    this.saveFile(marker.file, data);
-    this._onDidChange.fire();
-  }
-
-  removeReviewMarker(file: string, lineStart: number, lineEnd: number): void {
-    const data = this.loadFile(file);
-    if (!data.review_markers) { return; }
-    data.review_markers = data.review_markers.filter(
-      m => !(m.line_start === lineStart && m.line_end === lineEnd),
-    );
-    this.saveFile(file, data);
-    this._onDidChange.fire();
-  }
-
   // --- Critical Flags ---
 
   getCriticalFlags(): CriticalFlag[] {
@@ -300,11 +265,6 @@ export class SharedStore {
 
   getAnnotatedFiles(): string[] {
     return [...this.cache.keys()];
-  }
-
-  isLineReviewed(file: string, line: number): boolean {
-    const markers = this.getReviewMarkersForFile(file);
-    return markers.some(m => line >= m.line_start && line <= m.line_end);
   }
 
   dispose(): void {

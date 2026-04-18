@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import { Annotation, AnnotationCategory, CATEGORY_META } from '../models/annotation';
-import { ReviewMarker } from '../models/reviewMarker';
 import { CriticalFlag } from '../models/criticalFlag';
 import { Component } from '../models/component';
 import { YamlStore } from './yamlStore';
@@ -153,38 +152,6 @@ export class DiaryStore {
 
   getAnnotationScope(id: string): Scope {
     return this.shared.getAnnotations().some(a => a.id === id) ? 'shared' : 'personal';
-  }
-
-  // --- Review Markers (merged reads, routed writes) ---
-
-  getReviewMarkers(): ReviewMarker[] {
-    return [...this.shared.getReviewMarkers(), ...this.personal.getReviewMarkers()];
-  }
-
-  getReviewMarkersForFile(file: string): ReviewMarker[] {
-    return [
-      ...this.shared.getReviewMarkersForFile(file),
-      ...this.personal.getReviewMarkersForFile(file),
-    ];
-  }
-
-  addReviewMarker(marker: ReviewMarker, scope?: Scope): void {
-    const target = (scope ?? this.getDefaultScope()) === 'shared' ? this.shared : this.personal;
-    target.addReviewMarker(marker);
-  }
-
-  removeReviewMarker(file: string, lineStart: number, lineEnd: number): void {
-    this.shared.removeReviewMarker(file, lineStart, lineEnd);
-    this.personal.removeReviewMarker(file, lineStart, lineEnd);
-  }
-
-  removeReviewMarkersForFile(file: string): void {
-    this.personal.removeReviewMarkersForFile(file);
-    // Don't remove shared markers — that affects the whole team
-  }
-
-  isLineReviewed(file: string, line: number): boolean {
-    return this.shared.isLineReviewed(file, line) || this.personal.isLineReviewed(file, line);
   }
 
   // --- Critical Flags (merged reads, routed writes) ---

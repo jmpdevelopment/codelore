@@ -15,7 +15,6 @@ function fk(file: string, opts: Partial<{
     filePath: file,
     annotations: opts.annotations ?? [],
     criticalFlags: opts.criticalFlags ?? [],
-    reviewMarkers: [],
     changedRanges: [],
     overlappingAnnotations: opts.overlappingAnnotations ?? [],
     overlappingCritical: opts.overlappingCritical ?? [],

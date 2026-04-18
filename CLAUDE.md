@@ -41,7 +41,6 @@ codediary/
 │   ├── extension.ts              # Activation, command/view registration
 │   ├── models/
 │   │   ├── annotation.ts         # Annotation model + 9 categories + ContentAnchor + FileDependency
-│   │   ├── reviewMarker.ts       # Human review marker model
 │   │   └── criticalFlag.ts       # Critical region flag + resolution model
 │   ├── storage/
 │   │   ├── diaryStore.ts         # Facade: merges shared + personal stores
@@ -49,17 +48,15 @@ codediary/
 │   │   └── yamlStore.ts          # Single YAML in .vscode/ (personal, gitignored)
 │   ├── providers/
 │   │   ├── annotationDecorator.ts    # Inline text + colored backgrounds per category
-│   │   ├── reviewMarkerDecorator.ts  # Green checkmark on reviewed lines
 │   │   ├── criticalDecorator.ts      # Red/green shield on critical regions
 │   │   └── knowledgeNotifier.ts      # Proactive warnings on file open/save
 │   ├── views/
 │   │   ├── changePlanProvider.ts     # TreeView sidebar: annotations grouped by file
 │   │   ├── criticalQueueProvider.ts  # TreeView: sorted critical review queue
 │   │   ├── preCommitBriefProvider.ts # TreeView: diff-aware knowledge briefing
-│   │   └── coverageBar.ts           # Status bar: annotation + review summary
+│   │   └── coverageBar.ts           # Status bar: annotation + critical summary
 │   ├── commands/
 │   │   ├── annotate.ts           # Add/edit/delete annotations with scope picker
-│   │   ├── markReviewed.ts       # Mark lines/files as human-reviewed
 │   │   ├── markCritical.ts       # Flag critical regions, resolve/remove
 │   │   ├── clearAll.ts           # Set narrative, clear personal data
 │   │   ├── quickNote.ts          # Ephemeral AI notes + copy annotations to clipboard
@@ -179,9 +176,6 @@ No AST parsing, no regex rules, no static patterns. Semantic understanding of "w
 | `codediary.addAnnotation` | Add Annotation | `Cmd+Shift+J` |
 | `codediary.editAnnotation` | Edit Annotation | — |
 | `codediary.deleteAnnotation` | Delete Annotation | — |
-| `codediary.markReviewed` | Mark as Reviewed | `Cmd+Shift+K` |
-| `codediary.markFileReviewed` | Mark File as Reviewed | — |
-| `codediary.unmarkReviewed` | Unmark Reviewed | — |
 | `codediary.markCritical` | Mark as Critical | — |
 | `codediary.resolveCritical` | Resolve Critical Flag | — |
 | `codediary.removeCritical` | Remove Critical Flag | — |
@@ -250,7 +244,6 @@ Press `F5` in VSCode to launch the Extension Development Host for manual testing
 
 ### Complete
 - Inline annotations with 9 categories, scope picker, and content + signature anchoring
-- Human review markers with merge logic for overlapping ranges
 - Critical flag lifecycle (flag with severity, resolve with comment, remove)
 - Pre-Commit Brief: diff-aware knowledge surfacing sorted by risk
 - Proactive notifications on file open (critical flags) and save (overlap detection)

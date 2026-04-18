@@ -34,20 +34,15 @@ describe('CoverageBar', () => {
     store.dispose();
   });
 
-  it('shows annotation and review line counts', () => {
+  it('shows annotation count', () => {
     const store = new DiaryStore();
     store.addAnnotation({
       id: 'a1', file: 'src/foo.ts', line_start: 1, line_end: 10,
       category: 'verified', text: 'ok', source: 'human_authored', created_at: '2026-01-01T00:00:00Z',
     });
-    store.addReviewMarker({
-      file: 'src/foo.ts', line_start: 1, line_end: 50,
-      reviewer: 'alice', reviewed_at: '2026-01-01T00:00:00Z',
-    });
     const bar = new CoverageBar(store);
     const text = (bar as any).statusBarItem.text;
     expect(text).toContain('1 notes');
-    expect(text).toContain('50 lines reviewed');
     bar.dispose();
     store.dispose();
   });

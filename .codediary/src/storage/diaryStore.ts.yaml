@@ -23,15 +23,3 @@ annotations:
     source: manual
     created_at: "2026-03-22T16:00:00Z"
     author: jmp
-  - id: 70b47a7f-797b-4b40-b3ca-dddfecf68b49
-    file: src/storage/diaryStore.ts
-    line_start: 120
-    line_end: 128
-    category: intent
-    text: >-
-      removeReviewMarker deletes from BOTH stores — this is correct. An explicit unmark should
-      clear everywhere. But removeReviewMarkersForFile (line 125) only clears personal, because
-      bulk-removing shared markers would erase team review history.
-    source: manual
-    created_at: "2026-03-22T16:00:00Z"
-    author: jmp

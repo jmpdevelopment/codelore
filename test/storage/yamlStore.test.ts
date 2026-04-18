@@ -5,7 +5,6 @@ import * as os from 'os';
 import { __setWorkspaceFolder, __clearWorkspace, __setConfig } from '../__mocks__/vscode';
 import { YamlStore } from '../../src/storage/yamlStore';
 import { Annotation } from '../../src/models/annotation';
-import { ReviewMarker } from '../../src/models/reviewMarker';
 import { CriticalFlag } from '../../src/models/criticalFlag';
 
 let tmpDir: string;
@@ -20,17 +19,6 @@ function makeAnnotation(overrides: Partial<Annotation> = {}): Annotation {
     text: 'Looks good',
     source: 'human_authored',
     created_at: '2026-01-01T00:00:00Z',
-    ...overrides,
-  };
-}
-
-function makeMarker(overrides: Partial<ReviewMarker> = {}): ReviewMarker {
-  return {
-    file: 'src/foo.ts',
-    line_start: 1,
-    line_end: 10,
-    reviewer: 'alice',
-    reviewed_at: '2026-01-01T00:00:00Z',
     ...overrides,
   };
 }
@@ -63,7 +51,6 @@ describe('YamlStore', () => {
     it('initializes with empty data when no file exists', () => {
       const store = new YamlStore();
       expect(store.getAnnotations()).toEqual([]);
-      expect(store.getReviewMarkers()).toEqual([]);
       expect(store.getCriticalFlags()).toEqual([]);
       expect(store.getNarrative()).toBeUndefined();
       store.dispose();
@@ -79,7 +66,6 @@ describe('YamlStore', () => {
     text: Looks good
     source: manual
     created_at: "2026-01-01T00:00:00Z"
-review_markers: []
 critical_flags: []
 `;
       fs.writeFileSync(path.join(tmpDir, '.vscode/codediary.yaml'), yamlContent);
@@ -162,74 +148,6 @@ critical_flags: []
     });
   });
 
-  describe('review markers', () => {
-    it('adds and retrieves markers', () => {
-      const store = new YamlStore();
-      store.addReviewMarker(makeMarker());
-      expect(store.getReviewMarkers()).toHaveLength(1);
-      store.dispose();
-    });
-
-    it('filters markers by file', () => {
-      const store = new YamlStore();
-      store.addReviewMarker(makeMarker({ file: 'a.ts' }));
-      store.addReviewMarker(makeMarker({ file: 'b.ts' }));
-      expect(store.getReviewMarkersForFile('a.ts')).toHaveLength(1);
-      expect(store.getReviewMarkersForFile('c.ts')).toHaveLength(0);
-      store.dispose();
-    });
-
-    it('merges overlapping markers for same file', () => {
-      const store = new YamlStore();
-      store.addReviewMarker(makeMarker({ line_start: 1, line_end: 10 }));
-      store.addReviewMarker(makeMarker({ line_start: 8, line_end: 20 }));
-      const markers = store.getReviewMarkersForFile('src/foo.ts');
-      expect(markers).toHaveLength(1);
-      expect(markers[0].line_start).toBe(1);
-      expect(markers[0].line_end).toBe(20);
-      store.dispose();
-    });
-
-    it('does not merge non-overlapping markers', () => {
-      const store = new YamlStore();
-      store.addReviewMarker(makeMarker({ line_start: 1, line_end: 5 }));
-      store.addReviewMarker(makeMarker({ line_start: 20, line_end: 30 }));
-      const markers = store.getReviewMarkersForFile('src/foo.ts');
-      expect(markers).toHaveLength(2);
-      store.dispose();
-    });
-
-    it('removes specific marker', () => {
-      const store = new YamlStore();
-      store.addReviewMarker(makeMarker({ line_start: 1, line_end: 5 }));
-      store.addReviewMarker(makeMarker({ line_start: 20, line_end: 30 }));
-      store.removeReviewMarker('src/foo.ts', 1, 5);
-      expect(store.getReviewMarkersForFile('src/foo.ts')).toHaveLength(1);
-      store.dispose();
-    });
-
-    it('removes all markers for file', () => {
-      const store = new YamlStore();
-      store.addReviewMarker(makeMarker({ line_start: 1, line_end: 5 }));
-      store.addReviewMarker(makeMarker({ line_start: 20, line_end: 30 }));
-      store.removeReviewMarkersForFile('src/foo.ts');
-      expect(store.getReviewMarkersForFile('src/foo.ts')).toHaveLength(0);
-      store.dispose();
-    });
-
-    it('isLineReviewed returns true for covered lines', () => {
-      const store = new YamlStore();
-      store.addReviewMarker(makeMarker({ line_start: 5, line_end: 10 }));
-      expect(store.isLineReviewed('src/foo.ts', 5)).toBe(true);
-      expect(store.isLineReviewed('src/foo.ts', 7)).toBe(true);
-      expect(store.isLineReviewed('src/foo.ts', 10)).toBe(true);
-      expect(store.isLineReviewed('src/foo.ts', 4)).toBe(false);
-      expect(store.isLineReviewed('src/foo.ts', 11)).toBe(false);
-      expect(store.isLineReviewed('other.ts', 7)).toBe(false);
-      store.dispose();
-    });
-  });
-
   describe('critical flags', () => {
     it('adds and retrieves flags', () => {
       const store = new YamlStore();
@@ -300,12 +218,10 @@ critical_flags: []
     it('clears all data', () => {
       const store = new YamlStore();
       store.addAnnotation(makeAnnotation());
-      store.addReviewMarker(makeMarker());
       store.addCriticalFlag(makeFlag());
       store.setNarrative('test');
       store.clearAll();
       expect(store.getAnnotations()).toEqual([]);
-      expect(store.getReviewMarkers()).toEqual([]);
       expect(store.getCriticalFlags()).toEqual([]);
       expect(store.getNarrative()).toBeUndefined();
       store.dispose();
@@ -321,16 +237,13 @@ critical_flags: []
       store.addAnnotation(makeAnnotation());
       store.updateAnnotation('ann-1', { text: 'new' });
       store.deleteAnnotation('ann-1');
-      store.addReviewMarker(makeMarker());
-      store.removeReviewMarker('src/foo.ts', 1, 10);
-      store.removeReviewMarkersForFile('src/foo.ts');
       store.addCriticalFlag(makeFlag());
       store.updateCriticalFlag('src/foo.ts', 5, { human_reviewed: true });
       store.removeCriticalFlag('src/foo.ts', 5, 15);
       store.setNarrative('hi');
       store.clearAll();
 
-      expect(fired).toBe(11);
+      expect(fired).toBe(8);
       store.dispose();
     });
   });
@@ -355,7 +268,6 @@ critical_flags: []
     text: legacy
     source: manual
     created_at: "2026-01-01T00:00:00Z"
-review_markers: []
 critical_flags: []
 `;
       fs.writeFileSync(path.join(tmpDir, '.vscode/codediary.yaml'), v1);
@@ -383,7 +295,6 @@ annotations:
     text: v2 annotation
     source: manual
     created_at: "2026-01-01T00:00:00Z"
-review_markers: []
 critical_flags: []
 `;
       fs.writeFileSync(path.join(tmpDir, '.vscode/codediary.yaml'), v2);
@@ -420,7 +331,6 @@ critical_flags: []
     text: ok
     source: ai_accepted
     created_at: "2026-01-01T00:00:00Z"
-review_markers: []
 critical_flags: []
 `;
       fs.writeFileSync(path.join(tmpDir, '.vscode/codediary.yaml'), legacy);
@@ -447,7 +357,6 @@ annotations:
     text: hello
     source: manual
     created_at: "2026-01-01T00:00:00Z"
-review_markers: []
 critical_flags: []
 `;
       fs.writeFileSync(path.join(tmpDir, '.vscode/codediary.yaml'), v2);

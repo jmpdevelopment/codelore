@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import { DiaryStore } from './storage/diaryStore';
 import { AnnotationDecorator } from './providers/annotationDecorator';
-import { ReviewMarkerDecorator } from './providers/reviewMarkerDecorator';
 import { CriticalDecorator } from './providers/criticalDecorator';
 import { KnowledgeNotifier } from './providers/knowledgeNotifier';
 import { ChangePlanProvider } from './views/changePlanProvider';
@@ -11,7 +10,6 @@ import { ComponentsProvider } from './views/componentsProvider';
 import { CoverageBar } from './views/coverageBar';
 import { ComponentBar } from './views/componentBar';
 import { registerAnnotateCommands } from './commands/annotate';
-import { registerReviewCommands } from './commands/markReviewed';
 import { registerCriticalCommands } from './commands/markCritical';
 import { registerExportCommands } from './commands/clearAll';
 import { registerSearchCommands } from './commands/search';
@@ -37,10 +35,9 @@ export function activate(context: vscode.ExtensionContext): void {
 
   // Decoration providers
   const annotationDecorator = new AnnotationDecorator(store);
-  const reviewMarkerDecorator = new ReviewMarkerDecorator(store);
   const criticalDecorator = new CriticalDecorator(store);
   const knowledgeNotifier = new KnowledgeNotifier(store);
-  context.subscriptions.push(annotationDecorator, reviewMarkerDecorator, criticalDecorator, knowledgeNotifier);
+  context.subscriptions.push(annotationDecorator, criticalDecorator, knowledgeNotifier);
 
   // Sidebar views
   const changePlanProvider = new ChangePlanProvider(store);
@@ -60,7 +57,6 @@ export function activate(context: vscode.ExtensionContext): void {
 
   // Commands
   registerAnnotateCommands(context, store);
-  registerReviewCommands(context, store);
   registerCriticalCommands(context, store);
   registerExportCommands(context, store);
   registerSearchCommands(context, store);

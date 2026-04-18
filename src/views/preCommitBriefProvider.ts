@@ -4,7 +4,6 @@ import { DiaryStore } from '../storage/diaryStore';
 import { Annotation, CATEGORY_META, EPHEMERAL_CATEGORIES, FileDependency } from '../models/annotation';
 import { Component } from '../models/component';
 import { CriticalFlag } from '../models/criticalFlag';
-import { ReviewMarker } from '../models/reviewMarker';
 import { gitChangedFiles, gitDiff, getWorkspaceCwd, parseChangedLineRanges, ChangedLineRange } from '../utils/git';
 import { isSafeRelativePath, sanitizeMarkdownText, truncateText } from '../utils/validation';
 
@@ -17,7 +16,6 @@ class SummaryNode extends vscode.TreeItem {
     filesChanged: number,
     criticalCount: number,
     annotationCount: number,
-    reviewedCount: number,
     dependencyCount: number = 0,
   ) {
     const parts: string[] = [];
@@ -30,9 +28,6 @@ class SummaryNode extends vscode.TreeItem {
     }
     if (annotationCount > 0) {
       parts.push(`${annotationCount} annotation${annotationCount !== 1 ? 's' : ''}`);
-    }
-    if (reviewedCount > 0) {
-      parts.push(`${reviewedCount} reviewed`);
     }
 
     super(parts.join(' · '), vscode.TreeItemCollapsibleState.None);
@@ -65,7 +60,6 @@ interface FileKnowledge {
   filePath: string;
   annotations: Annotation[];
   criticalFlags: CriticalFlag[];
-  reviewMarkers: ReviewMarker[];
   changedRanges: ChangedLineRange[];
   overlappingAnnotations: Annotation[];
   overlappingCritical: CriticalFlag[];
@@ -77,7 +71,7 @@ class BriefFileNode extends vscode.TreeItem {
   constructor(public readonly knowledge: FileKnowledge) {
     super(knowledge.filePath, vscode.TreeItemCollapsibleState.Expanded);
 
-    const { overlappingCritical, overlappingAnnotations, criticalFlags, annotations, reviewMarkers, incomingDependencies } = knowledge;
+    const { overlappingCritical, overlappingAnnotations, criticalFlags, annotations, incomingDependencies } = knowledge;
     const parts: string[] = [];
 
     // Cross-file dependencies are the most critical signal
@@ -105,19 +99,15 @@ class BriefFileNode extends vscode.TreeItem {
     }
 
     if (parts.length === 0) {
-      if (reviewMarkers.length > 0) {
-        parts.push('reviewed');
-      } else {
-        parts.push('no knowledge');
-      }
+      parts.push('no knowledge');
     }
 
     this.description = parts.join(', ');
-    this.iconPath = this.pickIcon(unresolvedCritical.length, overlappingAnnotations.length, incomingDependencies.length, reviewMarkers.length);
+    this.iconPath = this.pickIcon(unresolvedCritical.length, overlappingAnnotations.length, incomingDependencies.length);
     this.contextValue = 'briefFile';
   }
 
-  private pickIcon(unresolvedCritical: number, overlappingAnnotations: number, dependencies: number, reviewed: number): vscode.ThemeIcon {
+  private pickIcon(unresolvedCritical: number, overlappingAnnotations: number, dependencies: number): vscode.ThemeIcon {
     if (unresolvedCritical > 0) {
       return new vscode.ThemeIcon('shield', new vscode.ThemeColor('list.errorForeground'));
     }
@@ -126,9 +116,6 @@ class BriefFileNode extends vscode.TreeItem {
     }
     if (overlappingAnnotations > 0) {
       return new vscode.ThemeIcon('note', new vscode.ThemeColor('list.warningForeground'));
-    }
-    if (reviewed > 0) {
-      return new vscode.ThemeIcon('file', new vscode.ThemeColor('testing.iconPassed'));
     }
     return new vscode.ThemeIcon('file');
   }
@@ -400,17 +387,15 @@ export class PreCommitBriefProvider implements vscode.TreeDataProvider<BriefTree
     // surfaces under multiple component groups below).
     let totalCritical = 0;
     let totalAnnotations = 0;
-    let totalReviewed = 0;
     let totalDependencies = 0;
     for (const fk of knowledge) {
       totalCritical += fk.overlappingCritical.filter(f => !f.human_reviewed).length;
       totalAnnotations += fk.overlappingAnnotations.length;
-      totalReviewed += fk.reviewMarkers.length > 0 ? 1 : 0;
       totalDependencies += fk.incomingDependencies.length;
     }
 
     const items: BriefTreeItem[] = [
-      new SummaryNode(knowledge.length, totalCritical, totalAnnotations, totalReviewed, totalDependencies),
+      new SummaryNode(knowledge.length, totalCritical, totalAnnotations, totalDependencies),
     ];
 
     const components = this.store.getComponents();
@@ -506,7 +491,6 @@ export class PreCommitBriefProvider implements vscode.TreeDataProvider<BriefTree
       const annotations = this.store.getAnnotationsForFile(filePath)
         .filter(a => !EPHEMERAL_CATEGORIES.has(a.category));
       const criticalFlags = this.store.getCriticalFlagsForFile(filePath);
-      const reviewMarkers = this.store.getReviewMarkersForFile(filePath);
 
       // Parse diff to find which lines changed
       const diff = gitDiff(filePath, cwd);
@@ -527,7 +511,6 @@ export class PreCommitBriefProvider implements vscode.TreeDataProvider<BriefTree
         filePath,
         annotations,
         criticalFlags,
-        reviewMarkers,
         changedRanges,
         overlappingAnnotations,
         overlappingCritical,

@@ -45,28 +45,6 @@ export function isValidSeverity(value: unknown): value is CriticalSeverity {
 }
 
 /**
- * Counts unique lines covered by a set of ranges, handling overlaps.
- */
-export function countUniqueLines(ranges: Array<{ line_start: number; line_end: number }>): number {
-  if (ranges.length === 0) { return 0; }
-
-  // Sort by start, then merge overlapping intervals
-  const sorted = [...ranges].sort((a, b) => a.line_start - b.line_start);
-  const merged: Array<{ start: number; end: number }> = [];
-
-  for (const r of sorted) {
-    const last = merged[merged.length - 1];
-    if (last && r.line_start <= last.end + 1) {
-      last.end = Math.max(last.end, r.line_end);
-    } else {
-      merged.push({ start: r.line_start, end: r.line_end });
-    }
-  }
-
-  return merged.reduce((sum, m) => sum + (m.end - m.start + 1), 0);
-}
-
-/**
  * Validates that a stored file path is safe to use:
  * - Must be relative (no leading / or drive letter)
  * - Must not contain .. segments

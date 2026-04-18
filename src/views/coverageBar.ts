@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import { DiaryStore } from '../storage/diaryStore';
-import { countUniqueLines } from '../utils/validation';
 
 export class CoverageBar implements vscode.Disposable {
   private statusBarItem: vscode.StatusBarItem;
@@ -12,7 +11,7 @@ export class CoverageBar implements vscode.Disposable {
       50,
     );
     this.statusBarItem.command = 'codediary.showChangePlan';
-    this.statusBarItem.tooltip = 'CodeDiary — Review Coverage';
+    this.statusBarItem.tooltip = 'CodeDiary — Knowledge Coverage';
     this.statusBarItem.show();
 
     this.disposables.push(
@@ -24,19 +23,17 @@ export class CoverageBar implements vscode.Disposable {
   }
 
   update(): void {
-    const markers = this.store.getReviewMarkers();
     const annotations = this.store.getAnnotations();
     const criticalFlags = this.store.getCriticalFlags();
 
-    if (markers.length === 0 && annotations.length === 0 && criticalFlags.length === 0) {
+    if (annotations.length === 0 && criticalFlags.length === 0) {
       this.statusBarItem.text = '$(notebook) CodeDiary';
       return;
     }
 
-    const totalLines = countUniqueLines(markers);
     const unreviewedCritical = criticalFlags.filter(f => !f.human_reviewed).length;
 
-    let text = `$(notebook) ${annotations.length} notes · ${totalLines} lines reviewed`;
+    let text = `$(notebook) ${annotations.length} notes`;
     if (unreviewedCritical > 0) {
       text += ` · $(warning) ${unreviewedCritical} critical`;
     }

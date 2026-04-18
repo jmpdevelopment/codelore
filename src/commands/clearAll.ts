@@ -17,7 +17,7 @@ export function registerExportCommands(context: vscode.ExtensionContext, store: 
 
     vscode.commands.registerCommand('codediary.clearAll', async () => {
       const confirm = await vscode.window.showWarningMessage(
-        'Clear all personal CodeDiary annotations, review markers, and critical flags? (Team data in .codediary/ is not affected.)',
+        'Clear all personal CodeDiary annotations and critical flags? (Team data in .codediary/ is not affected.)',
         { modal: true },
         'Clear Personal Data',
       );

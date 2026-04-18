@@ -5,7 +5,6 @@ import * as os from 'os';
 import { __setWorkspaceFolder, __clearWorkspace } from '../__mocks__/vscode';
 import { SharedStore } from '../../src/storage/sharedStore';
 import { Annotation } from '../../src/models/annotation';
-import { ReviewMarker } from '../../src/models/reviewMarker';
 import { CriticalFlag } from '../../src/models/criticalFlag';
 
 let tmpDir: string;
@@ -20,17 +19,6 @@ function makeAnnotation(overrides: Partial<Annotation> = {}): Annotation {
     text: 'Looks good',
     source: 'human_authored',
     created_at: '2026-01-01T00:00:00Z',
-    ...overrides,
-  };
-}
-
-function makeMarker(overrides: Partial<ReviewMarker> = {}): ReviewMarker {
-  return {
-    file: 'src/foo.ts',
-    line_start: 1,
-    line_end: 10,
-    reviewer: 'alice',
-    reviewed_at: '2026-01-01T00:00:00Z',
     ...overrides,
   };
 }
@@ -61,7 +49,6 @@ describe('SharedStore', () => {
     it('initializes empty when .codediary/ does not exist', () => {
       const store = new SharedStore();
       expect(store.getAnnotations()).toEqual([]);
-      expect(store.getReviewMarkers()).toEqual([]);
       expect(store.getCriticalFlags()).toEqual([]);
       store.dispose();
     });
@@ -170,67 +157,6 @@ describe('SharedStore', () => {
     });
   });
 
-  describe('review markers', () => {
-    it('adds and retrieves markers', () => {
-      const store = new SharedStore();
-      store.addReviewMarker(makeMarker());
-      expect(store.getReviewMarkers()).toHaveLength(1);
-      store.dispose();
-    });
-
-    it('filters markers by file', () => {
-      const store = new SharedStore();
-      store.addReviewMarker(makeMarker({ file: 'a.ts' }));
-      store.addReviewMarker(makeMarker({ file: 'b.ts' }));
-      expect(store.getReviewMarkersForFile('a.ts')).toHaveLength(1);
-      expect(store.getReviewMarkersForFile('c.ts')).toHaveLength(0);
-      store.dispose();
-    });
-
-    it('merges overlapping markers', () => {
-      const store = new SharedStore();
-      store.addReviewMarker(makeMarker({ line_start: 1, line_end: 10 }));
-      store.addReviewMarker(makeMarker({ line_start: 8, line_end: 20 }));
-      const markers = store.getReviewMarkersForFile('src/foo.ts');
-      expect(markers).toHaveLength(1);
-      expect(markers[0].line_start).toBe(1);
-      expect(markers[0].line_end).toBe(20);
-      store.dispose();
-    });
-
-    it('does not merge non-overlapping markers', () => {
-      const store = new SharedStore();
-      store.addReviewMarker(makeMarker({ line_start: 1, line_end: 5 }));
-      store.addReviewMarker(makeMarker({ line_start: 20, line_end: 30 }));
-      expect(store.getReviewMarkersForFile('src/foo.ts')).toHaveLength(2);
-      store.dispose();
-    });
-
-    it('removes specific marker', () => {
-      const store = new SharedStore();
-      store.addReviewMarker(makeMarker({ line_start: 1, line_end: 5 }));
-      store.addReviewMarker(makeMarker({ line_start: 20, line_end: 30 }));
-      store.removeReviewMarker('src/foo.ts', 1, 5);
-      expect(store.getReviewMarkersForFile('src/foo.ts')).toHaveLength(1);
-      store.dispose();
-    });
-
-    it('removes nothing when no markers exist', () => {
-      const store = new SharedStore();
-      store.removeReviewMarker('src/foo.ts', 1, 5);
-      expect(store.getReviewMarkers()).toEqual([]);
-      store.dispose();
-    });
-
-    it('isLineReviewed returns correct results', () => {
-      const store = new SharedStore();
-      store.addReviewMarker(makeMarker({ line_start: 5, line_end: 10 }));
-      expect(store.isLineReviewed('src/foo.ts', 7)).toBe(true);
-      expect(store.isLineReviewed('src/foo.ts', 1)).toBe(false);
-      store.dispose();
-    });
-  });
-
   describe('critical flags', () => {
     it('adds and retrieves flags', () => {
       const store = new SharedStore();
@@ -303,13 +229,11 @@ describe('SharedStore', () => {
     it('data survives across store instances', () => {
       const store1 = new SharedStore();
       store1.addAnnotation(makeAnnotation({ id: 'a1' }));
-      store1.addReviewMarker(makeMarker());
       store1.addCriticalFlag(makeFlag());
       store1.dispose();
 
       const store2 = new SharedStore();
       expect(store2.getAnnotations()).toHaveLength(1);
-      expect(store2.getReviewMarkers()).toHaveLength(1);
       expect(store2.getCriticalFlags()).toHaveLength(1);
       store2.dispose();
     });
@@ -324,13 +248,11 @@ describe('SharedStore', () => {
       store.addAnnotation(makeAnnotation());
       store.updateAnnotation('ann-1', { text: 'new' });
       store.deleteAnnotation('ann-1');
-      store.addReviewMarker(makeMarker());
-      store.removeReviewMarker('src/foo.ts', 1, 10);
       store.addCriticalFlag(makeFlag());
       store.updateCriticalFlag('src/foo.ts', 5, { human_reviewed: true });
       store.removeCriticalFlag('src/foo.ts', 5, 15);
 
-      expect(fired).toBe(8);
+      expect(fired).toBe(6);
       store.dispose();
     });
   });
@@ -474,7 +396,6 @@ describe('SharedStore', () => {
       __clearWorkspace();
       const store = new SharedStore();
       store.addAnnotation(makeAnnotation());
-      store.addReviewMarker(makeMarker());
       store.addCriticalFlag(makeFlag());
       expect(store.getAnnotations()).toEqual([]);
       store.dispose();

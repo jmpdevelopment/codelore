@@ -3,7 +3,7 @@ import { DiaryStore, Scope } from '../storage/diaryStore';
 
 /**
  * Shared scope picker for all commands that write to the store.
- * Consistent labels across annotations, review markers, and critical flags.
+ * Consistent labels across annotations and critical flags.
  */
 export async function pickScope(store: DiaryStore): Promise<Scope | undefined> {
   const defaultScope = store.getDefaultScope();

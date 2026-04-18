@@ -5,7 +5,6 @@ import * as os from 'os';
 import { __setWorkspaceFolder, __clearWorkspace, __setConfig } from '../__mocks__/vscode';
 import { DiaryStore } from '../../src/storage/diaryStore';
 import { Annotation } from '../../src/models/annotation';
-import { ReviewMarker } from '../../src/models/reviewMarker';
 import { CriticalFlag } from '../../src/models/criticalFlag';
 
 let tmpDir: string;
@@ -20,17 +19,6 @@ function makeAnnotation(overrides: Partial<Annotation> = {}): Annotation {
     text: 'Looks good',
     source: 'human_authored',
     created_at: '2026-01-01T00:00:00Z',
-    ...overrides,
-  };
-}
-
-function makeMarker(overrides: Partial<ReviewMarker> = {}): ReviewMarker {
-  return {
-    file: 'src/foo.ts',
-    line_start: 1,
-    line_end: 10,
-    reviewer: 'alice',
-    reviewed_at: '2026-01-01T00:00:00Z',
     ...overrides,
   };
 }
@@ -95,15 +83,6 @@ describe('DiaryStore', () => {
       store.dispose();
     });
 
-    it('routes review marker based on scope', () => {
-      const store = new DiaryStore();
-      store.addReviewMarker(makeMarker(), 'shared');
-      store.addReviewMarker(makeMarker({ file: 'b.ts' }), 'personal');
-      expect(store.shared.getReviewMarkers()).toHaveLength(1);
-      expect(store.personal.getReviewMarkers()).toHaveLength(1);
-      store.dispose();
-    });
-
     it('routes critical flag based on scope', () => {
       const store = new DiaryStore();
       store.addCriticalFlag(makeFlag(), 'shared');
@@ -132,22 +111,6 @@ describe('DiaryStore', () => {
       store.dispose();
     });
 
-    it('merges review markers from both stores', () => {
-      const store = new DiaryStore();
-      store.addReviewMarker(makeMarker({ file: 'a.ts' }), 'shared');
-      store.addReviewMarker(makeMarker({ file: 'b.ts' }), 'personal');
-      expect(store.getReviewMarkers()).toHaveLength(2);
-      store.dispose();
-    });
-
-    it('merges review markers for file from both stores', () => {
-      const store = new DiaryStore();
-      store.addReviewMarker(makeMarker({ line_start: 1, line_end: 5 }), 'shared');
-      store.addReviewMarker(makeMarker({ line_start: 20, line_end: 30 }), 'personal');
-      expect(store.getReviewMarkersForFile('src/foo.ts')).toHaveLength(2);
-      store.dispose();
-    });
-
     it('merges critical flags from both stores', () => {
       const store = new DiaryStore();
       store.addCriticalFlag(makeFlag({ file: 'a.ts' }), 'shared');
@@ -164,15 +127,6 @@ describe('DiaryStore', () => {
       store.dispose();
     });
 
-    it('isLineReviewed checks both stores', () => {
-      const store = new DiaryStore();
-      store.addReviewMarker(makeMarker({ line_start: 1, line_end: 5 }), 'shared');
-      store.addReviewMarker(makeMarker({ line_start: 20, line_end: 30 }), 'personal');
-      expect(store.isLineReviewed('src/foo.ts', 3)).toBe(true);
-      expect(store.isLineReviewed('src/foo.ts', 25)).toBe(true);
-      expect(store.isLineReviewed('src/foo.ts', 10)).toBe(false);
-      store.dispose();
-    });
   });
 
   describe('update/delete routing', () => {
@@ -233,14 +187,6 @@ describe('DiaryStore', () => {
       store.dispose();
     });
 
-    it('removes review marker from both stores', () => {
-      const store = new DiaryStore();
-      store.addReviewMarker(makeMarker({ line_start: 1, line_end: 10 }), 'shared');
-      store.addReviewMarker(makeMarker({ line_start: 1, line_end: 10 }), 'personal');
-      store.removeReviewMarker('src/foo.ts', 1, 10);
-      expect(store.getReviewMarkers()).toHaveLength(0);
-      store.dispose();
-    });
   });
 
   describe('getAnnotationScope', () => {
@@ -277,18 +223,6 @@ describe('DiaryStore', () => {
       store.clearAll();
       expect(store.shared.getAnnotations()).toHaveLength(1);
       expect(store.personal.getAnnotations()).toHaveLength(0);
-      store.dispose();
-    });
-  });
-
-  describe('removeReviewMarkersForFile', () => {
-    it('only removes personal markers', () => {
-      const store = new DiaryStore();
-      store.addReviewMarker(makeMarker(), 'shared');
-      store.addReviewMarker(makeMarker({ line_start: 20, line_end: 30 }), 'personal');
-      store.removeReviewMarkersForFile('src/foo.ts');
-      expect(store.shared.getReviewMarkersForFile('src/foo.ts')).toHaveLength(1);
-      expect(store.personal.getReviewMarkersForFile('src/foo.ts')).toHaveLength(0);
       store.dispose();
     });
   });

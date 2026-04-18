@@ -3,20 +3,17 @@ import * as yaml from 'js-yaml';
 import * as path from 'path';
 import * as fs from 'fs';
 import { Annotation, normalizeAnnotation } from '../models/annotation';
-import { ReviewMarker, mergeReviewMarkers } from '../models/reviewMarker';
 import { CriticalFlag } from '../models/criticalFlag';
 import { SCHEMA_VERSION } from './schema';
 
 export interface DiaryData {
   narrative?: string;
   annotations: Annotation[];
-  review_markers: ReviewMarker[];
   critical_flags: CriticalFlag[];
 }
 
 const EMPTY_DATA: DiaryData = {
   annotations: [],
-  review_markers: [],
   critical_flags: [],
 };
 
@@ -24,7 +21,7 @@ export class YamlStore {
   private _onDidChange = new vscode.EventEmitter<void>();
   readonly onDidChange = this._onDidChange.event;
 
-  private data: DiaryData = { ...EMPTY_DATA, annotations: [], review_markers: [], critical_flags: [] };
+  private data: DiaryData = { ...EMPTY_DATA, annotations: [], critical_flags: [] };
   private filePath: string | undefined;
   private watcher: vscode.FileSystemWatcher | undefined;
 
@@ -75,7 +72,7 @@ export class YamlStore {
 
   load(): void {
     if (!this.filePath || !fs.existsSync(this.filePath)) {
-      this.data = { annotations: [], review_markers: [], critical_flags: [] };
+      this.data = { annotations: [], critical_flags: [] };
       return;
     }
     try {
@@ -84,11 +81,10 @@ export class YamlStore {
       this.data = {
         narrative: parsed?.narrative,
         annotations: (parsed?.annotations ?? []).map(a => normalizeAnnotation(a) as Annotation),
-        review_markers: parsed?.review_markers ?? [],
         critical_flags: parsed?.critical_flags ?? [],
       };
     } catch {
-      this.data = { annotations: [], review_markers: [], critical_flags: [] };
+      this.data = { annotations: [], critical_flags: [] };
     }
   }
 
@@ -157,44 +153,6 @@ export class YamlStore {
     this._onDidChange.fire();
   }
 
-  // --- Review Markers ---
-
-  getReviewMarkers(): ReviewMarker[] {
-    return this.data.review_markers;
-  }
-
-  getReviewMarkersForFile(file: string): ReviewMarker[] {
-    return this.data.review_markers.filter(m => m.file === file);
-  }
-
-  addReviewMarker(marker: ReviewMarker): void {
-    const forFile = this.data.review_markers.filter(m => m.file === marker.file);
-    const otherFiles = this.data.review_markers.filter(m => m.file !== marker.file);
-    this.data.review_markers = [...otherFiles, ...mergeReviewMarkers(forFile, marker)];
-    this.save();
-    this._onDidChange.fire();
-  }
-
-  removeReviewMarker(file: string, lineStart: number, lineEnd: number): void {
-    this.data.review_markers = this.data.review_markers.filter(
-      m => !(m.file === file && m.line_start === lineStart && m.line_end === lineEnd),
-    );
-    this.save();
-    this._onDidChange.fire();
-  }
-
-  removeReviewMarkersForFile(file: string): void {
-    this.data.review_markers = this.data.review_markers.filter(m => m.file !== file);
-    this.save();
-    this._onDidChange.fire();
-  }
-
-  isLineReviewed(file: string, line: number): boolean {
-    return this.data.review_markers.some(
-      m => m.file === file && line >= m.line_start && line <= m.line_end,
-    );
-  }
-
   // --- Critical Flags ---
 
   getCriticalFlags(): CriticalFlag[] {
@@ -233,7 +191,7 @@ export class YamlStore {
   // --- Bulk ---
 
   clearAll(): void {
-    this.data = { annotations: [], review_markers: [], critical_flags: [] };
+    this.data = { annotations: [], critical_flags: [] };
     this.save();
     this._onDidChange.fire();
   }

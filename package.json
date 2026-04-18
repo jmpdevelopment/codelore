@@ -49,19 +49,6 @@
         "icon": "$(verified)"
       },
       {
-        "command": "codediary.markReviewed",
-        "title": "CodeDiary: Mark as Reviewed",
-        "icon": "$(check)"
-      },
-      {
-        "command": "codediary.markFileReviewed",
-        "title": "CodeDiary: Mark File as Reviewed"
-      },
-      {
-        "command": "codediary.unmarkReviewed",
-        "title": "CodeDiary: Unmark Reviewed"
-      },
-      {
         "command": "codediary.markCritical",
         "title": "CodeDiary: Mark as Critical",
         "icon": "$(shield)"
@@ -215,12 +202,6 @@
         "when": "editorTextFocus"
       },
       {
-        "command": "codediary.markReviewed",
-        "key": "ctrl+shift+k",
-        "mac": "cmd+shift+k",
-        "when": "editorTextFocus"
-      },
-      {
         "command": "codediary.quickNote",
         "key": "ctrl+shift+l",
         "mac": "cmd+shift+l",
@@ -238,14 +219,6 @@
         {
           "command": "codediary.addAnnotation",
           "group": "annotation@1"
-        },
-        {
-          "command": "codediary.markReviewed",
-          "group": "review@1"
-        },
-        {
-          "command": "codediary.unmarkReviewed",
-          "group": "review@2"
         },
         {
           "command": "codediary.markCritical",
