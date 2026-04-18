@@ -7,7 +7,6 @@ import { CriticalFlag } from '../models/criticalFlag';
 import { SCHEMA_VERSION, assertSupportedVersion } from './schema';
 
 export interface DiaryData {
-  narrative?: string;
   annotations: Annotation[];
   critical_flags: CriticalFlag[];
 }
@@ -80,7 +79,6 @@ export class YamlStore {
       const parsed = yaml.load(raw) as Partial<DiaryData> | null;
       assertSupportedVersion(parsed, this.filePath);
       this.data = {
-        narrative: parsed?.narrative,
         annotations: (parsed?.annotations ?? []).map(a => ({ ...a, source: coerceSource(a.source) })),
         critical_flags: parsed?.critical_flags ?? [],
       };
@@ -111,18 +109,6 @@ export class YamlStore {
     const payload = { version: SCHEMA_VERSION, ...this.data };
     const content = yaml.dump(payload, { lineWidth: 120, noRefs: true });
     fs.writeFileSync(this.filePath, content, 'utf8');
-  }
-
-  // --- Narrative ---
-
-  getNarrative(): string | undefined {
-    return this.data.narrative;
-  }
-
-  setNarrative(text: string): void {
-    this.data.narrative = text;
-    this.save();
-    this._onDidChange.fire();
   }
 
   // --- Annotations ---

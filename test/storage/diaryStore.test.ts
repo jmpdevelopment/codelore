@@ -205,16 +205,6 @@ describe('DiaryStore', () => {
     });
   });
 
-  describe('narrative', () => {
-    it('stores narrative in personal store only', () => {
-      const store = new DiaryStore();
-      store.setNarrative('My narrative');
-      expect(store.getNarrative()).toBe('My narrative');
-      expect(store.personal.getNarrative()).toBe('My narrative');
-      store.dispose();
-    });
-  });
-
   describe('clearAll', () => {
     it('only clears personal store', () => {
       const store = new DiaryStore();

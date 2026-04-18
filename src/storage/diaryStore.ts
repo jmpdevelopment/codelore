@@ -105,16 +105,6 @@ export class DiaryStore {
     return config.get<Scope>('defaultScope', 'shared');
   }
 
-  // --- Narrative (personal only — it's your intent description) ---
-
-  getNarrative(): string | undefined {
-    return this.personal.getNarrative();
-  }
-
-  setNarrative(text: string): void {
-    this.personal.setNarrative(text);
-  }
-
   // --- Annotations (merged reads, routed writes) ---
 
   getAnnotations(): Annotation[] {

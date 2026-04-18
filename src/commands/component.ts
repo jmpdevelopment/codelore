@@ -1,18 +1,15 @@
 import * as vscode from 'vscode';
-import * as path from 'path';
 import { DiaryStore } from '../storage/diaryStore';
 import { Component, isValidComponentId, slugify } from '../models/component';
 import { getGitUser, getRelativePath } from '../utils/git';
-import { isSafeRelativePath } from '../utils/validation';
 
 /**
- * Human-facing component commands: tag/untag (primary grouping entry),
- * edit (fill in description / owners after tagging), and jump
- * (open one of a component's files). Components are tag-first: the
- * tagging commands create bare entries, and `editComponent` is the
- * follow-up that turns them into real definitions.
+ * Human-facing component commands: manage memberships (tag/untag in
+ * one multi-select) and edit (fill in description / owners after
+ * tagging). Components are tag-first: the management command creates
+ * bare entries, and `editComponent` turns them into real definitions.
  *
- * All pickers accept an optional pre-selected component so the same
+ * Pickers accept an optional pre-selected component so the same
  * handler can drive both the command palette and the sidebar context
  * menu (where the TreeItem is passed as the argument).
  */
@@ -220,37 +217,6 @@ export function registerComponentCommands(
         owners: ownerList.length > 0 ? ownerList : undefined,
       });
       vscode.window.showInformationMessage(`CodeDiary: Updated "${name.trim()}".`);
-    }),
-
-    vscode.commands.registerCommand('codediary.jumpToComponent', async (arg?: unknown) => {
-      const component = pickedComponent(arg)
-        ?? (await promptForComponent(store, 'Which component should we jump into?'));
-      if (!component) { return; }
-
-      if (component.files.length === 0) {
-        vscode.window.showInformationMessage(
-          `CodeDiary: "${component.name}" has no files tagged yet.`,
-        );
-        return;
-      }
-
-      const wsFolder = vscode.workspace.workspaceFolders?.[0];
-      if (!wsFolder) { return; }
-
-      let target: string | undefined;
-      if (component.files.length === 1) {
-        target = component.files[0];
-      } else {
-        const picked = await vscode.window.showQuickPick(
-          component.files.map(f => ({ label: f })),
-          { placeHolder: `Files in "${component.name}"` },
-        );
-        target = picked?.label;
-      }
-      if (!target || !isSafeRelativePath(target)) { return; }
-
-      const uri = vscode.Uri.file(path.join(wsFolder.uri.fsPath, target));
-      await vscode.commands.executeCommand('vscode.open', uri);
     }),
   );
 }

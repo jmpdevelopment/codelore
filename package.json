@@ -68,15 +68,6 @@
         "icon": "$(edit)"
       },
       {
-        "command": "codediary.jumpToComponent",
-        "title": "CodeDiary: Jump to Component",
-        "icon": "$(arrow-right)"
-      },
-      {
-        "command": "codediary.setNarrative",
-        "title": "CodeDiary: Set Change Narrative"
-      },
-      {
         "command": "codediary.filter",
         "title": "CodeDiary: Filter",
         "icon": "$(filter)"
@@ -174,11 +165,6 @@
         "key": "ctrl+shift+k",
         "mac": "cmd+shift+k",
         "when": "editorTextFocus"
-      },
-      {
-        "command": "codediary.searchAnnotations",
-        "key": "ctrl+shift+f",
-        "mac": "cmd+shift+f"
       }
     ],
     "menus": {
@@ -247,11 +233,6 @@
           "group": "inline@1"
         },
         {
-          "command": "codediary.jumpToComponent",
-          "when": "view == codediary.components && viewItem == component",
-          "group": "inline@2"
-        },
-        {
           "command": "codediary.verifyAnnotation",
           "when": "view == codediary.changePlan && viewItem == annotation-ai-generated",
           "group": "inline@0"
@@ -275,6 +256,36 @@
           "command": "codediary.removeCritical",
           "when": "view == codediary.criticalQueue && viewItem == criticalFlag",
           "group": "inline@2"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "codediary.refreshSidebar",
+          "when": "false"
+        },
+        {
+          "command": "codediary.editAnnotation",
+          "when": "false"
+        },
+        {
+          "command": "codediary.deleteAnnotation",
+          "when": "false"
+        },
+        {
+          "command": "codediary.editComponent",
+          "when": "false"
+        },
+        {
+          "command": "codediary.verifyAnnotation",
+          "when": "false"
+        },
+        {
+          "command": "codediary.resolveCritical",
+          "when": "false"
+        },
+        {
+          "command": "codediary.removeCritical",
+          "when": "false"
         }
       ]
     },

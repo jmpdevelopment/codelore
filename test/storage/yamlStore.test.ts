@@ -52,7 +52,6 @@ describe('YamlStore', () => {
       const store = new YamlStore();
       expect(store.getAnnotations()).toEqual([]);
       expect(store.getCriticalFlags()).toEqual([]);
-      expect(store.getNarrative()).toBeUndefined();
       store.dispose();
     });
 
@@ -195,36 +194,14 @@ critical_flags: []
     });
   });
 
-  describe('narrative', () => {
-    it('get/set narrative', () => {
-      const store = new YamlStore();
-      expect(store.getNarrative()).toBeUndefined();
-      store.setNarrative('Refactoring auth module');
-      expect(store.getNarrative()).toBe('Refactoring auth module');
-      store.dispose();
-    });
-
-    it('persists narrative', () => {
-      const store = new YamlStore();
-      store.setNarrative('My narrative');
-      store.dispose();
-
-      const store2 = new YamlStore();
-      expect(store2.getNarrative()).toBe('My narrative');
-      store2.dispose();
-    });
-  });
-
   describe('clearAll', () => {
     it('clears all data', () => {
       const store = new YamlStore();
       store.addAnnotation(makeAnnotation());
       store.addCriticalFlag(makeFlag());
-      store.setNarrative('test');
       store.clearAll();
       expect(store.getAnnotations()).toEqual([]);
       expect(store.getCriticalFlags()).toEqual([]);
-      expect(store.getNarrative()).toBeUndefined();
       store.dispose();
     });
   });
@@ -241,10 +218,9 @@ critical_flags: []
       store.addCriticalFlag(makeFlag());
       store.updateCriticalFlag('src/foo.ts', 5, { human_reviewed: true });
       store.removeCriticalFlag('src/foo.ts', 5, 15);
-      store.setNarrative('hi');
       store.clearAll();
 
-      expect(fired).toBe(8);
+      expect(fired).toBe(7);
       store.dispose();
     });
   });

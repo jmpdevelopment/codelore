@@ -8,7 +8,6 @@ import {
   __setConfig,
   __queueQuickPick,
   __queueInputBox,
-  __getExecutedCommands,
   __setActiveTextEditor,
   Uri,
 } from '../__mocks__/vscode';
@@ -115,67 +114,6 @@ describe('codediary.editComponent', () => {
     await vscode.commands.executeCommand('codediary.editComponent');
 
     expect(store.getComponent('billing')!.name).toBe('Billing');
-    store.dispose();
-  });
-});
-
-describe('codediary.jumpToComponent', () => {
-  it('opens the only file in a single-file component directly', async () => {
-    seedComponent({ id: 'billing', name: 'Billing', files: ['src/billing/calc.ts'] });
-    const store = new DiaryStore();
-    registerComponentCommands(context, store);
-
-    __queueQuickPick({ id: 'billing' });
-
-    await vscode.commands.executeCommand('codediary.jumpToComponent');
-
-    const opened = __getExecutedCommands().find(c => c.id === 'vscode.open');
-    expect(opened).toBeDefined();
-    expect(opened!.args[0].fsPath).toBe(path.join(tmpDir, 'src/billing/calc.ts'));
-    store.dispose();
-  });
-
-  it('prompts for a file when the component has multiple files', async () => {
-    seedComponent({
-      id: 'billing',
-      name: 'Billing',
-      files: ['src/billing/calc.ts', 'src/billing/report.ts'],
-    });
-    const store = new DiaryStore();
-    registerComponentCommands(context, store);
-
-    __queueQuickPick({ id: 'billing' }, { label: 'src/billing/report.ts' });
-
-    await vscode.commands.executeCommand('codediary.jumpToComponent');
-
-    const opened = __getExecutedCommands().find(c => c.id === 'vscode.open');
-    expect(opened!.args[0].fsPath).toBe(path.join(tmpDir, 'src/billing/report.ts'));
-    store.dispose();
-  });
-
-  it('does nothing for an empty component', async () => {
-    seedComponent({ id: 'billing', name: 'Billing', files: [] });
-    const store = new DiaryStore();
-    registerComponentCommands(context, store);
-
-    __queueQuickPick({ id: 'billing' });
-
-    await vscode.commands.executeCommand('codediary.jumpToComponent');
-
-    expect(__getExecutedCommands().find(c => c.id === 'vscode.open')).toBeUndefined();
-    store.dispose();
-  });
-
-  it('rejects an unsafe path (symlink-style traversal)', async () => {
-    seedComponent({ id: 'sneaky', name: 'Sneaky', files: ['../etc/passwd'] });
-    const store = new DiaryStore();
-    registerComponentCommands(context, store);
-
-    __queueQuickPick({ id: 'sneaky' });
-
-    await vscode.commands.executeCommand('codediary.jumpToComponent');
-
-    expect(__getExecutedCommands().find(c => c.id === 'vscode.open')).toBeUndefined();
     store.dispose();
   });
 });
