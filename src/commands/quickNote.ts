@@ -35,7 +35,7 @@ export function registerQuickNoteCommands(context: vscode.ExtensionContext, stor
         line_end: lineEnd,
         category: 'ai_prompt',
         text: text.trim(),
-        source: 'manual',
+        source: 'human_authored',
         created_at: new Date().toISOString(),
         author: getGitUser(),
         anchor: { content_hash: contentHash, signature_hash: signatureHash, stale: false },

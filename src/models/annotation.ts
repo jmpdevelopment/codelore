@@ -15,7 +15,33 @@ export const EPHEMERAL_CATEGORIES: ReadonlySet<AnnotationCategory> = new Set(['a
 
 export type AnnotationCategory = (typeof ANNOTATION_CATEGORIES)[number];
 
-export type AnnotationSource = 'manual' | 'ai_suggested' | 'ai_accepted';
+export type AnnotationSource = 'ai_generated' | 'ai_verified' | 'human_authored';
+
+/** Legacy pre-pivot values; normalized to {@link AnnotationSource} at the store boundary. */
+export type LegacyAnnotationSource = 'manual' | 'ai_suggested' | 'ai_accepted';
+
+const LEGACY_SOURCE_MAP: Record<LegacyAnnotationSource, AnnotationSource> = {
+  manual: 'human_authored',
+  ai_suggested: 'ai_generated',
+  ai_accepted: 'ai_verified',
+};
+
+/**
+ * Coerces a raw `source` value from disk into the current enum. Unknown values
+ * fall back to `human_authored` so a corrupt or partially-migrated file never
+ * surfaces an `undefined` source downstream.
+ */
+export function normalizeSource(raw: unknown): AnnotationSource {
+  if (typeof raw !== 'string') { return 'human_authored'; }
+  if (raw in LEGACY_SOURCE_MAP) { return LEGACY_SOURCE_MAP[raw as LegacyAnnotationSource]; }
+  if (raw === 'ai_generated' || raw === 'ai_verified' || raw === 'human_authored') { return raw; }
+  return 'human_authored';
+}
+
+/** Normalizes source + reserved verification fields when loading from YAML. */
+export function normalizeAnnotation<T extends { source?: unknown }>(raw: T): T & { source: AnnotationSource } {
+  return { ...raw, source: normalizeSource(raw.source) };
+}
 
 export interface ContentAnchor {
   content_hash: string;
@@ -46,6 +72,10 @@ export interface Annotation {
   commit_hash?: string;
   created_at: string;
   author?: string;
+  /** Set when a human has read an AI-authored annotation and confirmed it is accurate. */
+  verified_by?: string;
+  /** ISO 8601 timestamp stamped alongside {@link verified_by}. */
+  verified_at?: string;
   anchor?: ContentAnchor;
   /** Cross-file dependencies — other files/regions this code is coupled with. */
   dependencies?: FileDependency[];

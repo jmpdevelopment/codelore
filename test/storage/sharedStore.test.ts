@@ -18,7 +18,7 @@ function makeAnnotation(overrides: Partial<Annotation> = {}): Annotation {
     line_end: 20,
     category: 'verified',
     text: 'Looks good',
-    source: 'manual',
+    source: 'human_authored',
     created_at: '2026-01-01T00:00:00Z',
     ...overrides,
   };
@@ -408,6 +408,51 @@ describe('SharedStore', () => {
       expect(raw).toMatch(/^version: 2\n/);
       // Version marker must not appear twice.
       expect(raw.match(/version:/g)?.length).toBe(1);
+    });
+
+    it('normalizes legacy source values on load', () => {
+      const yamlDir = path.join(tmpDir, '.codediary', 'src');
+      fs.mkdirSync(yamlDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(yamlDir, 'legacy.ts.yaml'),
+        [
+          'annotations:',
+          '  - id: a-manual',
+          '    file: src/legacy.ts',
+          '    line_start: 1',
+          '    line_end: 2',
+          '    category: verified',
+          '    text: ok',
+          '    source: manual',
+          '    created_at: "2026-01-01T00:00:00Z"',
+          '  - id: a-suggested',
+          '    file: src/legacy.ts',
+          '    line_start: 3',
+          '    line_end: 4',
+          '    category: verified',
+          '    text: ok',
+          '    source: ai_suggested',
+          '    created_at: "2026-01-01T00:00:00Z"',
+          '  - id: a-accepted',
+          '    file: src/legacy.ts',
+          '    line_start: 5',
+          '    line_end: 6',
+          '    category: verified',
+          '    text: ok',
+          '    source: ai_accepted',
+          '    created_at: "2026-01-01T00:00:00Z"',
+          '',
+        ].join('\n'),
+      );
+      const store = new SharedStore();
+      const sources = store.getAnnotations().reduce<Record<string, string>>((acc, a) => {
+        acc[a.id] = a.source;
+        return acc;
+      }, {});
+      expect(sources['a-manual']).toBe('human_authored');
+      expect(sources['a-suggested']).toBe('ai_generated');
+      expect(sources['a-accepted']).toBe('ai_verified');
+      store.dispose();
     });
 
     it('does not leak the version field into cached annotation data', () => {

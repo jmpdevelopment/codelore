@@ -206,7 +206,7 @@ export class DiaryGenerator {
     for (const item of selected) {
       // Remove overlapping AI-generated annotations before adding new one
       for (const existing of item.overlapping) {
-        if (existing.source !== 'manual') {
+        if (existing.source !== 'human_authored') {
           this.store.deleteAnnotation(existing.id);
           replaced++;
         }
@@ -229,7 +229,7 @@ export class DiaryGenerator {
       line_end: entry.line_end,
       category: entry.category,
       text: entry.text,
-      source: 'ai_suggested',
+      source: 'ai_generated',
       created_at: new Date().toISOString(),
       author: getGitUser(),
       dependencies: entry.dependencies && entry.dependencies.length > 0 ? entry.dependencies : undefined,

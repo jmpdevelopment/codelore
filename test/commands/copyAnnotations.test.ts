@@ -33,7 +33,7 @@ describe('Copy annotations formatting', () => {
       line_end: 20,
       category: 'verified',
       text: 'Token validation looks correct',
-      source: 'manual',
+      source: 'human_authored',
       created_at: new Date().toISOString(),
     });
     store.addAnnotation({
@@ -43,7 +43,7 @@ describe('Copy annotations formatting', () => {
       line_end: 40,
       category: 'needs_review',
       text: 'Rate limiting logic needs checking',
-      source: 'manual',
+      source: 'human_authored',
       created_at: new Date().toISOString(),
     });
 

@@ -18,7 +18,7 @@ function makeAnnotation(overrides: Partial<Annotation> = {}): Annotation {
     line_end: 20,
     category: 'verified',
     text: 'Looks good',
-    source: 'manual',
+    source: 'human_authored',
     created_at: '2026-01-01T00:00:00Z',
     ...overrides,
   };
@@ -391,6 +391,48 @@ critical_flags: []
       const store = new YamlStore();
       expect(store.getAnnotations()).toHaveLength(1);
       expect(store.getAnnotations()[0].id).toBe('ann-v2');
+      store.dispose();
+    });
+
+    it('normalizes legacy source values on load', () => {
+      const legacy = `annotations:
+  - id: a-manual
+    file: src/foo.ts
+    line_start: 1
+    line_end: 2
+    category: verified
+    text: ok
+    source: manual
+    created_at: "2026-01-01T00:00:00Z"
+  - id: a-suggested
+    file: src/foo.ts
+    line_start: 3
+    line_end: 4
+    category: verified
+    text: ok
+    source: ai_suggested
+    created_at: "2026-01-01T00:00:00Z"
+  - id: a-accepted
+    file: src/foo.ts
+    line_start: 5
+    line_end: 6
+    category: verified
+    text: ok
+    source: ai_accepted
+    created_at: "2026-01-01T00:00:00Z"
+review_markers: []
+critical_flags: []
+`;
+      fs.writeFileSync(path.join(tmpDir, '.vscode/codediary.yaml'), legacy);
+
+      const store = new YamlStore();
+      const sources = store.getAnnotations().reduce<Record<string, string>>((acc, a) => {
+        acc[a.id] = a.source;
+        return acc;
+      }, {});
+      expect(sources['a-manual']).toBe('human_authored');
+      expect(sources['a-suggested']).toBe('ai_generated');
+      expect(sources['a-accepted']).toBe('ai_verified');
       store.dispose();
     });
 

@@ -17,7 +17,7 @@ function makeAnnotation(overrides: Partial<Annotation> = {}): Annotation {
     line_end: 20,
     category: 'verified',
     text: 'Looks good',
-    source: 'manual',
+    source: 'human_authored',
     created_at: '2026-01-01T00:00:00Z',
     ...overrides,
   };

@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   ANNOTATION_CATEGORIES,
   CATEGORY_META,
+  normalizeSource,
   type AnnotationCategory,
   type AnnotationSource,
   type Annotation,
@@ -49,15 +50,32 @@ describe('Annotation model', () => {
       line_end: 10,
       category: 'verified',
       text: 'test',
-      source: 'manual',
+      source: 'human_authored',
       created_at: '2026-01-01T00:00:00Z',
     };
     expect(a.id).toBe('test-id');
   });
 
   it('AnnotationSource covers all expected values', () => {
-    const sources: AnnotationSource[] = ['manual', 'ai_suggested', 'ai_accepted'];
+    const sources: AnnotationSource[] = ['ai_generated', 'ai_verified', 'human_authored'];
     expect(sources).toHaveLength(3);
+  });
+
+  it('supports optional verified_by / verified_at fields', () => {
+    const a: Annotation = {
+      id: 'test-verified',
+      file: 'src/foo.ts',
+      line_start: 1,
+      line_end: 10,
+      category: 'verified',
+      text: 'AI-written, human-confirmed',
+      source: 'ai_verified',
+      created_at: '2026-01-01T00:00:00Z',
+      verified_by: 'alice@example.com',
+      verified_at: '2026-04-18T09:00:00Z',
+    };
+    expect(a.verified_by).toBe('alice@example.com');
+    expect(a.verified_at).toBe('2026-04-18T09:00:00Z');
   });
 
   it('supports optional dependencies field', () => {
@@ -72,7 +90,7 @@ describe('Annotation model', () => {
       line_end: 10,
       category: 'business_rule',
       text: 'Billing calculation with cross-file dependency',
-      source: 'manual',
+      source: 'human_authored',
       created_at: '2026-01-01T00:00:00Z',
       dependencies: deps,
     };
@@ -89,11 +107,37 @@ describe('Annotation model', () => {
       line_end: 10,
       category: 'verified',
       text: 'test',
-      source: 'manual',
+      source: 'human_authored',
       created_at: '2026-01-01T00:00:00Z',
       anchor: { content_hash: 'abc123', signature_hash: 'def456', stale: false },
     };
     expect(a.anchor!.signature_hash).toBe('def456');
+  });
+});
+
+describe('normalizeSource', () => {
+  it('maps legacy manual to human_authored', () => {
+    expect(normalizeSource('manual')).toBe('human_authored');
+  });
+
+  it('maps legacy ai_suggested to ai_generated', () => {
+    expect(normalizeSource('ai_suggested')).toBe('ai_generated');
+  });
+
+  it('maps legacy ai_accepted to ai_verified', () => {
+    expect(normalizeSource('ai_accepted')).toBe('ai_verified');
+  });
+
+  it('passes through current values unchanged', () => {
+    expect(normalizeSource('ai_generated')).toBe('ai_generated');
+    expect(normalizeSource('ai_verified')).toBe('ai_verified');
+    expect(normalizeSource('human_authored')).toBe('human_authored');
+  });
+
+  it('falls back to human_authored for unknown or malformed values', () => {
+    expect(normalizeSource(undefined)).toBe('human_authored');
+    expect(normalizeSource('something_else')).toBe('human_authored');
+    expect(normalizeSource(42)).toBe('human_authored');
   });
 });
 

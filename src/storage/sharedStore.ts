@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as yaml from 'js-yaml';
 import * as path from 'path';
 import * as fs from 'fs';
-import { Annotation } from '../models/annotation';
+import { Annotation, normalizeAnnotation } from '../models/annotation';
 import { ReviewMarker, mergeReviewMarkers } from '../models/reviewMarker';
 import { CriticalFlag } from '../models/criticalFlag';
 import { SCHEMA_VERSION } from './schema';
@@ -32,6 +32,9 @@ interface FileData {
 function stripVersion(parsed: unknown): FileData {
   if (!parsed || typeof parsed !== 'object') { return {}; }
   const { version: _v, ...rest } = parsed as FileData & { version?: unknown };
+  if (rest.annotations) {
+    rest.annotations = rest.annotations.map(a => normalizeAnnotation(a) as Annotation);
+  }
   return rest;
 }
 

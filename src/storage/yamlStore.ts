@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as yaml from 'js-yaml';
 import * as path from 'path';
 import * as fs from 'fs';
-import { Annotation } from '../models/annotation';
+import { Annotation, normalizeAnnotation } from '../models/annotation';
 import { ReviewMarker, mergeReviewMarkers } from '../models/reviewMarker';
 import { CriticalFlag } from '../models/criticalFlag';
 import { SCHEMA_VERSION } from './schema';
@@ -83,7 +83,7 @@ export class YamlStore {
       const parsed = yaml.load(raw) as Partial<DiaryData> | null;
       this.data = {
         narrative: parsed?.narrative,
-        annotations: parsed?.annotations ?? [],
+        annotations: (parsed?.annotations ?? []).map(a => normalizeAnnotation(a) as Annotation),
         review_markers: parsed?.review_markers ?? [],
         critical_flags: parsed?.critical_flags ?? [],
       };

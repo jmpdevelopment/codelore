@@ -124,7 +124,7 @@ export function registerAnnotateCommands(context: vscode.ExtensionContext, store
         line_end: lineEnd,
         category: picked.category,
         text: text || CATEGORY_META[picked.category].description,
-        source: 'manual',
+        source: 'human_authored',
         created_at: new Date().toISOString(),
         author: getGitUser(),
         anchor: { content_hash: contentHash, signature_hash: signatureHash, stale: false },

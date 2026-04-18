@@ -32,7 +32,7 @@ describe('Quick Note behavior', () => {
       line_end: 5,
       category: 'ai_prompt',
       text: 'Refactor this to use async/await',
-      source: 'manual',
+      source: 'human_authored',
       created_at: new Date().toISOString(),
     }, 'personal');
 
@@ -52,7 +52,7 @@ describe('Quick Note behavior', () => {
       line_end: 15,
       category: 'ai_prompt',
       text: 'Add error handling here',
-      source: 'manual',
+      source: 'human_authored',
       created_at: new Date().toISOString(),
     }, 'personal');
 
@@ -70,7 +70,7 @@ describe('Quick Note behavior', () => {
       line_end: 5,
       category: 'ai_prompt',
       text: 'Note 1',
-      source: 'manual',
+      source: 'human_authored',
       created_at: new Date().toISOString(),
     }, 'personal');
     store.addAnnotation({
@@ -80,7 +80,7 @@ describe('Quick Note behavior', () => {
       line_end: 20,
       category: 'ai_prompt',
       text: 'Note 2',
-      source: 'manual',
+      source: 'human_authored',
       created_at: new Date().toISOString(),
     }, 'personal');
 

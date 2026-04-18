@@ -38,7 +38,7 @@ describe('CoverageBar', () => {
     const store = new DiaryStore();
     store.addAnnotation({
       id: 'a1', file: 'src/foo.ts', line_start: 1, line_end: 10,
-      category: 'verified', text: 'ok', source: 'manual', created_at: '2026-01-01T00:00:00Z',
+      category: 'verified', text: 'ok', source: 'human_authored', created_at: '2026-01-01T00:00:00Z',
     });
     store.addReviewMarker({
       file: 'src/foo.ts', line_start: 1, line_end: 50,
@@ -56,7 +56,7 @@ describe('CoverageBar', () => {
     const store = new DiaryStore();
     store.addAnnotation({
       id: 'a1', file: 'src/foo.ts', line_start: 1, line_end: 10,
-      category: 'verified', text: 'ok', source: 'manual', created_at: '2026-01-01T00:00:00Z',
+      category: 'verified', text: 'ok', source: 'human_authored', created_at: '2026-01-01T00:00:00Z',
     });
     store.addCriticalFlag({
       file: 'src/foo.ts', line_start: 5, line_end: 15,
@@ -77,7 +77,7 @@ describe('CoverageBar', () => {
     const store = new DiaryStore();
     store.addAnnotation({
       id: 'a1', file: 'src/foo.ts', line_start: 1, line_end: 10,
-      category: 'verified', text: 'ok', source: 'manual', created_at: '2026-01-01T00:00:00Z',
+      category: 'verified', text: 'ok', source: 'human_authored', created_at: '2026-01-01T00:00:00Z',
     });
     store.addCriticalFlag({
       file: 'src/foo.ts', line_start: 5, line_end: 15,
@@ -97,7 +97,7 @@ describe('CoverageBar', () => {
 
     store.addAnnotation({
       id: 'a1', file: 'src/foo.ts', line_start: 1, line_end: 10,
-      category: 'verified', text: 'ok', source: 'manual', created_at: '2026-01-01T00:00:00Z',
+      category: 'verified', text: 'ok', source: 'human_authored', created_at: '2026-01-01T00:00:00Z',
     });
     // After store change, text should update
     expect((bar as any).statusBarItem.text).toContain('1 notes');
