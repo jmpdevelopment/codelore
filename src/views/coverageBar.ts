@@ -33,7 +33,8 @@ export class CoverageBar implements vscode.Disposable {
 
     const unreviewedCritical = criticalFlags.filter(f => !f.human_reviewed).length;
 
-    let text = `$(notebook) ${annotations.length} notes`;
+    const label = annotations.length === 1 ? 'annotation' : 'annotations';
+    let text = `$(notebook) ${annotations.length} ${label}`;
     if (unreviewedCritical > 0) {
       text += ` · $(warning) ${unreviewedCritical} critical`;
     }

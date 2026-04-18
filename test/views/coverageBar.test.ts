@@ -38,11 +38,11 @@ describe('CoverageBar', () => {
     const store = new LoreStore();
     store.addAnnotation({
       id: 'a1', file: 'src/foo.ts', line_start: 1, line_end: 10,
-      category: 'verified', text: 'ok', source: 'human_authored', created_at: '2026-01-01T00:00:00Z',
+      category: 'behavior', text: 'ok', source: 'human_authored', created_at: '2026-01-01T00:00:00Z',
     });
     const bar = new CoverageBar(store);
     const text = (bar as any).statusBarItem.text;
-    expect(text).toContain('1 notes');
+    expect(text).toContain('1 annotation');
     bar.dispose();
     store.dispose();
   });
@@ -51,7 +51,7 @@ describe('CoverageBar', () => {
     const store = new LoreStore();
     store.addAnnotation({
       id: 'a1', file: 'src/foo.ts', line_start: 1, line_end: 10,
-      category: 'verified', text: 'ok', source: 'human_authored', created_at: '2026-01-01T00:00:00Z',
+      category: 'behavior', text: 'ok', source: 'human_authored', created_at: '2026-01-01T00:00:00Z',
     });
     store.addCriticalFlag({
       file: 'src/foo.ts', line_start: 5, line_end: 15,
@@ -72,7 +72,7 @@ describe('CoverageBar', () => {
     const store = new LoreStore();
     store.addAnnotation({
       id: 'a1', file: 'src/foo.ts', line_start: 1, line_end: 10,
-      category: 'verified', text: 'ok', source: 'human_authored', created_at: '2026-01-01T00:00:00Z',
+      category: 'behavior', text: 'ok', source: 'human_authored', created_at: '2026-01-01T00:00:00Z',
     });
     store.addCriticalFlag({
       file: 'src/foo.ts', line_start: 5, line_end: 15,
@@ -92,10 +92,27 @@ describe('CoverageBar', () => {
 
     store.addAnnotation({
       id: 'a1', file: 'src/foo.ts', line_start: 1, line_end: 10,
-      category: 'verified', text: 'ok', source: 'human_authored', created_at: '2026-01-01T00:00:00Z',
+      category: 'behavior', text: 'ok', source: 'human_authored', created_at: '2026-01-01T00:00:00Z',
     });
     // After store change, text should update
-    expect((bar as any).statusBarItem.text).toContain('1 notes');
+    expect((bar as any).statusBarItem.text).toContain('1 annotation');
+    bar.dispose();
+    store.dispose();
+  });
+
+  it('uses plural "annotations" when count is not 1', () => {
+    const store = new LoreStore();
+    store.addAnnotation({
+      id: 'a1', file: 'src/foo.ts', line_start: 1, line_end: 10,
+      category: 'behavior', text: 'ok', source: 'human_authored', created_at: '2026-01-01T00:00:00Z',
+    });
+    store.addAnnotation({
+      id: 'a2', file: 'src/bar.ts', line_start: 1, line_end: 10,
+      category: 'behavior', text: 'ok', source: 'human_authored', created_at: '2026-01-01T00:00:00Z',
+    });
+    const bar = new CoverageBar(store);
+    const text = (bar as any).statusBarItem.text;
+    expect(text).toContain('2 annotations');
     bar.dispose();
     store.dispose();
   });

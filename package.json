@@ -305,8 +305,7 @@
         },
         {
           "id": "codelore.changePlan",
-          "name": "Annotations",
-          "visibility": "collapsed"
+          "name": "Annotations"
         },
         {
           "id": "codelore.criticalQueue",
