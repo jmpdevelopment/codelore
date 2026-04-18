@@ -312,4 +312,95 @@ describe('DiaryGenerator parsing', () => {
       store.dispose();
     });
   });
+
+  describe('component awareness', () => {
+    function writeComponent(dir: string, id: string, payload: Record<string, unknown>): void {
+      const yaml = require('js-yaml');
+      const file = path.join(dir, '.codediary', 'components', `${id}.yaml`);
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      fs.writeFileSync(file, yaml.dump({ version: 2, ...payload }), 'utf8');
+    }
+
+    it('formatComponentContext lists only the components the file is tagged into', () => {
+      writeComponent(tmpDir, 'billing', {
+        id: 'billing', name: 'Billing', description: 'invoice + tax',
+        files: ['src/foo.ts', 'src/billing/calc.ts'],
+        source: 'human_authored',
+        created_at: '2026-04-18T00:00:00Z', updated_at: '2026-04-18T00:00:00Z',
+      });
+      writeComponent(tmpDir, 'reporting', {
+        id: 'reporting', name: 'Reporting',
+        files: ['src/reporting/monthly.ts'],
+        source: 'human_authored',
+        created_at: '2026-04-18T00:00:00Z', updated_at: '2026-04-18T00:00:00Z',
+      });
+      const store = new DiaryStore();
+      const generator = new DiaryGenerator(new LmService(), store);
+
+      const block = generator.formatComponentContext('src/foo.ts');
+      expect(block).toContain('<components>');
+      expect(block).toContain('billing (Billing)');
+      expect(block).toContain('invoice + tax');
+      expect(block).toContain('src/billing/calc.ts');
+      expect(block).not.toContain('reporting');
+      store.dispose();
+    });
+
+    it('formatComponentContext is empty when the file is untagged', () => {
+      writeComponent(tmpDir, 'billing', {
+        id: 'billing', name: 'Billing', files: ['src/other.ts'],
+        source: 'human_authored',
+        created_at: '2026-04-18T00:00:00Z', updated_at: '2026-04-18T00:00:00Z',
+      });
+      const store = new DiaryStore();
+      const generator = new DiaryGenerator(new LmService(), store);
+      expect(generator.formatComponentContext('src/foo.ts')).toBe('');
+      store.dispose();
+    });
+
+    it('formatAllComponentsContext enumerates every component id', () => {
+      writeComponent(tmpDir, 'billing', {
+        id: 'billing', name: 'Billing', description: 'invoice',
+        files: [],
+        source: 'human_authored',
+        created_at: '2026-04-18T00:00:00Z', updated_at: '2026-04-18T00:00:00Z',
+      });
+      writeComponent(tmpDir, 'reporting', {
+        id: 'reporting', name: 'Reporting', files: [],
+        source: 'human_authored',
+        created_at: '2026-04-18T00:00:00Z', updated_at: '2026-04-18T00:00:00Z',
+      });
+      const store = new DiaryStore();
+      const generator = new DiaryGenerator(new LmService(), store);
+      const block = generator.formatAllComponentsContext();
+      expect(block).toContain('billing (Billing)');
+      expect(block).toContain('invoice');
+      expect(block).toContain('reporting (Reporting)');
+      store.dispose();
+    });
+
+    it('parseEntries keeps valid component ids and drops unknown ones', () => {
+      writeComponent(tmpDir, 'billing', {
+        id: 'billing', name: 'Billing', files: [],
+        source: 'human_authored',
+        created_at: '2026-04-18T00:00:00Z', updated_at: '2026-04-18T00:00:00Z',
+      });
+      const store = new DiaryStore();
+      const generator = new DiaryGenerator(new LmService(), store);
+      const raw = JSON.stringify([
+        {
+          category: 'behavior', line_start: 1, line_end: 5, text: 'ok',
+          components: ['billing', 'does-not-exist', 'billing'],
+        },
+        {
+          category: 'rationale', line_start: 6, line_end: 10, text: 'untagged',
+          components: [],
+        },
+      ]);
+      const result = (generator as any).parseEntries(raw);
+      expect(result[0].components).toEqual(['billing']);
+      expect(result[1].components).toBeUndefined();
+      store.dispose();
+    });
+  });
 });

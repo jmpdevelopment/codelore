@@ -121,6 +121,8 @@ export interface Annotation {
   anchor?: ContentAnchor;
   /** Cross-file dependencies — other files/regions this code is coupled with. */
   dependencies?: FileDependency[];
+  /** Component ids this annotation is scoped to. Empty/absent = file-level only. */
+  components?: string[];
 }
 
 export const CATEGORY_META: Record<AnnotationCategory, { label: string; icon: string; color: string; description: string }> = {

@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { LmService } from './lmService';
 import { DiaryStore } from '../storage/diaryStore';
 import { Annotation, AnnotationCategory, CATEGORY_META, FileDependency } from '../models/annotation';
+import { Component } from '../models/component';
 import { v4 as uuidv4 } from 'uuid';
 import { getGitUser, getRelativePath, getWorkspaceCwd, gitDiff, gitDiffAll } from '../utils/git';
 import { validLineRange, isValidKnowledgeCategory, isSafeRelativePath, stripJsonFences, truncateText } from '../utils/validation';
@@ -28,40 +29,46 @@ function parseDependencies(raw: unknown): FileDependency[] | undefined {
   return deps.length > 0 ? deps : undefined;
 }
 
-const SYSTEM_PROMPT = `You are CodeDiary, an assistant that helps developers build institutional knowledge about their codebase during AI-assisted development.
+/**
+ * Keep only ids that name a real component. Unknown ids from the model are
+ * silently dropped — we'd rather a missing tag than a dangling reference.
+ */
+function parseComponentTags(raw: unknown, knownIds: Set<string>): string[] | undefined {
+  if (!Array.isArray(raw) || raw.length === 0) { return undefined; }
+  const out: string[] = [];
+  for (const v of raw) {
+    if (typeof v === 'string' && knownIds.has(v) && !out.includes(v)) { out.push(v); }
+  }
+  return out.length > 0 ? out : undefined;
+}
 
-Given a code diff (and any existing annotations/critical flags for this file), generate structured diary entries that capture:
-1. What changed and why it likely changed
-2. What the developer should verify or pay attention to
-3. Any potential risks or concerns
+const SYSTEM_PROMPT = `You are CodeDiary, the primary author of institutional knowledge for this codebase. A human teammate will review your entries afterwards — your job is to write high-signal notes they would otherwise have to reverse-engineer from the diff.
 
-IMPORTANT: If existing annotations or critical flags are provided, use them as context:
-- Do NOT duplicate information already captured in existing annotations
-- Reference existing knowledge when relevant (e.g., "existing annotation notes an intentional off-by-one here — verify it was preserved")
-- Focus new entries on what the existing annotations DON'T already cover
+You are given: a file path, a diff, the full file content (line-numbered), any existing annotations and critical flags, and (when available) the component subsystems this file belongs to. Use all of it.
 
-Respond with a JSON array of entries. Each entry has:
-- "category": one of "behavior", "rationale", "constraint", "gotcha", "business_rule", "performance", "security", "human_note"
-- "line_start": starting line number in the new file
+For each thing a future reader will need to know that the code does not already spell out, emit one entry. Aim for a small number of dense notes, not a play-by-play of the diff. Skip trivial formatting, renames, and import churn.
+
+Respond ONLY with a JSON array (no markdown fences, no prose). Each entry has:
+- "category": one of "behavior" | "rationale" | "constraint" | "gotcha" | "business_rule" | "performance" | "security" | "human_note"
+- "line_start": starting line number in the new file (1-based, from the numbered content)
 - "line_end": ending line number
-- "text": the diary note (1-2 sentences, conversational tone)
-- "dependencies": (optional) array of cross-file dependency links: [{"file": "path/to/file.py", "relationship": "must stay in sync"}]
+- "text": 1–2 sentences, concrete, written for a teammate who has not seen this diff
+- "components": (optional) array of component ids this entry belongs to — use only ids listed under <components> in the prompt; drop the field if none apply
+- "dependencies": (optional) array of cross-file coupling links, e.g. [{"file": "src/billing/calc.ts", "relationship": "must stay in sync"}]
 
-Pick the category that best describes WHAT the reader needs to know:
-- "behavior": non-obvious runtime behavior the reader would otherwise miss
-- "rationale": why this was built this way — decisions, rejected alternatives
+Category guide:
+- "behavior": non-obvious runtime behavior a reader would otherwise miss
+- "rationale": why this was built this way — decisions, rejected alternatives, historical context
 - "constraint": invariant, precondition, or postcondition required for correctness
-- "gotcha": footgun, counterintuitive quirk, or known hazard
-- "business_rule": domain rule or regulatory requirement — do not change without stakeholder sign-off
+- "gotcha": footgun, counterintuitive quirk, or known hazard — proceed with care
+- "business_rule": domain rule / regulatory requirement — don't change without stakeholder sign-off
 - "performance": hot path, complexity assumption, benchmark-sensitive region
 - "security": trust boundary, auth assumption, sanitization requirement
 - "human_note": free-form observation when nothing else fits
 
-When you detect that changed code is tightly coupled to another file (shared data models, paired calculations, coordinated state), include a "dependencies" entry to create a cross-file link.
+Existing knowledge: do NOT duplicate anything already captured in the existing annotations or critical flags. When your entry refines or depends on existing knowledge, reference it ("existing rationale confirms the off-by-one is intentional — preserved in this refactor").
 
-Focus on what matters. Skip trivial changes (imports, formatting). Flag anything that looks like it could break things or that a reviewer should double-check.
-
-Respond ONLY with the JSON array, no markdown fences or explanation.`;
+Component tagging: if a file is already tagged into components, default to tagging your entries with the same ids when the entry is scoped to that subsystem's concerns. Tag only the ids you see under <components>.`;
 
 interface SuggestedEntry {
   category: AnnotationCategory;
@@ -69,6 +76,7 @@ interface SuggestedEntry {
   line_end: number;
   text: string;
   dependencies?: FileDependency[];
+  components?: string[];
 }
 
 export class DiaryGenerator {
@@ -103,7 +111,8 @@ export class DiaryGenerator {
           progress.report({ message: 'Connecting to language model...' });
 
           const existingContext = this.formatExistingKnowledge(filePath);
-          const prompt = `<file path="${filePath}">\n<diff>\n${diff}\n</diff>\n<content>\n${this.numberLines(fileContent)}\n</content>\n</file>${existingContext}`;
+          const componentContext = this.formatComponentContext(filePath);
+          const prompt = `<file path="${filePath}">\n<diff>\n${diff}\n</diff>\n<content>\n${this.numberLines(fileContent)}\n</content>\n</file>${componentContext}${existingContext}`;
           const result = await this.lm.generate(SYSTEM_PROMPT, prompt, token);
           if (!result || token.isCancellationRequested) { return; }
 
@@ -145,7 +154,8 @@ export class DiaryGenerator {
         try {
           progress.report({ message: 'Connecting to language model...' });
 
-          const prompt = `<diff>\n${diff}\n</diff>`;
+          const componentContext = this.formatAllComponentsContext();
+          const prompt = `<diff>\n${diff}\n</diff>${componentContext}`;
           const result = await this.lm.generate(SYSTEM_PROMPT, prompt, token);
           if (!result || token.isCancellationRequested) { return; }
 
@@ -241,6 +251,7 @@ export class DiaryGenerator {
       created_at: new Date().toISOString(),
       author: getGitUser(),
       dependencies: entry.dependencies && entry.dependencies.length > 0 ? entry.dependencies : undefined,
+      components: entry.components && entry.components.length > 0 ? entry.components : undefined,
     };
     this.store.addAnnotation(annotation);
   }
@@ -250,6 +261,7 @@ export class DiaryGenerator {
       const cleaned = stripJsonFences(raw);
       const parsed = JSON.parse(cleaned);
       if (!Array.isArray(parsed)) { return []; }
+      const knownComponentIds = new Set(this.store.getComponents().map(c => c.id));
       const results: (SuggestedEntry & { file?: string })[] = [];
       for (const e of parsed) {
         if (!e || typeof e !== 'object') { continue; }
@@ -264,12 +276,58 @@ export class DiaryGenerator {
           text: e.text.trim(),
           file: extractFile && typeof e.file === 'string' ? e.file : undefined,
           dependencies: parseDependencies(e.dependencies),
+          components: parseComponentTags(e.components, knownComponentIds),
         });
       }
       return results;
     } catch {
       return [];
     }
+  }
+
+  /**
+   * Per-file component block: lists the components this file is tagged into
+   * plus sibling files inside them, so the model can tag new entries with
+   * the same component ids. Empty string when the file is untagged.
+   */
+  formatComponentContext(filePath: string): string {
+    const mine = this.store.getComponentsForFile(filePath);
+    if (mine.length === 0) { return ''; }
+    const lines: string[] = ['\n\n<components>'];
+    lines.push('This file is tagged into the following component(s). Tag entries with these ids when relevant.');
+    for (const c of mine) {
+      lines.push(this.renderComponentBlock(c, filePath));
+    }
+    lines.push('</components>');
+    return lines.join('\n');
+  }
+
+  /**
+   * Whole-workspace component block for the multi-file flow. Keeps it short:
+   * just ids + names + one-line descriptions so the model knows which tags
+   * exist without us blasting every file list into the context window.
+   */
+  formatAllComponentsContext(): string {
+    const all = this.store.getComponents();
+    if (all.length === 0) { return ''; }
+    const lines: string[] = ['\n\n<components>'];
+    lines.push('Available component ids (tag entries with any that apply, using the id exactly):');
+    for (const c of all) {
+      const desc = c.description ? ` — ${c.description}` : '';
+      lines.push(`- ${c.id} (${c.name})${desc}`);
+    }
+    lines.push('</components>');
+    return lines.join('\n');
+  }
+
+  private renderComponentBlock(component: Component, currentFile: string): string {
+    const lines = [`- ${component.id} (${component.name})`];
+    if (component.description) { lines.push(`  description: ${component.description}`); }
+    const siblings = component.files.filter(f => f !== currentFile).slice(0, 8);
+    if (siblings.length > 0) {
+      lines.push(`  other files: ${siblings.join(', ')}${component.files.length - 1 > siblings.length ? ', …' : ''}`);
+    }
+    return lines.join('\n');
   }
 
   formatExistingKnowledge(filePath: string): string {
