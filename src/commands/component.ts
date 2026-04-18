@@ -1,19 +1,49 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
 import { DiaryStore } from '../storage/diaryStore';
 import { Component, isValidComponentId, slugify } from '../models/component';
 import { getGitUser, getRelativePath } from '../utils/git';
+import { isSafeRelativePath } from '../utils/validation';
 
 /**
- * File→component tagging commands. These are the primary human entry point
- * for grouping files into subsystems. Definitions (description, owners) can
- * be added later via `editComponent` (2.4).
+ * Human-facing component commands: tag/untag (primary grouping entry),
+ * edit (fill in description / owners after tagging), and jump
+ * (open one of a component's files). Components are tag-first: the
+ * tagging commands create bare entries, and `editComponent` is the
+ * follow-up that turns them into real definitions.
  *
- * `tagFileComponent` supports both "use existing component" and
- * "create new component" in one flow so tagging rarely requires a second
- * action. Ids are derived from the display name via {@link slugify}.
+ * All pickers accept an optional pre-selected component so the same
+ * handler can drive both the command palette and the sidebar context
+ * menu (where the TreeItem is passed as the argument).
  */
 
 const CREATE_NEW_ID = '__create_new__';
+
+function pickedComponent(arg: unknown): Component | undefined {
+  if (!arg || typeof arg !== 'object') { return undefined; }
+  const c = (arg as { component?: Component }).component;
+  return c && typeof c.id === 'string' ? c : undefined;
+}
+
+async function promptForComponent(store: DiaryStore, placeholder: string): Promise<Component | undefined> {
+  const all = store.getComponents();
+  if (all.length === 0) {
+    vscode.window.showInformationMessage(
+      'CodeDiary: No components yet. Tag a file to create one.',
+    );
+    return undefined;
+  }
+  const picked = await vscode.window.showQuickPick(
+    all.map(c => ({
+      label: `$(symbol-namespace) ${c.name}`,
+      description: c.id,
+      detail: c.description,
+      id: c.id,
+    })),
+    { placeHolder: placeholder },
+  );
+  return picked ? store.getComponent(picked.id) : undefined;
+}
 
 async function pickOrCreateComponent(store: DiaryStore): Promise<Component | undefined> {
   const existing = store.getComponents();
@@ -102,6 +132,74 @@ export function registerComponentCommands(
       vscode.window.showInformationMessage(
         `CodeDiary: Tagged ${filePath} into "${component.name}".`,
       );
+    }),
+
+    vscode.commands.registerCommand('codediary.editComponent', async (arg?: unknown) => {
+      const component = pickedComponent(arg)
+        ?? (await promptForComponent(store, 'Which component should be edited?'));
+      if (!component) { return; }
+
+      const name = await vscode.window.showInputBox({
+        prompt: 'Component name',
+        value: component.name,
+        validateInput: v => v.trim() ? undefined : 'Name cannot be empty',
+      });
+      if (name === undefined) { return; }
+
+      const description = await vscode.window.showInputBox({
+        prompt: 'Description (leave empty to clear)',
+        value: component.description ?? '',
+        placeHolder: 'What does this component do?',
+      });
+      if (description === undefined) { return; }
+
+      const owners = await vscode.window.showInputBox({
+        prompt: 'Owners (comma-separated, leave empty to clear)',
+        value: (component.owners ?? []).join(', '),
+        placeHolder: 'alice, bob',
+      });
+      if (owners === undefined) { return; }
+
+      const ownerList = owners.split(',').map(o => o.trim()).filter(Boolean);
+
+      store.components.upsert({
+        ...component,
+        name: name.trim(),
+        description: description.trim() || undefined,
+        owners: ownerList.length > 0 ? ownerList : undefined,
+      });
+      vscode.window.showInformationMessage(`CodeDiary: Updated "${name.trim()}".`);
+    }),
+
+    vscode.commands.registerCommand('codediary.jumpToComponent', async (arg?: unknown) => {
+      const component = pickedComponent(arg)
+        ?? (await promptForComponent(store, 'Which component should we jump into?'));
+      if (!component) { return; }
+
+      if (component.files.length === 0) {
+        vscode.window.showInformationMessage(
+          `CodeDiary: "${component.name}" has no files tagged yet.`,
+        );
+        return;
+      }
+
+      const wsFolder = vscode.workspace.workspaceFolders?.[0];
+      if (!wsFolder) { return; }
+
+      let target: string | undefined;
+      if (component.files.length === 1) {
+        target = component.files[0];
+      } else {
+        const picked = await vscode.window.showQuickPick(
+          component.files.map(f => ({ label: f })),
+          { placeHolder: `Files in "${component.name}"` },
+        );
+        target = picked?.label;
+      }
+      if (!target || !isSafeRelativePath(target)) { return; }
+
+      const uri = vscode.Uri.file(path.join(wsFolder.uri.fsPath, target));
+      await vscode.commands.executeCommand('vscode.open', uri);
     }),
 
     vscode.commands.registerCommand('codediary.untagFileComponent', async () => {

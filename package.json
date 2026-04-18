@@ -79,6 +79,16 @@
         "title": "CodeDiary: Untag File from Component"
       },
       {
+        "command": "codediary.editComponent",
+        "title": "CodeDiary: Edit Component",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "codediary.jumpToComponent",
+        "title": "CodeDiary: Jump to Component",
+        "icon": "$(arrow-right)"
+      },
+      {
         "command": "codediary.setNarrative",
         "title": "CodeDiary: Set Change Narrative"
       },
@@ -283,6 +293,16 @@
         }
       ],
       "view/item/context": [
+        {
+          "command": "codediary.editComponent",
+          "when": "view == codediary.components && viewItem == component",
+          "group": "inline@1"
+        },
+        {
+          "command": "codediary.jumpToComponent",
+          "when": "view == codediary.components && viewItem == component",
+          "group": "inline@2"
+        },
         {
           "command": "codediary.editAnnotation",
           "when": "view == codediary.changePlan && viewItem == annotation",

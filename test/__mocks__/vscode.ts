@@ -83,6 +83,10 @@ export enum ProgressLocation {
 let _workspaceFolders: { uri: Uri; name: string; index: number }[] | undefined;
 let _configValues: Record<string, any> = {};
 let _activeTextEditor: any = undefined;
+let _commands = new Map<string, (...args: any[]) => any>();
+let _quickPickQueue: any[] = [];
+let _inputBoxQueue: any[] = [];
+let _executedCommands: Array<{ id: string; args: any[] }> = [];
 
 /** Test helper: set the mock workspace folder */
 export function __setWorkspaceFolder(fsPath: string): void {
@@ -93,6 +97,10 @@ export function __setWorkspaceFolder(fsPath: string): void {
 export function __clearWorkspace(): void {
   _workspaceFolders = undefined;
   _activeTextEditor = undefined;
+  _commands = new Map();
+  _quickPickQueue = [];
+  _inputBoxQueue = [];
+  _executedCommands = [];
 }
 
 /** Test helper: set config values */
@@ -103,6 +111,34 @@ export function __setConfig(values: Record<string, any>): void {
 /** Test helper: set the active text editor (provide a fake editor object or undefined) */
 export function __setActiveTextEditor(editor: any): void {
   _activeTextEditor = editor;
+}
+
+/**
+ * Test helper: queue responses for `window.showQuickPick` calls. Each call
+ * shifts one value from the queue; if the queue is empty, returns undefined.
+ */
+export function __queueQuickPick(...responses: any[]): void {
+  _quickPickQueue.push(...responses);
+}
+
+/**
+ * Test helper: queue responses for `window.showInputBox` calls. Each call
+ * shifts one value from the queue; if the queue is empty, returns undefined.
+ */
+export function __queueInputBox(...responses: any[]): void {
+  _inputBoxQueue.push(...responses);
+}
+
+/** Test helper: reset the quick pick and input box queues + command log. */
+export function __resetPrompts(): void {
+  _quickPickQueue = [];
+  _inputBoxQueue = [];
+  _executedCommands = [];
+}
+
+/** Test helper: returns all calls to commands.executeCommand in order. */
+export function __getExecutedCommands(): Array<{ id: string; args: any[] }> {
+  return _executedCommands;
 }
 
 export const workspace = {
@@ -167,8 +203,8 @@ export const window = {
   onDidChangeVisibleTextEditors: (_cb: any) => ({ dispose: () => {} }),
   get activeTextEditor() { return _activeTextEditor; },
   get visibleTextEditors() { return [] as any[]; },
-  showQuickPick: async () => undefined as any,
-  showInputBox: async () => undefined as any,
+  showQuickPick: async () => (_quickPickQueue.length > 0 ? _quickPickQueue.shift() : undefined) as any,
+  showInputBox: async () => (_inputBoxQueue.length > 0 ? _inputBoxQueue.shift() : undefined) as any,
   showInformationMessage: async () => undefined as any,
   showWarningMessage: async () => undefined as any,
   showErrorMessage: async () => undefined as any,
@@ -176,8 +212,15 @@ export const window = {
 };
 
 export const commands = {
-  registerCommand: (_id: string, _handler: any) => ({ dispose: () => {} }),
-  executeCommand: async () => undefined as any,
+  registerCommand: (id: string, handler: (...args: any[]) => any) => {
+    _commands.set(id, handler);
+    return { dispose: () => { _commands.delete(id); } };
+  },
+  executeCommand: async (id: string, ...args: any[]) => {
+    _executedCommands.push({ id, args });
+    const handler = _commands.get(id);
+    return handler ? await handler(...args) : undefined;
+  },
 };
 
 export const lm = {
