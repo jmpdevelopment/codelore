@@ -66,6 +66,10 @@
         "title": "CodeDiary: Clear Personal Data"
       },
       {
+        "command": "codediary.migrateToV2",
+        "title": "CodeDiary: Migrate Store to v2 (knowledge-first categories)"
+      },
+      {
         "command": "codediary.setNarrative",
         "title": "CodeDiary: Set Change Narrative"
       },

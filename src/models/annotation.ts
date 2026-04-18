@@ -38,6 +38,23 @@ export const ANNOTATION_CATEGORIES = [
 /** Categories excluded from PR export — ephemeral working notes */
 export const EPHEMERAL_CATEGORIES: ReadonlySet<AnnotationCategory> = new Set(['ai_prompt']);
 
+/**
+ * Deterministic remap from {@link LEGACY_CATEGORIES} to {@link KNOWLEDGE_CATEGORIES}
+ * applied by the v2 migration. Each legacy category collapses to a single
+ * knowledge category — no heuristic, so migration is reproducible and
+ * idempotent. Descriptions of legacy categories in {@link CATEGORY_META} call
+ * out the specific target here.
+ */
+export const LEGACY_TO_KNOWLEDGE: Record<(typeof LEGACY_CATEGORIES)[number], (typeof KNOWLEDGE_CATEGORIES)[number]> = {
+  verified: 'human_note',
+  needs_review: 'human_note',
+  modified: 'human_note',
+  confused: 'human_note',
+  hallucination: 'gotcha',
+  intent: 'rationale',
+  accepted: 'human_note',
+};
+
 export type AnnotationCategory = (typeof ANNOTATION_CATEGORIES)[number];
 
 export type AnnotationSource = 'ai_generated' | 'ai_verified' | 'human_authored';
