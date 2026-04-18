@@ -84,17 +84,17 @@
       },
       {
         "command": "codelore.scanFile",
-        "title": "CodeLore: Scan Current File (Knowledge + Critical)",
+        "title": "CodeLore: Scan Current File",
         "icon": "$(sparkle)"
       },
       {
         "command": "codelore.scanComponent",
-        "title": "CodeLore: Scan Component (Knowledge + Critical)",
+        "title": "CodeLore: Scan Component",
         "icon": "$(symbol-namespace)"
       },
       {
         "command": "codelore.scanProject",
-        "title": "CodeLore: Scan Entire Project (Knowledge + Critical)",
+        "title": "CodeLore: Scan Project",
         "icon": "$(globe)"
       },
       {

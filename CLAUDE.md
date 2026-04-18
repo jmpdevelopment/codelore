@@ -166,9 +166,9 @@ palette via `menus.commandPalette` `when: false`.
 |---------|-------|------------|
 | `codelore.addAnnotation` | Add Annotation | `Cmd+Shift+L` |
 | `codelore.markCritical` | Mark as Critical | — |
-| `codelore.scanFile` | Scan Current File (Knowledge + Critical) | `Cmd+Shift+K` |
-| `codelore.scanComponent` | Scan Component (Knowledge + Critical) | — |
-| `codelore.scanProject` | Scan Entire Project (Knowledge + Critical) | — |
+| `codelore.scanFile` | Scan Current File | `Cmd+Shift+K` |
+| `codelore.scanComponent` | Scan Component | — |
+| `codelore.scanProject` | Scan Project | — |
 | `codelore.proposeComponent` | Propose Components (AI) | — |
 | `codelore.manageComponentsForFile` | Manage Components for File | — |
 | `codelore.quickNote` | Quick Note | `Cmd+Shift+J` |
