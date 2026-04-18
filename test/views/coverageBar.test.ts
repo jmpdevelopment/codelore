@@ -4,17 +4,17 @@ import * as path from 'path';
 import * as os from 'os';
 import { __setWorkspaceFolder, __clearWorkspace, __setConfig } from '../__mocks__/vscode';
 import { CoverageBar } from '../../src/views/coverageBar';
-import { DiaryStore } from '../../src/storage/diaryStore';
+import { LoreStore } from '../../src/storage/loreStore';
 
 let tmpDir: string;
 
 beforeEach(() => {
-  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'codediary-cov-'));
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'codelore-cov-'));
   fs.mkdirSync(path.join(tmpDir, '.vscode'), { recursive: true });
   __setWorkspaceFolder(tmpDir);
   __setConfig({
-    'codediary.storagePath': '.vscode/codediary.yaml',
-    'codediary.defaultScope': 'shared',
+    'codelore.storagePath': '.vscode/codelore.yaml',
+    'codelore.defaultScope': 'shared',
   });
 });
 
@@ -25,17 +25,17 @@ afterEach(() => {
 
 describe('CoverageBar', () => {
   it('shows default text when store is empty', () => {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     const bar = new CoverageBar(store);
     // Access the internal status bar item
     const text = (bar as any).statusBarItem.text;
-    expect(text).toBe('$(notebook) CodeDiary');
+    expect(text).toBe('$(notebook) CodeLore');
     bar.dispose();
     store.dispose();
   });
 
   it('shows annotation count', () => {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     store.addAnnotation({
       id: 'a1', file: 'src/foo.ts', line_start: 1, line_end: 10,
       category: 'verified', text: 'ok', source: 'human_authored', created_at: '2026-01-01T00:00:00Z',
@@ -48,7 +48,7 @@ describe('CoverageBar', () => {
   });
 
   it('shows critical count when unreviewed flags exist', () => {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     store.addAnnotation({
       id: 'a1', file: 'src/foo.ts', line_start: 1, line_end: 10,
       category: 'verified', text: 'ok', source: 'human_authored', created_at: '2026-01-01T00:00:00Z',
@@ -69,7 +69,7 @@ describe('CoverageBar', () => {
   });
 
   it('does not show critical count when all are reviewed', () => {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     store.addAnnotation({
       id: 'a1', file: 'src/foo.ts', line_start: 1, line_end: 10,
       category: 'verified', text: 'ok', source: 'human_authored', created_at: '2026-01-01T00:00:00Z',
@@ -86,9 +86,9 @@ describe('CoverageBar', () => {
   });
 
   it('updates when store changes', () => {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     const bar = new CoverageBar(store);
-    expect((bar as any).statusBarItem.text).toBe('$(notebook) CodeDiary');
+    expect((bar as any).statusBarItem.text).toBe('$(notebook) CodeLore');
 
     store.addAnnotation({
       id: 'a1', file: 'src/foo.ts', line_start: 1, line_end: 10,
@@ -101,7 +101,7 @@ describe('CoverageBar', () => {
   });
 
   it('dispose cleans up', () => {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     const bar = new CoverageBar(store);
     // Should not throw
     bar.dispose();
@@ -109,9 +109,9 @@ describe('CoverageBar', () => {
   });
 
   it('click target is the pre-commit brief', () => {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     const bar = new CoverageBar(store);
-    expect((bar as any).statusBarItem.command).toBe('codediary.showPreCommitBrief');
+    expect((bar as any).statusBarItem.command).toBe('codelore.showPreCommitBrief');
     bar.dispose();
     store.dispose();
   });

@@ -1,13 +1,13 @@
 import * as vscode from 'vscode';
-import { DiaryStore } from '../storage/diaryStore';
+import { LoreStore } from '../storage/loreStore';
 import { CriticalFlag, CriticalSeverity } from '../models/criticalFlag';
 import { getGitUser, getRelativePath } from '../utils/git';
 import { computeContentHash, computeSignatureHash } from '../utils/anchorEngine';
 import { pickScope } from './scopePicker';
 
-export function registerCriticalCommands(context: vscode.ExtensionContext, store: DiaryStore): void {
+export function registerCriticalCommands(context: vscode.ExtensionContext, store: LoreStore): void {
   context.subscriptions.push(
-    vscode.commands.registerCommand('codediary.markCritical', async () => {
+    vscode.commands.registerCommand('codelore.markCritical', async () => {
       const editor = vscode.window.activeTextEditor;
       if (!editor) { return; }
 
@@ -73,11 +73,11 @@ export function registerCriticalCommands(context: vscode.ExtensionContext, store
       store.addCriticalFlag(flag, scope);
       const scopeLabel = scope === 'shared' ? 'team' : 'working notes';
       vscode.window.showInformationMessage(
-        `CodeDiary: Lines ${lineStart}-${lineEnd} marked as ${severityPick.severity} (${scopeLabel})`,
+        `CodeLore: Lines ${lineStart}-${lineEnd} marked as ${severityPick.severity} (${scopeLabel})`,
       );
     }),
 
-    vscode.commands.registerCommand('codediary.resolveCritical', async (file?: string, lineStart?: number) => {
+    vscode.commands.registerCommand('codelore.resolveCritical', async (file?: string, lineStart?: number) => {
       // Can be called from sidebar (with args) or from cursor
       if (!file || lineStart === undefined) {
         const editor = vscode.window.activeTextEditor;
@@ -88,7 +88,7 @@ export function registerCriticalCommands(context: vscode.ExtensionContext, store
         const flags = store.getCriticalFlagsForFile(file)
           .filter(f => line >= f.line_start && line <= f.line_end);
         if (flags.length === 0) {
-          vscode.window.showInformationMessage('CodeDiary: No critical flag at cursor.');
+          vscode.window.showInformationMessage('CodeLore: No critical flag at cursor.');
           return;
         }
         if (flags.length === 1) {
@@ -120,10 +120,10 @@ export function registerCriticalCommands(context: vscode.ExtensionContext, store
         resolution_comment: comment || undefined,
       });
 
-      vscode.window.showInformationMessage('CodeDiary: Critical flag resolved');
+      vscode.window.showInformationMessage('CodeLore: Critical flag resolved');
     }),
 
-    vscode.commands.registerCommand('codediary.removeCritical', async (file?: string, lineStart?: number, lineEnd?: number) => {
+    vscode.commands.registerCommand('codelore.removeCritical', async (file?: string, lineStart?: number, lineEnd?: number) => {
       if (!file || lineStart === undefined || lineEnd === undefined) {
         const editor = vscode.window.activeTextEditor;
         if (!editor) { return; }
@@ -133,7 +133,7 @@ export function registerCriticalCommands(context: vscode.ExtensionContext, store
         const flags = store.getCriticalFlagsForFile(file)
           .filter(f => line >= f.line_start && line <= f.line_end);
         if (flags.length === 0) {
-          vscode.window.showInformationMessage('CodeDiary: No critical flag at cursor.');
+          vscode.window.showInformationMessage('CodeLore: No critical flag at cursor.');
           return;
         }
         if (flags.length === 1) {
@@ -155,7 +155,7 @@ export function registerCriticalCommands(context: vscode.ExtensionContext, store
       }
 
       store.removeCriticalFlag(file, lineStart, lineEnd);
-      vscode.window.showInformationMessage('CodeDiary: Critical flag removed');
+      vscode.window.showInformationMessage('CodeLore: Critical flag removed');
     }),
   );
 }

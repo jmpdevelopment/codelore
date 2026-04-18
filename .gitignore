@@ -1,4 +1,4 @@
 node_modules/
 out/
 *.vsix
-.vscode/codediary.yaml
+.vscode/codelore.yaml

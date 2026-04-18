@@ -1,4 +1,4 @@
-# CodeDiary Roadmap
+# CodeLore Roadmap
 
 This file captures what is likely to land after the 0.1.0 public
 release. Items move out of "considering" only when there's either user
@@ -21,7 +21,7 @@ instruction file generation.
   the anchor. Heuristic would combine anchor-drift frequency with time
   since last verification.
 - **Team annotation feed.** After a `git pull`, summarize what landed in
-  `.codediary/` — new annotations, resolved criticals, freshly flagged
+  `.codelore/` — new annotations, resolved criticals, freshly flagged
   regions — so reviewers can catch up without diffing YAML.
 - **Quick annotation from AI review comments.** One-click capture of a
   CodeRabbit / Copilot Review comment into a `verified` or
@@ -41,7 +41,7 @@ instruction file generation.
 - **Static pattern detection.** Regex and AST heuristics for "critical
   logic" produce noise. Critical-region detection is either human
   judgment or AI reasoning, never pattern matching.
-- **Custom LLM infrastructure.** CodeDiary will continue to ride on
+- **Custom LLM infrastructure.** CodeLore will continue to ride on
   `vscode.lm` and whatever model the user has installed.
 - **Replacing PR review.** The tool complements review by capturing the
   knowledge that comments don't preserve; it doesn't replace the review

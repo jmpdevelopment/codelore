@@ -4,7 +4,7 @@ import * as path from 'path';
 import * as os from 'os';
 import { __setWorkspaceFolder, __clearWorkspace, __setConfig } from '../__mocks__/vscode';
 import { CriticalQueueProvider } from '../../src/views/criticalQueueProvider';
-import { DiaryStore } from '../../src/storage/diaryStore';
+import { LoreStore } from '../../src/storage/loreStore';
 import { CriticalFlag } from '../../src/models/criticalFlag';
 
 let tmpDir: string;
@@ -21,12 +21,12 @@ function makeFlag(overrides: Partial<CriticalFlag> = {}): CriticalFlag {
 }
 
 beforeEach(() => {
-  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'codediary-cq-'));
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'codelore-cq-'));
   fs.mkdirSync(path.join(tmpDir, '.vscode'), { recursive: true });
   __setWorkspaceFolder(tmpDir);
   __setConfig({
-    'codediary.storagePath': '.vscode/codediary.yaml',
-    'codediary.defaultScope': 'shared',
+    'codelore.storagePath': '.vscode/codelore.yaml',
+    'codelore.defaultScope': 'shared',
   });
 });
 
@@ -37,14 +37,14 @@ afterEach(() => {
 
 describe('CriticalQueueProvider', () => {
   it('returns empty when no flags', () => {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     const provider = new CriticalQueueProvider(store);
     expect(provider.getChildren()).toEqual([]);
     store.dispose();
   });
 
   it('returns nodes for each flag', () => {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     store.addCriticalFlag(makeFlag({ file: 'a.ts', line_start: 1, line_end: 5 }));
     store.addCriticalFlag(makeFlag({ file: 'b.ts', line_start: 10, line_end: 20 }));
     const provider = new CriticalQueueProvider(store);
@@ -53,7 +53,7 @@ describe('CriticalQueueProvider', () => {
   });
 
   it('sorts unreviewed before reviewed', () => {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     store.addCriticalFlag(makeFlag({ file: 'reviewed.ts', human_reviewed: true, line_start: 1, line_end: 5 }));
     store.addCriticalFlag(makeFlag({ file: 'unreviewed.ts', human_reviewed: false, line_start: 1, line_end: 5 }));
     const provider = new CriticalQueueProvider(store);
@@ -64,7 +64,7 @@ describe('CriticalQueueProvider', () => {
   });
 
   it('sorts by severity within same review status', () => {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     store.addCriticalFlag(makeFlag({ file: 'medium.ts', severity: 'medium', line_start: 1, line_end: 5 }));
     store.addCriticalFlag(makeFlag({ file: 'critical.ts', severity: 'critical', line_start: 1, line_end: 5 }));
     store.addCriticalFlag(makeFlag({ file: 'high.ts', severity: 'high', line_start: 1, line_end: 5 }));
@@ -77,7 +77,7 @@ describe('CriticalQueueProvider', () => {
   });
 
   it('nodes have contextValue criticalFlag', () => {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     store.addCriticalFlag(makeFlag());
     const provider = new CriticalQueueProvider(store);
     const nodes = provider.getChildren();
@@ -86,7 +86,7 @@ describe('CriticalQueueProvider', () => {
   });
 
   it('node has severity in description', () => {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     store.addCriticalFlag(makeFlag({ severity: 'high' }));
     const provider = new CriticalQueueProvider(store);
     const nodes = provider.getChildren();
@@ -95,7 +95,7 @@ describe('CriticalQueueProvider', () => {
   });
 
   it('node tooltip shows resolution info when reviewed', () => {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     store.addCriticalFlag(makeFlag({
       human_reviewed: true,
       resolved_by: 'bob',
@@ -112,7 +112,7 @@ describe('CriticalQueueProvider', () => {
   });
 
   it('node tooltip shows unreviewed status', () => {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     store.addCriticalFlag(makeFlag({ description: 'Token validation' }));
     const provider = new CriticalQueueProvider(store);
     const nodes = provider.getChildren();
@@ -123,7 +123,7 @@ describe('CriticalQueueProvider', () => {
   });
 
   it('getTreeItem returns the element itself', () => {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     store.addCriticalFlag(makeFlag());
     const provider = new CriticalQueueProvider(store);
     const nodes = provider.getChildren();
@@ -132,7 +132,7 @@ describe('CriticalQueueProvider', () => {
   });
 
   it('fires onDidChangeTreeData on refresh', () => {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     const provider = new CriticalQueueProvider(store);
     let fired = false;
     provider.onDidChangeTreeData(() => { fired = true; });
@@ -142,7 +142,7 @@ describe('CriticalQueueProvider', () => {
   });
 
   it('refreshes when store changes', () => {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     const provider = new CriticalQueueProvider(store);
     let fired = 0;
     provider.onDidChangeTreeData(() => { fired++; });
@@ -152,7 +152,7 @@ describe('CriticalQueueProvider', () => {
   });
 
   it('node has command to open file', () => {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     store.addCriticalFlag(makeFlag());
     const provider = new CriticalQueueProvider(store);
     const nodes = provider.getChildren();
@@ -162,7 +162,7 @@ describe('CriticalQueueProvider', () => {
   });
 
   it('filters by file path', () => {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     store.addCriticalFlag(makeFlag({ file: 'src/auth/login.ts', line_start: 1, line_end: 5 }));
     store.addCriticalFlag(makeFlag({ file: 'src/billing/charge.ts', line_start: 10, line_end: 20 }));
     store.addCriticalFlag(makeFlag({ file: 'src/auth/tokens.ts', line_start: 30, line_end: 40 }));
@@ -175,7 +175,7 @@ describe('CriticalQueueProvider', () => {
   });
 
   it('path filter is case insensitive', () => {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     store.addCriticalFlag(makeFlag({ file: 'src/Auth/Login.ts' }));
     const provider = new CriticalQueueProvider(store);
 
@@ -185,7 +185,7 @@ describe('CriticalQueueProvider', () => {
   });
 
   it('clears path filter with undefined', () => {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     store.addCriticalFlag(makeFlag({ file: 'src/auth/login.ts', line_start: 1, line_end: 5 }));
     store.addCriticalFlag(makeFlag({ file: 'src/billing/charge.ts', line_start: 10, line_end: 20 }));
     const provider = new CriticalQueueProvider(store);
@@ -199,7 +199,7 @@ describe('CriticalQueueProvider', () => {
   });
 
   it('filters by severity', () => {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     store.addCriticalFlag(makeFlag({ severity: 'critical', file: 'a.ts', line_start: 1, line_end: 5 }));
     store.addCriticalFlag(makeFlag({ severity: 'high', file: 'b.ts', line_start: 1, line_end: 5 }));
     store.addCriticalFlag(makeFlag({ severity: 'critical', file: 'c.ts', line_start: 1, line_end: 5 }));
@@ -217,7 +217,7 @@ describe('CriticalQueueProvider', () => {
   });
 
   it('combines path and severity filters', () => {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     store.addCriticalFlag(makeFlag({ file: 'src/auth/login.ts', severity: 'critical', line_start: 1, line_end: 5 }));
     store.addCriticalFlag(makeFlag({ file: 'src/auth/tokens.ts', severity: 'medium', line_start: 10, line_end: 20 }));
     store.addCriticalFlag(makeFlag({ file: 'src/billing/charge.ts', severity: 'critical', line_start: 30, line_end: 40 }));
@@ -231,7 +231,7 @@ describe('CriticalQueueProvider', () => {
   });
 
   it('getActiveFilters returns current filter state', () => {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     const provider = new CriticalQueueProvider(store);
 
     expect(provider.getActiveFilters()).toEqual({ path: undefined, severity: undefined });
@@ -243,7 +243,7 @@ describe('CriticalQueueProvider', () => {
   });
 
   it('maintains sort order with filters applied', () => {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     store.addCriticalFlag(makeFlag({ file: 'src/auth/a.ts', severity: 'medium', human_reviewed: false, line_start: 1, line_end: 5 }));
     store.addCriticalFlag(makeFlag({ file: 'src/auth/b.ts', severity: 'critical', human_reviewed: false, line_start: 1, line_end: 5 }));
     store.addCriticalFlag(makeFlag({ file: 'src/auth/c.ts', severity: 'high', human_reviewed: true, line_start: 1, line_end: 5 }));

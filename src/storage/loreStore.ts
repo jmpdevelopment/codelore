@@ -32,13 +32,13 @@ export interface SearchResult {
 }
 
 /**
- * Facade over SharedStore (.codediary/, committed) and YamlStore (.vscode/, personal).
+ * Facade over SharedStore (.codelore/, committed) and YamlStore (.vscode/, personal).
  *
  * All read operations merge both stores. Write operations route to the
  * correct store based on the scope parameter. The default scope is
- * configurable via codediary.defaultScope setting.
+ * configurable via codelore.defaultScope setting.
  */
-export class DiaryStore {
+export class LoreStore {
   private _onDidChange = new vscode.EventEmitter<void>();
   readonly onDidChange = this._onDidChange.event;
 
@@ -101,7 +101,7 @@ export class DiaryStore {
   }
 
   getDefaultScope(): Scope {
-    const config = vscode.workspace.getConfiguration('codediary');
+    const config = vscode.workspace.getConfiguration('codelore');
     return config.get<Scope>('defaultScope', 'shared');
   }
 

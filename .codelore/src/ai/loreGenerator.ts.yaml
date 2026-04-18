@@ -1,7 +1,7 @@
 version: 2
 annotations:
   - id: 878cee34-afa3-42c9-941d-18a2d725b2e8
-    file: src/ai/diaryGenerator.ts
+    file: src/ai/loreGenerator.ts
     line_start: 267
     line_end: 270
     category: business_rule
@@ -13,12 +13,12 @@ annotations:
     created_at: '2026-03-22T16:00:00Z'
     author: jmp
     dependencies:
-      - file: src/storage/diaryStore.ts
+      - file: src/storage/loreStore.ts
         relationship: >-
-          diaryStore.shared is accessed directly here, bypassing the merged getAnnotations() — this is intentional to
+          loreStore.shared is accessed directly here, bypassing the merged getAnnotations() — this is intentional to
           enforce the privacy boundary
   - id: 796c10a8-8b18-4196-8683-65e064e4ae33
-    file: src/ai/diaryGenerator.ts
+    file: src/ai/loreGenerator.ts
     line_start: 206
     line_end: 214
     category: business_rule
@@ -30,7 +30,7 @@ annotations:
     created_at: '2026-03-22T16:00:00Z'
     author: jmp
   - id: 74986eb7-a32d-44b7-b0eb-a0009f284dae
-    file: src/ai/diaryGenerator.ts
+    file: src/ai/loreGenerator.ts
     line_start: 10
     line_end: 29
     category: rationale
@@ -42,7 +42,7 @@ annotations:
     created_at: '2026-03-22T16:00:00Z'
     author: jmp
   - id: e6718873-f50d-4ab6-aa57-8a120352701d
-    file: src/ai/diaryGenerator.ts
+    file: src/ai/loreGenerator.ts
     line_start: 224
     line_end: 238
     category: rationale
@@ -57,7 +57,7 @@ annotations:
       - file: src/commands/quickNote.ts
         relationship: quickNote is the personal-scope counterpart to AI suggestions
 critical_flags:
-  - file: src/ai/diaryGenerator.ts
+  - file: src/ai/loreGenerator.ts
     line_start: 120
     line_end: 178
     severity: medium

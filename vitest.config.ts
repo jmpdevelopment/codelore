@@ -15,7 +15,7 @@ export default defineConfig({
         'src/providers/**',        // VSCode decoration rendering
         'src/ai/lmService.ts',    // VSCode LM API wrapper
         'src/ai/criticalDetector.ts',  // tested via parseRegions; scan methods are VSCode integration
-        'src/ai/diaryGenerator.ts',    // tested via parseEntries; suggest methods are VSCode integration
+        'src/ai/loreGenerator.ts',    // tested via parseEntries; suggest methods are VSCode integration
         'src/models/criticalFlag.ts',  // pure type definitions
       ],
       reporter: ['text', 'text-summary'],

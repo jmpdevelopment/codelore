@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { DiaryStore } from '../storage/diaryStore';
+import { LoreStore } from '../storage/loreStore';
 import { CATEGORY_META, AnnotationCategory } from '../models/annotation';
 import { verifyAnchor } from '../utils/anchorEngine';
 import { getRelativePath } from '../utils/git';
@@ -10,7 +10,7 @@ export class AnnotationDecorator implements vscode.Disposable {
   private staleDecorationType: vscode.TextEditorDecorationType;
   private disposables: vscode.Disposable[] = [];
 
-  constructor(private store: DiaryStore) {
+  constructor(private store: LoreStore) {
     this.staleDecorationType = vscode.window.createTextEditorDecorationType({
       isWholeLine: true,
       backgroundColor: '#ff980020',
@@ -149,11 +149,11 @@ export class AnnotationDecorator implements vscode.Disposable {
   private buildStaleHover(category: AnnotationCategory, text: string, author?: string, createdAt?: string): vscode.MarkdownString {
     const meta = CATEGORY_META[category];
     const md = new vscode.MarkdownString();
-    md.isTrusted = { enabledCommands: ['codediary.checkAnchors'] };
+    md.isTrusted = { enabledCommands: ['codelore.checkAnchors'] };
     md.appendMarkdown(`**⚠ STALE — ${meta.label}**\n\n`);
     md.appendMarkdown(sanitizeMarkdownText(text) + '\n\n');
     md.appendMarkdown('*The code at this location has changed since this annotation was created.*\n\n');
-    md.appendMarkdown('[Re-anchor annotations](command:codediary.checkAnchors)');
+    md.appendMarkdown('[Re-anchor annotations](command:codelore.checkAnchors)');
     if (author) { md.appendMarkdown(`\n\n*— ${sanitizeMarkdownText(author)}*`); }
     if (createdAt) { md.appendMarkdown(` • ${new Date(createdAt).toLocaleString()}`); }
     return md;

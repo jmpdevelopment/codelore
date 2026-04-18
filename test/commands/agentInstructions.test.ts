@@ -3,8 +3,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import {
-  CODEDIARY_BLOCK_START,
-  CODEDIARY_BLOCK_END,
+  CODELORE_BLOCK_START,
+  CODELORE_BLOCK_END,
   INSTRUCTION_TEXT,
   buildBlock,
   updateFileContent,
@@ -19,7 +19,7 @@ const LEGACY_CATEGORY_NAMES = [
 let tmpDir: string;
 
 beforeEach(() => {
-  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'codediary-agent-'));
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'codelore-agent-'));
 });
 
 afterEach(() => {
@@ -45,7 +45,7 @@ describe('Agent instruction text', () => {
   });
 
   it('documents components and their storage path', () => {
-    expect(INSTRUCTION_TEXT).toContain('.codediary/components/');
+    expect(INSTRUCTION_TEXT).toContain('.codelore/components/');
   });
 
   it('explains v2 anchoring (content_hash + signature_hash)', () => {
@@ -62,8 +62,8 @@ describe('Agent instruction text', () => {
 describe('Agent instruction block assembly', () => {
   it('buildBlock wraps the text in start/end markers', () => {
     const block = buildBlock();
-    expect(block.startsWith(CODEDIARY_BLOCK_START)).toBe(true);
-    expect(block.endsWith(CODEDIARY_BLOCK_END)).toBe(true);
+    expect(block.startsWith(CODELORE_BLOCK_START)).toBe(true);
+    expect(block.endsWith(CODELORE_BLOCK_END)).toBe(true);
     expect(block).toContain(INSTRUCTION_TEXT);
   });
 
@@ -79,19 +79,19 @@ describe('Agent instruction block assembly', () => {
     const result = updateFileContent(existing, block);
     expect(result).toContain('# My Project');
     expect(result).toContain('Some existing content.');
-    expect(result).toContain(CODEDIARY_BLOCK_START);
-    expect(result.indexOf('Some existing content.')).toBeLessThan(result.indexOf(CODEDIARY_BLOCK_START));
+    expect(result).toContain(CODELORE_BLOCK_START);
+    expect(result.indexOf('Some existing content.')).toBeLessThan(result.indexOf(CODELORE_BLOCK_START));
   });
 
   it('updateFileContent replaces existing block', () => {
     const block = buildBlock();
-    const oldBlock = `${CODEDIARY_BLOCK_START}\n\nOld instructions.\n\n${CODEDIARY_BLOCK_END}`;
+    const oldBlock = `${CODELORE_BLOCK_START}\n\nOld instructions.\n\n${CODELORE_BLOCK_END}`;
     const existing = `# My Project\n\n${oldBlock}\n\n# Other Section`;
     const result = updateFileContent(existing, block);
     expect(result).not.toContain('Old instructions.');
     expect(result).toContain(INSTRUCTION_TEXT);
     expect(result).toContain('# Other Section');
-    expect(result.split(CODEDIARY_BLOCK_START).length).toBe(2);
+    expect(result.split(CODELORE_BLOCK_START).length).toBe(2);
   });
 
   it('writes instruction file to disk', () => {
@@ -100,8 +100,8 @@ describe('Agent instruction block assembly', () => {
     fs.writeFileSync(filePath, block + '\n', 'utf8');
 
     const content = fs.readFileSync(filePath, 'utf8');
-    expect(content).toContain(CODEDIARY_BLOCK_START);
-    expect(content).toContain('.codediary/');
+    expect(content).toContain(CODELORE_BLOCK_START);
+    expect(content).toContain('.codelore/');
   });
 
   it('creates nested directories for .github/copilot-instructions.md', () => {
@@ -112,7 +112,7 @@ describe('Agent instruction block assembly', () => {
     fs.writeFileSync(filePath, block + '\n', 'utf8');
 
     expect(fs.existsSync(filePath)).toBe(true);
-    expect(fs.readFileSync(filePath, 'utf8')).toContain(CODEDIARY_BLOCK_START);
+    expect(fs.readFileSync(filePath, 'utf8')).toContain(CODELORE_BLOCK_START);
   });
 
   it('updates existing file preserving surrounding content', () => {
@@ -127,7 +127,7 @@ describe('Agent instruction block assembly', () => {
     const final = fs.readFileSync(filePath, 'utf8');
     expect(final).toContain('# Cursor Rules');
     expect(final).toContain('Use TypeScript.');
-    expect(final).toContain(CODEDIARY_BLOCK_START);
+    expect(final).toContain(CODELORE_BLOCK_START);
   });
 
   it('idempotent update replaces block cleanly', () => {
@@ -144,7 +144,7 @@ describe('Agent instruction block assembly', () => {
     fs.writeFileSync(filePath, content, 'utf8');
 
     const final = fs.readFileSync(filePath, 'utf8');
-    expect(final.split(CODEDIARY_BLOCK_START).length).toBe(2);
-    expect(final.split(CODEDIARY_BLOCK_END).length).toBe(2);
+    expect(final.split(CODELORE_BLOCK_START).length).toBe(2);
+    expect(final.split(CODELORE_BLOCK_END).length).toBe(2);
   });
 });

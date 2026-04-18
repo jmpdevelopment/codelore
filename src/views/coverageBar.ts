@@ -1,17 +1,17 @@
 import * as vscode from 'vscode';
-import { DiaryStore } from '../storage/diaryStore';
+import { LoreStore } from '../storage/loreStore';
 
 export class CoverageBar implements vscode.Disposable {
   private statusBarItem: vscode.StatusBarItem;
   private disposables: vscode.Disposable[] = [];
 
-  constructor(private store: DiaryStore) {
+  constructor(private store: LoreStore) {
     this.statusBarItem = vscode.window.createStatusBarItem(
       vscode.StatusBarAlignment.Left,
       50,
     );
-    this.statusBarItem.command = 'codediary.showPreCommitBrief';
-    this.statusBarItem.tooltip = 'CodeDiary — Knowledge Coverage';
+    this.statusBarItem.command = 'codelore.showPreCommitBrief';
+    this.statusBarItem.tooltip = 'CodeLore — Knowledge Coverage';
     this.statusBarItem.show();
 
     this.disposables.push(
@@ -27,7 +27,7 @@ export class CoverageBar implements vscode.Disposable {
     const criticalFlags = this.store.getCriticalFlags();
 
     if (annotations.length === 0 && criticalFlags.length === 0) {
-      this.statusBarItem.text = '$(notebook) CodeDiary';
+      this.statusBarItem.text = '$(notebook) CodeLore';
       return;
     }
 

@@ -6,8 +6,8 @@ annotations:
     line_end: 30
     category: rationale
     text: >-
-      Activation creates a single DiaryStore shared by all commands, views, and decorators. The store is disposed via
-      subscriptions when the extension deactivates. Creating multiple DiaryStore instances would cause duplicate file
+      Activation creates a single LoreStore shared by all commands, views, and decorators. The store is disposed via
+      subscriptions when the extension deactivates. Creating multiple LoreStore instances would cause duplicate file
       watchers and stale cache issues.
     source: human_authored
     created_at: '2026-03-22T16:00:00Z'

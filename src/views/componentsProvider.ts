@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { DiaryStore } from '../storage/diaryStore';
+import { LoreStore } from '../storage/loreStore';
 import { Component } from '../models/component';
 import { isSafeRelativePath, sanitizeMarkdownText } from '../utils/validation';
 
@@ -45,7 +45,7 @@ class FileNode extends vscode.TreeItem {
 }
 
 /**
- * TreeView provider for `.codediary/components/*.yaml`. Root nodes are
+ * TreeView provider for `.codelore/components/*.yaml`. Root nodes are
  * components (collapsible); children are the tagged file paths. Refreshes
  * automatically when the store fires onDidChange, including when the
  * component YAML files change on disk.
@@ -54,7 +54,7 @@ export class ComponentsProvider implements vscode.TreeDataProvider<Node> {
   private _onDidChangeTreeData = new vscode.EventEmitter<Node | undefined>();
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
-  constructor(private store: DiaryStore) {
+  constructor(private store: LoreStore) {
     store.onDidChange(() => this.refresh());
   }
 

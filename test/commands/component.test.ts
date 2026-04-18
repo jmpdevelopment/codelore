@@ -12,7 +12,7 @@ import {
   Uri,
 } from '../__mocks__/vscode';
 import * as vscode from '../__mocks__/vscode';
-import { DiaryStore } from '../../src/storage/diaryStore';
+import { LoreStore } from '../../src/storage/loreStore';
 import { registerComponentCommands } from '../../src/commands/component';
 import { Component } from '../../src/models/component';
 
@@ -32,18 +32,18 @@ function seedComponent(c: Partial<Component> & { id: string; name: string }): vo
     updated_at: c.updated_at ?? '2026-04-18T00:00:00Z',
     author: c.author,
   };
-  const file = path.join(tmpDir, '.codediary', 'components', `${full.id}.yaml`);
+  const file = path.join(tmpDir, '.codelore', 'components', `${full.id}.yaml`);
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, yaml.dump({ version: 2, ...full }), 'utf8');
 }
 
 beforeEach(() => {
-  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'codediary-cmd-component-'));
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'codelore-cmd-component-'));
   fs.mkdirSync(path.join(tmpDir, '.vscode'), { recursive: true });
   __setWorkspaceFolder(tmpDir);
   __setConfig({
-    'codediary.storagePath': '.vscode/codediary.yaml',
-    'codediary.defaultScope': 'shared',
+    'codelore.storagePath': '.vscode/codelore.yaml',
+    'codelore.defaultScope': 'shared',
   });
   context = { subscriptions: [] as any[] };
 });
@@ -53,16 +53,16 @@ afterEach(() => {
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
 
-describe('codediary.editComponent', () => {
+describe('codelore.editComponent', () => {
   it('updates name, description, and owners on a picked component', async () => {
     seedComponent({ id: 'billing', name: 'Billing', description: 'old', owners: ['alice'] });
-    const store = new DiaryStore();
+    const store = new LoreStore();
     registerComponentCommands(context, store);
 
     __queueQuickPick({ id: 'billing' });
     __queueInputBox('Billing Engine', 'New description', 'alice, bob');
 
-    await vscode.commands.executeCommand('codediary.editComponent');
+    await vscode.commands.executeCommand('codelore.editComponent');
 
     const updated = store.getComponent('billing')!;
     expect(updated.name).toBe('Billing Engine');
@@ -73,13 +73,13 @@ describe('codediary.editComponent', () => {
 
   it('clears description and owners when the user submits empty strings', async () => {
     seedComponent({ id: 'billing', name: 'Billing', description: 'to clear', owners: ['alice'] });
-    const store = new DiaryStore();
+    const store = new LoreStore();
     registerComponentCommands(context, store);
 
     __queueQuickPick({ id: 'billing' });
     __queueInputBox('Billing', '', '');
 
-    await vscode.commands.executeCommand('codediary.editComponent');
+    await vscode.commands.executeCommand('codelore.editComponent');
 
     const updated = store.getComponent('billing')!;
     expect(updated.description).toBeUndefined();
@@ -90,13 +90,13 @@ describe('codediary.editComponent', () => {
   it('skips the picker when a component node is passed in', async () => {
     seedComponent({ id: 'billing', name: 'Billing' });
     seedComponent({ id: 'reporting', name: 'Reporting' });
-    const store = new DiaryStore();
+    const store = new LoreStore();
     registerComponentCommands(context, store);
 
     const reporting = store.getComponent('reporting')!;
     __queueInputBox('Reporting v2', '', '');
 
-    await vscode.commands.executeCommand('codediary.editComponent', { component: reporting });
+    await vscode.commands.executeCommand('codelore.editComponent', { component: reporting });
 
     expect(store.getComponent('reporting')!.name).toBe('Reporting v2');
     expect(store.getComponent('billing')!.name).toBe('Billing');
@@ -105,20 +105,20 @@ describe('codediary.editComponent', () => {
 
   it('does nothing when the user aborts the name prompt', async () => {
     seedComponent({ id: 'billing', name: 'Billing' });
-    const store = new DiaryStore();
+    const store = new LoreStore();
     registerComponentCommands(context, store);
 
     __queueQuickPick({ id: 'billing' });
     // no input queued — showInputBox returns undefined (user dismissed)
 
-    await vscode.commands.executeCommand('codediary.editComponent');
+    await vscode.commands.executeCommand('codelore.editComponent');
 
     expect(store.getComponent('billing')!.name).toBe('Billing');
     store.dispose();
   });
 });
 
-describe('codediary.manageComponentsForFile', () => {
+describe('codelore.manageComponentsForFile', () => {
   function setActiveFile(rel: string): void {
     const full = path.join(tmpDir, rel);
     fs.mkdirSync(path.dirname(full), { recursive: true });
@@ -128,13 +128,13 @@ describe('codediary.manageComponentsForFile', () => {
 
   it('creates the first component when none exist and tags the file', async () => {
     setActiveFile('src/foo.ts');
-    const store = new DiaryStore();
+    const store = new LoreStore();
     registerComponentCommands(context, store);
 
     __queueQuickPick({ id: '__create_new__' });
     __queueInputBox('Billing', 'does billing');
 
-    await vscode.commands.executeCommand('codediary.manageComponentsForFile');
+    await vscode.commands.executeCommand('codelore.manageComponentsForFile');
 
     const components = store.getComponents();
     expect(components).toHaveLength(1);
@@ -147,14 +147,14 @@ describe('codediary.manageComponentsForFile', () => {
     seedComponent({ id: 'billing', name: 'Billing', files: ['src/foo.ts'] });
     seedComponent({ id: 'reporting', name: 'Reporting', files: [] });
     setActiveFile('src/foo.ts');
-    const store = new DiaryStore();
+    const store = new LoreStore();
     registerComponentCommands(context, store);
 
     __queueQuickPick([
       { id: 'reporting' },
     ]);
 
-    await vscode.commands.executeCommand('codediary.manageComponentsForFile');
+    await vscode.commands.executeCommand('codelore.manageComponentsForFile');
 
     expect(store.getComponent('billing')!.files).toEqual([]);
     expect(store.getComponent('reporting')!.files).toEqual(['src/foo.ts']);
@@ -165,7 +165,7 @@ describe('codediary.manageComponentsForFile', () => {
     seedComponent({ id: 'billing', name: 'Billing', files: ['src/foo.ts'] });
     seedComponent({ id: 'reporting', name: 'Reporting', files: [] });
     setActiveFile('src/foo.ts');
-    const store = new DiaryStore();
+    const store = new LoreStore();
     registerComponentCommands(context, store);
 
     __queueQuickPick([
@@ -173,7 +173,7 @@ describe('codediary.manageComponentsForFile', () => {
       { id: 'reporting' },
     ]);
 
-    await vscode.commands.executeCommand('codediary.manageComponentsForFile');
+    await vscode.commands.executeCommand('codelore.manageComponentsForFile');
 
     expect(store.getComponent('billing')!.files).toEqual(['src/foo.ts']);
     expect(store.getComponent('reporting')!.files).toEqual(['src/foo.ts']);
@@ -183,7 +183,7 @@ describe('codediary.manageComponentsForFile', () => {
   it('creates a new component inline when the create-new item is picked alongside existing', async () => {
     seedComponent({ id: 'billing', name: 'Billing', files: [] });
     setActiveFile('src/foo.ts');
-    const store = new DiaryStore();
+    const store = new LoreStore();
     registerComponentCommands(context, store);
 
     __queueQuickPick([
@@ -192,7 +192,7 @@ describe('codediary.manageComponentsForFile', () => {
     ]);
     __queueInputBox('Reporting', '');
 
-    await vscode.commands.executeCommand('codediary.manageComponentsForFile');
+    await vscode.commands.executeCommand('codelore.manageComponentsForFile');
 
     expect(store.getComponent('billing')!.files).toEqual(['src/foo.ts']);
     const reporting = store.getComponent('reporting');
@@ -204,22 +204,22 @@ describe('codediary.manageComponentsForFile', () => {
   it('does nothing when the multi-select is dismissed', async () => {
     seedComponent({ id: 'billing', name: 'Billing', files: [] });
     setActiveFile('src/foo.ts');
-    const store = new DiaryStore();
+    const store = new LoreStore();
     registerComponentCommands(context, store);
 
     // no quick pick queued — returns undefined
 
-    await vscode.commands.executeCommand('codediary.manageComponentsForFile');
+    await vscode.commands.executeCommand('codelore.manageComponentsForFile');
 
     expect(store.getComponent('billing')!.files).toEqual([]);
     store.dispose();
   });
 
   it('returns silently when there is no active editor', async () => {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     registerComponentCommands(context, store);
 
-    await vscode.commands.executeCommand('codediary.manageComponentsForFile');
+    await vscode.commands.executeCommand('codelore.manageComponentsForFile');
 
     expect(store.getComponents()).toEqual([]);
     store.dispose();

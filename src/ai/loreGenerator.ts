@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { LmService } from './lmService';
-import { DiaryStore } from '../storage/diaryStore';
+import { LoreStore } from '../storage/loreStore';
 import { Annotation, AnnotationCategory, CATEGORY_META, FileDependency } from '../models/annotation';
 import { Component } from '../models/component';
 import { v4 as uuidv4 } from 'uuid';
@@ -44,7 +44,7 @@ function parseComponentTags(raw: unknown, knownIds: Set<string>): string[] | und
   return out.length > 0 ? out : undefined;
 }
 
-const SYSTEM_PROMPT = `You are CodeDiary, the primary author of institutional knowledge for this codebase. A human teammate will review your entries afterwards — your job is to write high-signal notes they would otherwise have to reverse-engineer from the source.
+const SYSTEM_PROMPT = `You are CodeLore, the primary author of institutional knowledge for this codebase. A human teammate will review your entries afterwards — your job is to write high-signal notes they would otherwise have to reverse-engineer from the source.
 
 You are given: a file path, the full file content (line-numbered), any existing annotations and critical flags, and (when available) the component subsystems this file belongs to. Use all of it.
 
@@ -81,10 +81,10 @@ interface SuggestedEntry {
   components?: string[];
 }
 
-export class DiaryGenerator {
+export class LoreGenerator {
   constructor(
     private lm: LmService,
-    private store: DiaryStore,
+    private store: LoreStore,
   ) {}
 
   /**
@@ -98,14 +98,14 @@ export class DiaryGenerator {
     if (!filePath) { return; }
     const fileContent = editor.document.getText();
     if (!fileContent.trim()) {
-      vscode.window.showInformationMessage('CodeDiary: File is empty.');
+      vscode.window.showInformationMessage('CodeLore: File is empty.');
       return;
     }
 
     await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
-        title: `CodeDiary: Scanning ${filePath} for institutional knowledge...`,
+        title: `CodeLore: Scanning ${filePath} for institutional knowledge...`,
         cancellable: true,
       },
       async (progress, token) => {
@@ -123,14 +123,14 @@ export class DiaryGenerator {
           const entries = this.parseEntries(result.text);
           if (entries.length === 0) {
             vscode.window.showInformationMessage(
-              `CodeDiary: No new knowledge surfaced for ${filePath} (via ${result.modelName}).`,
+              `CodeLore: No new knowledge surfaced for ${filePath} (via ${result.modelName}).`,
             );
             return;
           }
 
           await this.presentSuggestions(filePath, entries, result.modelName);
         } catch (err) {
-          vscode.window.showErrorMessage(`CodeDiary: Knowledge scan failed: ${err instanceof Error ? err.message : String(err)}`);
+          vscode.window.showErrorMessage(`CodeLore: Knowledge scan failed: ${err instanceof Error ? err.message : String(err)}`);
         }
       },
     );
@@ -148,7 +148,7 @@ export class DiaryGenerator {
     await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
-        title: `CodeDiary: Knowledge scan — ${scopeLabel}`,
+        title: `CodeLore: Knowledge scan — ${scopeLabel}`,
         cancellable: true,
       },
       async (progress, token) => {
@@ -187,7 +187,7 @@ export class DiaryGenerator {
 
         const via = modelName ? ` (via ${modelName})` : '';
         vscode.window.showInformationMessage(
-          `CodeDiary: ${added} knowledge entries added across ${scanned} files${via}. Review them in the sidebar.`,
+          `CodeLore: ${added} knowledge entries added across ${scanned} files${via}. Review them in the sidebar.`,
         );
       },
     );
@@ -211,7 +211,7 @@ export class DiaryGenerator {
 
     const selected = await vscode.window.showQuickPick(items, {
       canPickMany: true,
-      placeHolder: 'Select diary entries to keep (uncheck to dismiss). Overlapping entries replace existing.',
+      placeHolder: 'Select lore entries to keep (uncheck to dismiss). Overlapping entries replace existing.',
       title: `${entries.length} suggested entries for ${filePath} — ${modelName}`,
     });
 
@@ -233,7 +233,7 @@ export class DiaryGenerator {
 
     const replaceMsg = replaced > 0 ? ` (replaced ${replaced} older entries)` : '';
     vscode.window.showInformationMessage(
-      `CodeDiary: ${added} diary entries added${replaceMsg}.`,
+      `CodeLore: ${added} lore entries added${replaceMsg}.`,
     );
   }
 

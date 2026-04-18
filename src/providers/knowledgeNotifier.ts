@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { DiaryStore } from '../storage/diaryStore';
+import { LoreStore } from '../storage/loreStore';
 import { EPHEMERAL_CATEGORIES, Annotation } from '../models/annotation';
 import { getRelativePath, getWorkspaceCwd, gitDiff, parseChangedLineRanges } from '../utils/git';
 import { rangesOverlap } from '../views/preCommitBriefProvider';
@@ -18,7 +18,7 @@ export class KnowledgeNotifier implements vscode.Disposable {
   private notifiedOnOpen = new Set<string>();
   private notifiedOnSave = new Set<string>();
 
-  constructor(private store: DiaryStore) {
+  constructor(private store: LoreStore) {
     this.disposables.push(
       vscode.window.onDidChangeActiveTextEditor(editor => {
         if (editor) { this.onFileOpened(editor); }
@@ -52,12 +52,12 @@ export class KnowledgeNotifier implements vscode.Disposable {
     })[0];
 
     const message = unresolved.length === 1
-      ? `CodeDiary: This file has a ${highest.severity} critical flag — ${highest.description || 'no description'}`
-      : `CodeDiary: This file has ${unresolved.length} unresolved critical flags (highest: ${highest.severity})`;
+      ? `CodeLore: This file has a ${highest.severity} critical flag — ${highest.description || 'no description'}`
+      : `CodeLore: This file has ${unresolved.length} unresolved critical flags (highest: ${highest.severity})`;
 
     vscode.window.showWarningMessage(message, 'Show Brief', 'Dismiss').then(choice => {
       if (choice === 'Show Brief') {
-        vscode.commands.executeCommand('codediary.preCommitBrief.focus');
+        vscode.commands.executeCommand('codelore.preCommitBrief.focus');
       }
     });
   }
@@ -111,11 +111,11 @@ export class KnowledgeNotifier implements vscode.Disposable {
       parts.push(`${overlappingAnnotations.length} annotation${overlappingAnnotations.length !== 1 ? 's' : ''}`);
     }
 
-    const message = `CodeDiary: Your changes overlap ${parts.join(' and ')} — review before committing`;
+    const message = `CodeLore: Your changes overlap ${parts.join(' and ')} — review before committing`;
 
     vscode.window.showInformationMessage(message, 'Show Brief', 'Dismiss').then(choice => {
       if (choice === 'Show Brief') {
-        vscode.commands.executeCommand('codediary.preCommitBrief.focus');
+        vscode.commands.executeCommand('codelore.preCommitBrief.focus');
       }
     });
   }

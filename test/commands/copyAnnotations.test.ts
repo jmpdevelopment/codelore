@@ -3,18 +3,18 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { __setWorkspaceFolder, __clearWorkspace, __setConfig } from '../__mocks__/vscode';
-import { DiaryStore } from '../../src/storage/diaryStore';
+import { LoreStore } from '../../src/storage/loreStore';
 import { CATEGORY_META } from '../../src/models/annotation';
 
 let tmpDir: string;
 
 beforeEach(() => {
-  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'codediary-cp-'));
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'codelore-cp-'));
   fs.mkdirSync(path.join(tmpDir, '.vscode'), { recursive: true });
   __setWorkspaceFolder(tmpDir);
   __setConfig({
-    'codediary.storagePath': '.vscode/codediary.yaml',
-    'codediary.defaultScope': 'shared',
+    'codelore.storagePath': '.vscode/codelore.yaml',
+    'codelore.defaultScope': 'shared',
   });
 });
 
@@ -25,7 +25,7 @@ afterEach(() => {
 
 describe('Copy annotations formatting', () => {
   it('formats annotations as readable text', () => {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     store.addAnnotation({
       id: 'cp-1',
       file: 'src/auth.ts',
@@ -49,7 +49,7 @@ describe('Copy annotations formatting', () => {
 
     const annotations = store.getAnnotationsForFile('src/auth.ts');
     const lines: string[] = [];
-    lines.push(`# CodeDiary annotations for src/auth.ts`);
+    lines.push(`# CodeLore annotations for src/auth.ts`);
     lines.push('');
     lines.push('## Annotations');
     for (const ann of annotations) {
@@ -66,7 +66,7 @@ describe('Copy annotations formatting', () => {
   });
 
   it('includes critical flags in output', () => {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     store.addCriticalFlag({
       file: 'src/auth.ts',
       line_start: 5,
@@ -87,7 +87,7 @@ describe('Copy annotations formatting', () => {
   });
 
   it('shows resolved status for reviewed flags', () => {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     store.addCriticalFlag({
       file: 'src/auth.ts',
       line_start: 5,
@@ -105,7 +105,7 @@ describe('Copy annotations formatting', () => {
   });
 
   it('returns empty for file with no annotations', () => {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     const annotations = store.getAnnotationsForFile('src/nonexistent.ts');
     const flags = store.getCriticalFlagsForFile('src/nonexistent.ts');
     expect(annotations).toHaveLength(0);

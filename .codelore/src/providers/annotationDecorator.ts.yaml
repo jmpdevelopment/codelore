@@ -6,7 +6,7 @@ annotations:
     line_end: 152
     category: business_rule
     text: >-
-      buildStaleHover uses enabledCommands whitelist ['codediary.reanchor'] instead of isTrusted: true. This is a
+      buildStaleHover uses enabledCommands whitelist ['codelore.reanchor'] instead of isTrusted: true. This is a
       security requirement — blanket trust allows injected markdown to execute arbitrary VS Code commands via command:
       URIs. Only the reanchor command is whitelisted.
     source: human_authored

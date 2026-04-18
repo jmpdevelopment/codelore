@@ -7,13 +7,13 @@ import { coerceSource } from '../models/annotation';
 import { SCHEMA_VERSION, assertSupportedVersion } from './schema';
 
 /**
- * Per-component YAML storage under `.codediary/components/`, committed to git.
+ * Per-component YAML storage under `.codelore/components/`, committed to git.
  *
  * One YAML per component (filename = `<id>.yaml`) keeps merge conflicts
  * scoped: two devs editing different components never collide.
  *
  * This store owns CRUD and file-list mutations. The reverse file→components
- * index is derived by {@link DiaryStore} at read time.
+ * index is derived by {@link LoreStore} at read time.
  */
 
 const COMPONENTS_DIR = 'components';
@@ -53,7 +53,7 @@ export class ComponentStore {
   constructor() {
     const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
     if (!workspaceFolder) { return; }
-    const candidatePath = path.join(workspaceFolder.uri.fsPath, '.codediary', COMPONENTS_DIR);
+    const candidatePath = path.join(workspaceFolder.uri.fsPath, '.codelore', COMPONENTS_DIR);
     if (fs.existsSync(candidatePath)) {
       try {
         const realPath = fs.realpathSync(candidatePath);
@@ -108,7 +108,7 @@ export class ComponentStore {
         if (component) { this.cache.set(component.id, component); }
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
-        vscode.window.showErrorMessage(`CodeDiary: ${message}`);
+        vscode.window.showErrorMessage(`CodeLore: ${message}`);
       }
     }
   }

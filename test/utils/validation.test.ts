@@ -25,8 +25,8 @@ describe('isSafeRelativePath', () => {
   });
 
   it('accepts paths with dots in filenames', () => {
-    expect(isSafeRelativePath('src/.codediary/foo.ts.yaml')).toBe(true);
-    expect(isSafeRelativePath('.vscode/codediary.yaml')).toBe(true);
+    expect(isSafeRelativePath('src/.codelore/foo.ts.yaml')).toBe(true);
+    expect(isSafeRelativePath('.vscode/codelore.yaml')).toBe(true);
   });
 });
 

@@ -4,7 +4,7 @@ import * as path from 'path';
 import * as os from 'os';
 import { __setWorkspaceFolder, __clearWorkspace, __setConfig } from '../__mocks__/vscode';
 import { ChangePlanProvider } from '../../src/views/changePlanProvider';
-import { DiaryStore } from '../../src/storage/diaryStore';
+import { LoreStore } from '../../src/storage/loreStore';
 import { Annotation } from '../../src/models/annotation';
 
 let tmpDir: string;
@@ -24,12 +24,12 @@ function makeAnnotation(overrides: Partial<Annotation> = {}): Annotation {
 }
 
 beforeEach(() => {
-  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'codediary-view-'));
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'codelore-view-'));
   fs.mkdirSync(path.join(tmpDir, '.vscode'), { recursive: true });
   __setWorkspaceFolder(tmpDir);
   __setConfig({
-    'codediary.storagePath': '.vscode/codediary.yaml',
-    'codediary.defaultScope': 'shared',
+    'codelore.storagePath': '.vscode/codelore.yaml',
+    'codelore.defaultScope': 'shared',
   });
 });
 
@@ -40,14 +40,14 @@ afterEach(() => {
 
 describe('ChangePlanProvider', () => {
   it('returns empty root when no annotations', () => {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     const provider = new ChangePlanProvider(store);
     expect(provider.getChildren()).toEqual([]);
     store.dispose();
   });
 
   it('returns file nodes at root level', () => {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     store.addAnnotation(makeAnnotation({ id: 'a1', file: 'src/foo.ts' }));
     store.addAnnotation(makeAnnotation({ id: 'a2', file: 'src/bar.ts' }));
     const provider = new ChangePlanProvider(store);
@@ -60,7 +60,7 @@ describe('ChangePlanProvider', () => {
   });
 
   it('returns annotation nodes for file node children', () => {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     store.addAnnotation(makeAnnotation({ id: 'a1', file: 'src/foo.ts' }));
     store.addAnnotation(makeAnnotation({ id: 'a2', file: 'src/foo.ts', category: 'gotcha' }));
     const provider = new ChangePlanProvider(store);
@@ -72,7 +72,7 @@ describe('ChangePlanProvider', () => {
   });
 
   it('returns empty array for annotation node children', () => {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     store.addAnnotation(makeAnnotation());
     const provider = new ChangePlanProvider(store);
     const fileNodes = provider.getChildren();
@@ -83,7 +83,7 @@ describe('ChangePlanProvider', () => {
   });
 
   it('filters by category', () => {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     store.addAnnotation(makeAnnotation({ id: 'a1', category: 'behavior' }));
     store.addAnnotation(makeAnnotation({ id: 'a2', category: 'gotcha' }));
     const provider = new ChangePlanProvider(store);
@@ -100,7 +100,7 @@ describe('ChangePlanProvider', () => {
   });
 
   it('getTreeItem returns the element itself', () => {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     store.addAnnotation(makeAnnotation());
     const provider = new ChangePlanProvider(store);
     const children = provider.getChildren();
@@ -109,7 +109,7 @@ describe('ChangePlanProvider', () => {
   });
 
   it('fires onDidChangeTreeData on refresh', () => {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     const provider = new ChangePlanProvider(store);
     let fired = false;
     provider.onDidChangeTreeData(() => { fired = true; });
@@ -119,7 +119,7 @@ describe('ChangePlanProvider', () => {
   });
 
   it('refreshes automatically when store changes', () => {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     const provider = new ChangePlanProvider(store);
     let fired = 0;
     provider.onDidChangeTreeData(() => { fired++; });
@@ -129,7 +129,7 @@ describe('ChangePlanProvider', () => {
   });
 
   it('annotation nodes have correct contextValue', () => {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     store.addAnnotation(makeAnnotation());
     const provider = new ChangePlanProvider(store);
     const fileNodes = provider.getChildren();
@@ -139,7 +139,7 @@ describe('ChangePlanProvider', () => {
   });
 
   it('file nodes have correct description', () => {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     store.addAnnotation(makeAnnotation({ id: 'a1' }));
     store.addAnnotation(makeAnnotation({ id: 'a2', file: 'src/foo.ts' }));
     const provider = new ChangePlanProvider(store);
@@ -149,7 +149,7 @@ describe('ChangePlanProvider', () => {
   });
 
   it('file node description is singular for 1 annotation', () => {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     store.addAnnotation(makeAnnotation());
     const provider = new ChangePlanProvider(store);
     const fileNodes = provider.getChildren();
@@ -158,7 +158,7 @@ describe('ChangePlanProvider', () => {
   });
 
   it('filters by file path', () => {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     store.addAnnotation(makeAnnotation({ id: 'a1', file: 'src/auth/login.ts' }));
     store.addAnnotation(makeAnnotation({ id: 'a2', file: 'src/billing/charge.ts' }));
     store.addAnnotation(makeAnnotation({ id: 'a3', file: 'src/auth/tokens.ts' }));
@@ -173,7 +173,7 @@ describe('ChangePlanProvider', () => {
   });
 
   it('path filter is case insensitive', () => {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     store.addAnnotation(makeAnnotation({ id: 'a1', file: 'src/Auth/Login.ts' }));
     const provider = new ChangePlanProvider(store);
 
@@ -183,7 +183,7 @@ describe('ChangePlanProvider', () => {
   });
 
   it('clears path filter with undefined', () => {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     store.addAnnotation(makeAnnotation({ id: 'a1', file: 'src/auth/login.ts' }));
     store.addAnnotation(makeAnnotation({ id: 'a2', file: 'src/billing/charge.ts' }));
     const provider = new ChangePlanProvider(store);
@@ -197,7 +197,7 @@ describe('ChangePlanProvider', () => {
   });
 
   it('combines category and path filters', () => {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     store.addAnnotation(makeAnnotation({ id: 'a1', file: 'src/auth/login.ts', category: 'behavior' }));
     store.addAnnotation(makeAnnotation({ id: 'a2', file: 'src/auth/tokens.ts', category: 'gotcha' }));
     store.addAnnotation(makeAnnotation({ id: 'a3', file: 'src/billing/charge.ts', category: 'behavior' }));
@@ -212,7 +212,7 @@ describe('ChangePlanProvider', () => {
   });
 
   it('getActiveFilters returns current filter state', () => {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     const provider = new ChangePlanProvider(store);
 
     expect(provider.getActiveFilters()).toEqual({ category: undefined, path: undefined, component: undefined });
@@ -226,7 +226,7 @@ describe('ChangePlanProvider', () => {
   describe('component filter', () => {
     function seedComponent(id: string, name: string, files: string[]): void {
       const yaml = require('js-yaml');
-      const file = path.join(tmpDir, '.codediary', 'components', `${id}.yaml`);
+      const file = path.join(tmpDir, '.codelore', 'components', `${id}.yaml`);
       fs.mkdirSync(path.dirname(file), { recursive: true });
       fs.writeFileSync(file, yaml.dump({
         version: 2, id, name, files,
@@ -238,7 +238,7 @@ describe('ChangePlanProvider', () => {
 
     it('limits annotations to files belonging to the component', () => {
       seedComponent('billing', 'Billing', ['src/billing/calc.ts']);
-      const store = new DiaryStore();
+      const store = new LoreStore();
       store.addAnnotation(makeAnnotation({ id: 'a1', file: 'src/billing/calc.ts' }));
       store.addAnnotation(makeAnnotation({ id: 'a2', file: 'src/auth/login.ts' }));
 
@@ -251,7 +251,7 @@ describe('ChangePlanProvider', () => {
 
     it('also matches annotations explicitly tagged with the component on untagged files', () => {
       seedComponent('billing', 'Billing', []);
-      const store = new DiaryStore();
+      const store = new LoreStore();
       store.addAnnotation(makeAnnotation({ id: 'a1', file: 'src/anywhere.ts', components: ['billing'] }));
       store.addAnnotation(makeAnnotation({ id: 'a2', file: 'src/anywhere.ts' }));
 
@@ -266,7 +266,7 @@ describe('ChangePlanProvider', () => {
 
     it('clearing the component filter restores all annotations', () => {
       seedComponent('billing', 'Billing', ['src/billing/calc.ts']);
-      const store = new DiaryStore();
+      const store = new LoreStore();
       store.addAnnotation(makeAnnotation({ id: 'a1', file: 'src/billing/calc.ts' }));
       store.addAnnotation(makeAnnotation({ id: 'a2', file: 'src/auth/login.ts' }));
 
@@ -279,7 +279,7 @@ describe('ChangePlanProvider', () => {
     });
 
     it('returns nothing when filtering by a component that does not exist', () => {
-      const store = new DiaryStore();
+      const store = new LoreStore();
       store.addAnnotation(makeAnnotation({ id: 'a1', file: 'src/foo.ts' }));
 
       const provider = new ChangePlanProvider(store);
@@ -289,7 +289,7 @@ describe('ChangePlanProvider', () => {
     });
 
     it('getActiveFilters reports the component filter', () => {
-      const store = new DiaryStore();
+      const store = new LoreStore();
       const provider = new ChangePlanProvider(store);
       provider.setComponentFilter('billing');
       expect(provider.getActiveFilters().component).toBe('billing');
@@ -298,7 +298,7 @@ describe('ChangePlanProvider', () => {
   });
 
   it('annotation nodes cover all category color mappings', () => {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     const categories = [
       'behavior', 'rationale', 'constraint', 'gotcha',
       'performance', 'security', 'human_note', 'business_rule', 'ai_prompt',

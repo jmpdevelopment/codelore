@@ -10,7 +10,7 @@ import {
   __queueQuickPick,
 } from '../__mocks__/vscode';
 import { ComponentProposer } from '../../src/ai/componentProposer';
-import { DiaryStore } from '../../src/storage/diaryStore';
+import { LoreStore } from '../../src/storage/loreStore';
 import { LmService } from '../../src/ai/lmService';
 
 let tmpDir: string;
@@ -35,12 +35,12 @@ function writeUntracked(rel: string, content: string): void {
 }
 
 beforeEach(() => {
-  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'codediary-propose-'));
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'codelore-propose-'));
   fs.mkdirSync(path.join(tmpDir, '.vscode'), { recursive: true });
   __setWorkspaceFolder(tmpDir);
   __setConfig({
-    'codediary.storagePath': '.vscode/codediary.yaml',
-    'codediary.defaultScope': 'shared',
+    'codelore.storagePath': '.vscode/codelore.yaml',
+    'codelore.defaultScope': 'shared',
   });
 });
 
@@ -51,7 +51,7 @@ afterEach(() => {
 
 describe('ComponentProposer.parseProposals', () => {
   function makeProposer(): ComponentProposer {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     return new ComponentProposer(new LmService(), store);
   }
 
@@ -121,7 +121,7 @@ describe('ComponentProposer.gatherCandidateFiles', () => {
     writeTracked('src/new.ts', 'export const x = 1;\n');
     writeUntracked('src/another.ts', 'export const y = 2;\n');
 
-    const store = new DiaryStore();
+    const store = new LoreStore();
     const proposer = new ComponentProposer(new LmService(), store);
     const files = proposer.gatherCandidateFiles();
     expect(files).toContain('src/new.ts');
@@ -133,7 +133,7 @@ describe('ComponentProposer.gatherCandidateFiles', () => {
     writeTracked('src/a.ts', 'export {};\n');
     execFileSync('git', ['commit', '-qm', 'clean'], { cwd: tmpDir });
 
-    const store = new DiaryStore();
+    const store = new LoreStore();
     store.addAnnotation({
       id: 'ann-1', file: 'src/a.ts', line_start: 1, line_end: 1,
       category: 'behavior', text: 'note', source: 'human_authored',
@@ -155,7 +155,7 @@ describe('ComponentProposer.propose end-to-end', () => {
     writeUntracked('src/reporting/monthly.ts', 'export {};\n');
     writeUntracked('src/billing/calc.ts', 'export const x = 1;\n');
 
-    const store = new DiaryStore();
+    const store = new LoreStore();
     const lm = new LmService();
     (lm as any).generate = async (_s: string, _u: string) => ({
       text: JSON.stringify([

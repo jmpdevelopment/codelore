@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { LmService } from './lmService';
-import { DiaryStore } from '../storage/diaryStore';
+import { LoreStore } from '../storage/loreStore';
 import { Component, isValidComponentId, slugify } from '../models/component';
 import { getGitUser, getWorkspaceCwd, gitChangedFiles } from '../utils/git';
 import { stripJsonFences } from '../utils/validation';
@@ -23,7 +23,7 @@ export interface ProposedComponent {
   files: string[];
 }
 
-const SYSTEM_PROMPT = `You are CodeDiary, proposing component groupings for a codebase. A "component" is a coherent subsystem a developer would recognize as a unit (e.g., "Billing", "Auth", "Search Indexing").
+const SYSTEM_PROMPT = `You are CodeLore, proposing component groupings for a codebase. A "component" is a coherent subsystem a developer would recognize as a unit (e.g., "Billing", "Auth", "Search Indexing").
 
 You are given a flat list of source file paths plus the component definitions that already exist (do not duplicate these). Partition the files into 3–10 proposed components. Each file may belong to at most one component; files that do not cleanly fit any subsystem should be left out. Do not invent files that are not in the list.
 
@@ -38,14 +38,14 @@ Prefer folder-structure signal and naming conventions. Skip configuration, build
 export class ComponentProposer {
   constructor(
     private lm: LmService,
-    private store: DiaryStore,
+    private store: LoreStore,
   ) {}
 
   async propose(): Promise<void> {
     const files = this.gatherCandidateFiles();
     if (files.length === 0) {
       vscode.window.showInformationMessage(
-        'CodeDiary: No candidate files found. Make some changes or open a workspace with source files.',
+        'CodeLore: No candidate files found. Make some changes or open a workspace with source files.',
       );
       return;
     }
@@ -53,7 +53,7 @@ export class ComponentProposer {
     await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
-        title: `CodeDiary: Proposing components for ${files.length} files...`,
+        title: `CodeLore: Proposing components for ${files.length} files...`,
         cancellable: true,
       },
       async (progress, token) => {
@@ -71,7 +71,7 @@ export class ComponentProposer {
           const proposals = this.parseProposals(result.text, new Set(files), existingIds);
           if (proposals.length === 0) {
             vscode.window.showInformationMessage(
-              `CodeDiary: No component proposals surfaced (via ${result.modelName}).`,
+              `CodeLore: No component proposals surfaced (via ${result.modelName}).`,
             );
             return;
           }
@@ -79,7 +79,7 @@ export class ComponentProposer {
           await this.presentProposals(proposals, result.modelName);
         } catch (err) {
           vscode.window.showErrorMessage(
-            `CodeDiary: Component proposal failed: ${err instanceof Error ? err.message : String(err)}`,
+            `CodeLore: Component proposal failed: ${err instanceof Error ? err.message : String(err)}`,
           );
         }
       },
@@ -186,7 +186,7 @@ export class ComponentProposer {
       accepted++;
     }
     vscode.window.showInformationMessage(
-      `CodeDiary: Accepted ${accepted} component proposal${accepted === 1 ? '' : 's'}. Edit them from the Components sidebar.`,
+      `CodeLore: Accepted ${accepted} component proposal${accepted === 1 ? '' : 's'}. Edit them from the Components sidebar.`,
     );
   }
 }

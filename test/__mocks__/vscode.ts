@@ -1,5 +1,5 @@
 // Lightweight vscode mock for unit testing.
-// Only implements what CodeDiary actually uses.
+// Only implements what CodeLore actually uses.
 
 export class EventEmitter<T> {
   private listeners: ((e: T) => void)[] = [];

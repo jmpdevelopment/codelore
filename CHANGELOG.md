@@ -1,17 +1,17 @@
 # Changelog
 
-All notable changes to the CodeDiary extension are documented here. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+All notable changes to the CodeLore extension are documented here. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [0.1.0] — 2026-04-18
 
-Initial public release. CodeDiary is a VSCode extension that captures
+Initial public release. CodeLore is a VSCode extension that captures
 institutional knowledge alongside the source tree so it survives
 AI-driven refactors, team turnover, and noisy AI reviewers.
 
 ### Added
 
 - **Knowledge-store model.** Annotations are stored as structured YAML in
-  `.codediary/` (team, committed to git) and `.vscode/codediary.yaml`
+  `.codelore/` (team, committed to git) and `.vscode/codelore.yaml`
   (personal, gitignored). AI agents can both read and author entries.
 - **Components.** Group files into named components with descriptions and
   owners. Tag-first flow: the `Manage Components for File` command
@@ -44,4 +44,4 @@ AI-driven refactors, team turnover, and noisy AI reviewers.
 - **Security hardening.** Markdown sanitization, path traversal
   prevention, symlink-safe writes, scoped command trust in hovers.
 
-[0.1.0]: https://marketplace.visualstudio.com/items?itemName=codediary.codediary
+[0.1.0]: https://marketplace.visualstudio.com/items?itemName=jmpdevelopment.codelore

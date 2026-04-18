@@ -6,7 +6,7 @@ annotations:
     line_end: 47
     category: business_rule
     text: >-
-      Symlink safety check in constructor. If .codediary/ is a symlink pointing outside the workspace, the store refuses
+      Symlink safety check in constructor. If .codelore/ is a symlink pointing outside the workspace, the store refuses
       to initialize. This prevents a supply chain attack where someone commits a symlink to a shared repo that
       exfiltrates annotation writes to an attacker-controlled directory.
     source: human_authored
@@ -22,7 +22,7 @@ annotations:
     category: business_rule
     text: >-
       yamlPath() is the second layer of path traversal defense. Even if an annotation's file field passes
-      isSafeRelativePath, yamlPath verifies the resolved path stays under .codediary/. Throws on violation — callers
+      isSafeRelativePath, yamlPath verifies the resolved path stays under .codelore/. Throws on violation — callers
       must handle.
     source: human_authored
     created_at: '2026-03-22T16:00:00Z'

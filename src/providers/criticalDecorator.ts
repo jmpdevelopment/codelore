@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { DiaryStore } from '../storage/diaryStore';
+import { LoreStore } from '../storage/loreStore';
 import { CriticalSeverity } from '../models/criticalFlag';
 import { getRelativePath } from '../utils/git';
 
@@ -14,7 +14,7 @@ export class CriticalDecorator implements vscode.Disposable {
   private reviewedDecoration: vscode.TextEditorDecorationType;
   private disposables: vscode.Disposable[] = [];
 
-  constructor(private store: DiaryStore) {
+  constructor(private store: LoreStore) {
     // Base decoration types provide structure; severity-specific colors
     // are applied via per-item renderOptions
     this.unreviewedDecoration = vscode.window.createTextEditorDecorationType({

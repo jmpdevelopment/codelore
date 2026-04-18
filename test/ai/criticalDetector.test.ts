@@ -4,18 +4,18 @@ import * as path from 'path';
 import * as os from 'os';
 import { __setWorkspaceFolder, __clearWorkspace, __setConfig } from '../__mocks__/vscode';
 import { CriticalDetector } from '../../src/ai/criticalDetector';
-import { DiaryStore } from '../../src/storage/diaryStore';
+import { LoreStore } from '../../src/storage/loreStore';
 import { LmService } from '../../src/ai/lmService';
 
 let tmpDir: string;
 
 beforeEach(() => {
-  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'codediary-ai-'));
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'codelore-ai-'));
   fs.mkdirSync(path.join(tmpDir, '.vscode'), { recursive: true });
   __setWorkspaceFolder(tmpDir);
   __setConfig({
-    'codediary.storagePath': '.vscode/codediary.yaml',
-    'codediary.defaultScope': 'shared',
+    'codelore.storagePath': '.vscode/codelore.yaml',
+    'codelore.defaultScope': 'shared',
   });
 });
 
@@ -26,7 +26,7 @@ afterEach(() => {
 
 describe('CriticalDetector.parseRegions', () => {
   function getParser() {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     const lm = new LmService();
     const detector = new CriticalDetector(lm, store);
     const parseRegions = (detector as any).parseRegions.bind(detector);
@@ -147,7 +147,7 @@ describe('CriticalDetector.scanFiles batch mode', () => {
     fs.writeFileSync(path.join(tmpDir, 'src/a.ts'), 'export const A = 1;\n', 'utf8');
     fs.writeFileSync(path.join(tmpDir, 'src/b.ts'), 'export const B = 2;\n', 'utf8');
 
-    const store = new DiaryStore();
+    const store = new LoreStore();
     const lm = new LmService();
     const seenPaths: string[] = [];
     (lm as any).generate = async (_system: string, user: string) => {
@@ -179,7 +179,7 @@ describe('CriticalDetector.scanFiles batch mode', () => {
     fs.mkdirSync(path.join(tmpDir, 'src'), { recursive: true });
     fs.writeFileSync(path.join(tmpDir, 'src/a.ts'), 'export const A = 1;\n', 'utf8');
 
-    const store = new DiaryStore();
+    const store = new LoreStore();
     const lm = new LmService();
     (lm as any).generate = async () => ({
       text: JSON.stringify([
@@ -203,7 +203,7 @@ describe('CriticalDetector.scanFiles batch mode', () => {
     fs.mkdirSync(path.join(tmpDir, 'src'), { recursive: true });
     fs.writeFileSync(path.join(tmpDir, 'src/real.ts'), 'export {};\n', 'utf8');
 
-    const store = new DiaryStore();
+    const store = new LoreStore();
     const lm = new LmService();
     let calls = 0;
     (lm as any).generate = async () => { calls++; return { text: '[]', modelName: 'stub' }; };

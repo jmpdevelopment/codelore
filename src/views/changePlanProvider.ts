@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { DiaryStore } from '../storage/diaryStore';
+import { LoreStore } from '../storage/loreStore';
 import { Annotation, CATEGORY_META, AnnotationCategory } from '../models/annotation';
 import { isSafeRelativePath, sanitizeMarkdownText, truncateText } from '../utils/validation';
 
@@ -80,7 +80,7 @@ export class ChangePlanProvider implements vscode.TreeDataProvider<TreeItem> {
   private filterPath: string | undefined;
   private filterComponent: string | undefined;
 
-  constructor(private store: DiaryStore) {
+  constructor(private store: LoreStore) {
     store.onDidChange(() => this.refresh());
   }
 
@@ -124,7 +124,7 @@ export class ChangePlanProvider implements vscode.TreeDataProvider<TreeItem> {
       }
       if (this.filterComponent) {
         // Match either explicit per-annotation tag OR file-level membership.
-        // Mirrors DiaryStore.search so the two surfaces feel consistent.
+        // Mirrors LoreStore.search so the two surfaces feel consistent.
         const componentFiles = new Set(this.store.getComponent(this.filterComponent)?.files ?? []);
         const componentId = this.filterComponent;
         annotations = annotations.filter(a =>

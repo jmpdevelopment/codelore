@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { __setWorkspaceFolder, __clearWorkspace, __setConfig } from '../__mocks__/vscode';
-import { DiaryStore } from '../../src/storage/diaryStore';
+import { LoreStore } from '../../src/storage/loreStore';
 import { Annotation } from '../../src/models/annotation';
 import { CriticalFlag } from '../../src/models/criticalFlag';
 import { Component } from '../../src/models/component';
@@ -37,12 +37,12 @@ function makeFlag(overrides: Partial<CriticalFlag> = {}): CriticalFlag {
 }
 
 beforeEach(() => {
-  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'codediary-search-'));
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'codelore-search-'));
   fs.mkdirSync(path.join(tmpDir, '.vscode'), { recursive: true });
   __setWorkspaceFolder(tmpDir);
   __setConfig({
-    'codediary.storagePath': '.vscode/codediary.yaml',
-    'codediary.defaultScope': 'shared',
+    'codelore.storagePath': '.vscode/codelore.yaml',
+    'codelore.defaultScope': 'shared',
   });
 });
 
@@ -51,10 +51,10 @@ afterEach(() => {
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
 
-describe('DiaryStore.search', () => {
+describe('LoreStore.search', () => {
   describe('text search', () => {
     it('finds annotations matching text', () => {
-      const store = new DiaryStore();
+      const store = new LoreStore();
       store.addAnnotation(makeAnnotation({ id: 'a1', text: 'billing logic verified' }));
       store.addAnnotation(makeAnnotation({ id: 'a2', text: 'auth flow looks fine' }));
 
@@ -65,7 +65,7 @@ describe('DiaryStore.search', () => {
     });
 
     it('is case insensitive', () => {
-      const store = new DiaryStore();
+      const store = new LoreStore();
       store.addAnnotation(makeAnnotation({ id: 'a1', text: 'Billing Logic Verified' }));
 
       const results = store.search({ text: 'billing' });
@@ -74,7 +74,7 @@ describe('DiaryStore.search', () => {
     });
 
     it('returns all when text is empty', () => {
-      const store = new DiaryStore();
+      const store = new LoreStore();
       store.addAnnotation(makeAnnotation({ id: 'a1' }));
       store.addAnnotation(makeAnnotation({ id: 'a2', text: 'other' }));
 
@@ -86,7 +86,7 @@ describe('DiaryStore.search', () => {
 
   describe('category filter', () => {
     it('filters by annotation category', () => {
-      const store = new DiaryStore();
+      const store = new LoreStore();
       store.addAnnotation(makeAnnotation({ id: 'a1', category: 'behavior' }));
       store.addAnnotation(makeAnnotation({ id: 'a2', category: 'gotcha' }));
       store.addAnnotation(makeAnnotation({ id: 'a3', category: 'gotcha' }));
@@ -98,7 +98,7 @@ describe('DiaryStore.search', () => {
     });
 
     it('excludes critical flags when category filter is set', () => {
-      const store = new DiaryStore();
+      const store = new LoreStore();
       store.addAnnotation(makeAnnotation({ id: 'a1', category: 'behavior' }));
       store.addCriticalFlag(makeFlag());
 
@@ -111,7 +111,7 @@ describe('DiaryStore.search', () => {
 
   describe('file filter', () => {
     it('filters by file path substring', () => {
-      const store = new DiaryStore();
+      const store = new LoreStore();
       store.addAnnotation(makeAnnotation({ id: 'a1', file: 'src/auth/middleware.ts' }));
       store.addAnnotation(makeAnnotation({ id: 'a2', file: 'src/billing/charge.ts' }));
       store.addAnnotation(makeAnnotation({ id: 'a3', file: 'src/auth/tokens.ts' }));
@@ -122,7 +122,7 @@ describe('DiaryStore.search', () => {
     });
 
     it('matches file name without directory', () => {
-      const store = new DiaryStore();
+      const store = new LoreStore();
       store.addAnnotation(makeAnnotation({ id: 'a1', file: 'src/deep/nested/middleware.ts' }));
 
       const results = store.search({ file: 'middleware.ts' });
@@ -133,7 +133,7 @@ describe('DiaryStore.search', () => {
 
   describe('combined filters', () => {
     it('combines text and file filters', () => {
-      const store = new DiaryStore();
+      const store = new LoreStore();
       store.addAnnotation(makeAnnotation({ id: 'a1', file: 'src/auth/login.ts', text: 'token expiry' }));
       store.addAnnotation(makeAnnotation({ id: 'a2', file: 'src/billing/pay.ts', text: 'token usage' }));
       store.addAnnotation(makeAnnotation({ id: 'a3', file: 'src/auth/logout.ts', text: 'session clear' }));
@@ -145,7 +145,7 @@ describe('DiaryStore.search', () => {
     });
 
     it('combines category and file filters', () => {
-      const store = new DiaryStore();
+      const store = new LoreStore();
       store.addAnnotation(makeAnnotation({ id: 'a1', file: 'src/auth/login.ts', category: 'gotcha' }));
       store.addAnnotation(makeAnnotation({ id: 'a2', file: 'src/auth/login.ts', category: 'behavior' }));
       store.addAnnotation(makeAnnotation({ id: 'a3', file: 'src/billing/pay.ts', category: 'gotcha' }));
@@ -158,7 +158,7 @@ describe('DiaryStore.search', () => {
 
   describe('critical flags in search', () => {
     it('includes critical flags with no category filter', () => {
-      const store = new DiaryStore();
+      const store = new LoreStore();
       store.addCriticalFlag(makeFlag());
 
       const results = store.search({});
@@ -169,7 +169,7 @@ describe('DiaryStore.search', () => {
     });
 
     it('filters critical flags by text in description', () => {
-      const store = new DiaryStore();
+      const store = new LoreStore();
       store.addCriticalFlag(makeFlag({ description: 'Auth token validation' }));
       store.addCriticalFlag(makeFlag({ description: 'Payment processing', line_start: 50, line_end: 60 }));
 
@@ -180,7 +180,7 @@ describe('DiaryStore.search', () => {
     });
 
     it('filters critical flags by file', () => {
-      const store = new DiaryStore();
+      const store = new LoreStore();
       store.addCriticalFlag(makeFlag({ file: 'src/auth/login.ts' }));
       store.addCriticalFlag(makeFlag({ file: 'src/billing/pay.ts', line_start: 50, line_end: 60 }));
 
@@ -193,7 +193,7 @@ describe('DiaryStore.search', () => {
 
   describe('scope tracking', () => {
     it('tracks shared vs personal scope in results', () => {
-      const store = new DiaryStore();
+      const store = new LoreStore();
       store.addAnnotation(makeAnnotation({ id: 'a1' }), 'shared');
       store.addAnnotation(makeAnnotation({ id: 'a2', text: 'private note' }), 'personal');
 
@@ -218,14 +218,14 @@ describe('DiaryStore.search', () => {
         created_at: c.created_at ?? '2026-04-18T00:00:00Z',
         updated_at: c.updated_at ?? '2026-04-18T00:00:00Z',
       };
-      const file = path.join(tmpDir, '.codediary', 'components', `${c.id}.yaml`);
+      const file = path.join(tmpDir, '.codelore', 'components', `${c.id}.yaml`);
       fs.mkdirSync(path.dirname(file), { recursive: true });
       fs.writeFileSync(file, yaml.dump(full), 'utf8');
     }
 
     it('matches annotations on files that belong to the component', () => {
       seedComponent({ id: 'billing', name: 'Billing', files: ['src/billing/calc.ts'] });
-      const store = new DiaryStore();
+      const store = new LoreStore();
       store.addAnnotation(makeAnnotation({ id: 'a1', file: 'src/billing/calc.ts' }));
       store.addAnnotation(makeAnnotation({ id: 'a2', file: 'src/auth/login.ts' }));
 
@@ -237,7 +237,7 @@ describe('DiaryStore.search', () => {
 
     it('matches annotations explicitly tagged with the component even on untagged files', () => {
       seedComponent({ id: 'billing', name: 'Billing', files: [] });
-      const store = new DiaryStore();
+      const store = new LoreStore();
       store.addAnnotation(makeAnnotation({
         id: 'a1', file: 'src/anywhere.ts', components: ['billing'],
       }));
@@ -250,7 +250,7 @@ describe('DiaryStore.search', () => {
     });
 
     it('returns nothing when the component does not exist', () => {
-      const store = new DiaryStore();
+      const store = new LoreStore();
       store.addAnnotation(makeAnnotation({ id: 'a1', file: 'src/billing/calc.ts' }));
 
       expect(store.search({ component: 'nonexistent' })).toEqual([]);
@@ -259,7 +259,7 @@ describe('DiaryStore.search', () => {
 
     it('restricts critical flags to files in the component', () => {
       seedComponent({ id: 'billing', name: 'Billing', files: ['src/billing/calc.ts'] });
-      const store = new DiaryStore();
+      const store = new LoreStore();
       store.addCriticalFlag(makeFlag({ file: 'src/billing/calc.ts', description: 'invariant' }));
       store.addCriticalFlag(makeFlag({ file: 'src/auth/login.ts', description: 'token check', line_start: 30, line_end: 40 }));
 
@@ -272,7 +272,7 @@ describe('DiaryStore.search', () => {
 
     it('combines with text filter', () => {
       seedComponent({ id: 'billing', name: 'Billing', files: ['src/billing/a.ts', 'src/billing/b.ts'] });
-      const store = new DiaryStore();
+      const store = new LoreStore();
       store.addAnnotation(makeAnnotation({ id: 'a1', file: 'src/billing/a.ts', text: 'invoice rounding' }));
       store.addAnnotation(makeAnnotation({ id: 'a2', file: 'src/billing/b.ts', text: 'tax math' }));
       store.addAnnotation(makeAnnotation({ id: 'a3', file: 'src/auth/login.ts', text: 'invoice handler' }));
@@ -286,14 +286,14 @@ describe('DiaryStore.search', () => {
 
   describe('empty results', () => {
     it('returns empty array when no data', () => {
-      const store = new DiaryStore();
+      const store = new LoreStore();
       const results = store.search({ text: 'anything' });
       expect(results).toEqual([]);
       store.dispose();
     });
 
     it('returns empty array when nothing matches', () => {
-      const store = new DiaryStore();
+      const store = new LoreStore();
       store.addAnnotation(makeAnnotation({ id: 'a1', text: 'billing' }));
 
       const results = store.search({ text: 'nonexistent' });

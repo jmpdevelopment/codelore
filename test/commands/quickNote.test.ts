@@ -3,17 +3,17 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { __setWorkspaceFolder, __clearWorkspace, __setConfig } from '../__mocks__/vscode';
-import { DiaryStore } from '../../src/storage/diaryStore';
+import { LoreStore } from '../../src/storage/loreStore';
 
 let tmpDir: string;
 
 beforeEach(() => {
-  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'codediary-qn-'));
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'codelore-qn-'));
   fs.mkdirSync(path.join(tmpDir, '.vscode'), { recursive: true });
   __setWorkspaceFolder(tmpDir);
   __setConfig({
-    'codediary.storagePath': '.vscode/codediary.yaml',
-    'codediary.defaultScope': 'shared',
+    'codelore.storagePath': '.vscode/codelore.yaml',
+    'codelore.defaultScope': 'shared',
   });
 });
 
@@ -24,7 +24,7 @@ afterEach(() => {
 
 describe('Quick Note behavior', () => {
   it('ai_prompt annotations are stored in personal scope', () => {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     store.addAnnotation({
       id: 'qn-1',
       file: 'src/foo.ts',
@@ -44,7 +44,7 @@ describe('Quick Note behavior', () => {
   });
 
   it('ai_prompt category exists in store after add', () => {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     store.addAnnotation({
       id: 'qn-2',
       file: 'src/bar.ts',
@@ -62,7 +62,7 @@ describe('Quick Note behavior', () => {
   });
 
   it('multiple quick notes on same file', () => {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     store.addAnnotation({
       id: 'qn-3',
       file: 'src/foo.ts',

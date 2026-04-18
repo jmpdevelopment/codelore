@@ -7,10 +7,10 @@ import { CriticalFlag } from '../models/criticalFlag';
 import { SCHEMA_VERSION, assertSupportedVersion } from './schema';
 
 /**
- * Per-file YAML storage in .codediary/ directory, committed to git.
+ * Per-file YAML storage in .codelore/ directory, committed to git.
  *
  * Structure mirrors the source tree:
- *   .codediary/src/auth/middleware.ts.yaml
+ *   .codelore/src/auth/middleware.ts.yaml
  *
  * Each file contains annotations and critical_flags for that source
  * file only. This keeps merge conflicts scoped to individual files —
@@ -48,14 +48,14 @@ export class SharedStore {
   constructor() {
     const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
     if (!workspaceFolder) { return; }
-    const candidatePath = path.join(workspaceFolder.uri.fsPath, '.codediary');
+    const candidatePath = path.join(workspaceFolder.uri.fsPath, '.codelore');
     // Resolve symlinks to prevent writing outside workspace
     if (fs.existsSync(candidatePath)) {
       try {
         const realPath = fs.realpathSync(candidatePath);
         const realWorkspace = fs.realpathSync(workspaceFolder.uri.fsPath);
         if (!realPath.startsWith(realWorkspace + path.sep) && realPath !== realWorkspace) {
-          return; // .codediary is a symlink pointing outside workspace
+          return; // .codelore is a symlink pointing outside workspace
         }
       } catch { return; }
     }
@@ -79,7 +79,7 @@ export class SharedStore {
 
   private yamlPath(sourceFile: string): string {
     const resolved = path.resolve(this.basePath!, `${sourceFile}.yaml`);
-    // Prevent path traversal outside .codediary/
+    // Prevent path traversal outside .codelore/
     if (!resolved.startsWith(this.basePath! + path.sep) && resolved !== this.basePath) {
       throw new Error(`Path traversal detected: ${sourceFile}`);
     }
@@ -95,7 +95,7 @@ export class SharedStore {
       return parseFileData(yaml.load(raw), filePath);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      vscode.window.showErrorMessage(`CodeDiary: ${message}`);
+      vscode.window.showErrorMessage(`CodeLore: ${message}`);
       return {};
     }
   }
@@ -171,7 +171,7 @@ export class SharedStore {
           this.cache.set(sourceFile, parseFileData(yaml.load(raw), fullPath));
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err);
-          vscode.window.showErrorMessage(`CodeDiary: ${message}`);
+          vscode.window.showErrorMessage(`CodeLore: ${message}`);
         }
       }
     }

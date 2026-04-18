@@ -15,8 +15,8 @@ annotations:
     dependencies:
       - file: src/views/changePlanProvider.ts
         relationship: changePlanProvider calls isSafeRelativePath before vscode.open navigation
-      - file: src/ai/diaryGenerator.ts
-        relationship: diaryGenerator validates dependency paths with isSafeRelativePath
+      - file: src/ai/loreGenerator.ts
+        relationship: loreGenerator validates dependency paths with isSafeRelativePath
       - file: src/storage/sharedStore.ts
         relationship: sharedStore has its own path traversal check in yamlPath() — both must agree
   - id: ddcfb64e-c3d3-4e46-be1a-ac5622e04974

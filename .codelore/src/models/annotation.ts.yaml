@@ -24,14 +24,14 @@ annotations:
     category: business_rule
     text: >-
       ANNOTATION_CATEGORIES array order determines display order in quick pick menus. The AI system prompt also
-      references these categories — if you add or rename one, update the SYSTEM_PROMPT in diaryGenerator.ts and
+      references these categories — if you add or rename one, update the SYSTEM_PROMPT in loreGenerator.ts and
       criticalDetector.ts.
     source: human_authored
     created_at: '2026-03-22T16:00:00Z'
     author: jmp
     dependencies:
-      - file: src/ai/diaryGenerator.ts
-        relationship: diaryGenerator SYSTEM_PROMPT lists valid categories — must stay in sync
+      - file: src/ai/loreGenerator.ts
+        relationship: loreGenerator SYSTEM_PROMPT lists valid categories — must stay in sync
       - file: src/ai/criticalDetector.ts
         relationship: criticalDetector references category names in its prompts
       - file: src/commands/agentInstructions.ts

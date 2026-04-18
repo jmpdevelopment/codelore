@@ -10,8 +10,8 @@ import {
   __queueQuickPick,
   Uri,
 } from '../__mocks__/vscode';
-import { DiaryGenerator } from '../../src/ai/diaryGenerator';
-import { DiaryStore } from '../../src/storage/diaryStore';
+import { LoreGenerator } from '../../src/ai/loreGenerator';
+import { LoreStore } from '../../src/storage/loreStore';
 import { LmService } from '../../src/ai/lmService';
 import { Annotation } from '../../src/models/annotation';
 import { CriticalFlag } from '../../src/models/criticalFlag';
@@ -19,12 +19,12 @@ import { CriticalFlag } from '../../src/models/criticalFlag';
 let tmpDir: string;
 
 beforeEach(() => {
-  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'codediary-gen-'));
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'codelore-gen-'));
   fs.mkdirSync(path.join(tmpDir, '.vscode'), { recursive: true });
   __setWorkspaceFolder(tmpDir);
   __setConfig({
-    'codediary.storagePath': '.vscode/codediary.yaml',
-    'codediary.defaultScope': 'shared',
+    'codelore.storagePath': '.vscode/codelore.yaml',
+    'codelore.defaultScope': 'shared',
   });
 });
 
@@ -33,11 +33,11 @@ afterEach(() => {
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
 
-describe('DiaryGenerator parsing', () => {
+describe('LoreGenerator parsing', () => {
   function getParser() {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     const lm = new LmService();
-    const generator = new DiaryGenerator(lm, store);
+    const generator = new LoreGenerator(lm, store);
     const parseEntries = (raw: string) =>
       (generator as any).parseEntries.call(generator, raw);
     const numberLines = (generator as any).numberLines.bind(generator);
@@ -222,18 +222,18 @@ describe('DiaryGenerator parsing', () => {
     }
 
     it('returns empty string when no existing knowledge', () => {
-      const store = new DiaryStore();
+      const store = new LoreStore();
       const lm = new LmService();
-      const generator = new DiaryGenerator(lm, store);
+      const generator = new LoreGenerator(lm, store);
       const result = generator.formatExistingKnowledge('src/foo.ts');
       expect(result).toBe('');
       store.dispose();
     });
 
     it('includes annotations for the file', () => {
-      const store = new DiaryStore();
+      const store = new LoreStore();
       const lm = new LmService();
-      const generator = new DiaryGenerator(lm, store);
+      const generator = new LoreGenerator(lm, store);
       store.addAnnotation(makeAnnotation({ text: 'billing off-by-one is intentional' }));
 
       const result = generator.formatExistingKnowledge('src/foo.ts');
@@ -245,9 +245,9 @@ describe('DiaryGenerator parsing', () => {
     });
 
     it('includes critical flags for the file', () => {
-      const store = new DiaryStore();
+      const store = new LoreStore();
       const lm = new LmService();
-      const generator = new DiaryGenerator(lm, store);
+      const generator = new LoreGenerator(lm, store);
       store.addCriticalFlag(makeFlag({ description: 'Token validation logic' }));
 
       const result = generator.formatExistingKnowledge('src/foo.ts');
@@ -258,9 +258,9 @@ describe('DiaryGenerator parsing', () => {
     });
 
     it('shows reviewed status for resolved critical flags', () => {
-      const store = new DiaryStore();
+      const store = new LoreStore();
       const lm = new LmService();
-      const generator = new DiaryGenerator(lm, store);
+      const generator = new LoreGenerator(lm, store);
       store.addCriticalFlag(makeFlag({ human_reviewed: true }));
 
       const result = generator.formatExistingKnowledge('src/foo.ts');
@@ -270,9 +270,9 @@ describe('DiaryGenerator parsing', () => {
     });
 
     it('does not include annotations for other files', () => {
-      const store = new DiaryStore();
+      const store = new LoreStore();
       const lm = new LmService();
-      const generator = new DiaryGenerator(lm, store);
+      const generator = new LoreGenerator(lm, store);
       store.addAnnotation(makeAnnotation({ file: 'src/other.ts', text: 'wrong file' }));
 
       const result = generator.formatExistingKnowledge('src/foo.ts');
@@ -281,9 +281,9 @@ describe('DiaryGenerator parsing', () => {
     });
 
     it('includes both annotations and critical flags', () => {
-      const store = new DiaryStore();
+      const store = new LoreStore();
       const lm = new LmService();
-      const generator = new DiaryGenerator(lm, store);
+      const generator = new LoreGenerator(lm, store);
       store.addAnnotation(makeAnnotation({ text: 'verified the auth flow' }));
       store.addCriticalFlag(makeFlag({ description: 'Payment logic' }));
 
@@ -299,7 +299,7 @@ describe('DiaryGenerator parsing', () => {
   describe('component awareness', () => {
     function writeComponent(dir: string, id: string, payload: Record<string, unknown>): void {
       const yaml = require('js-yaml');
-      const file = path.join(dir, '.codediary', 'components', `${id}.yaml`);
+      const file = path.join(dir, '.codelore', 'components', `${id}.yaml`);
       fs.mkdirSync(path.dirname(file), { recursive: true });
       fs.writeFileSync(file, yaml.dump({ version: 2, ...payload }), 'utf8');
     }
@@ -317,8 +317,8 @@ describe('DiaryGenerator parsing', () => {
         source: 'human_authored',
         created_at: '2026-04-18T00:00:00Z', updated_at: '2026-04-18T00:00:00Z',
       });
-      const store = new DiaryStore();
-      const generator = new DiaryGenerator(new LmService(), store);
+      const store = new LoreStore();
+      const generator = new LoreGenerator(new LmService(), store);
 
       const block = generator.formatComponentContext('src/foo.ts');
       expect(block).toContain('<components>');
@@ -335,8 +335,8 @@ describe('DiaryGenerator parsing', () => {
         source: 'human_authored',
         created_at: '2026-04-18T00:00:00Z', updated_at: '2026-04-18T00:00:00Z',
       });
-      const store = new DiaryStore();
-      const generator = new DiaryGenerator(new LmService(), store);
+      const store = new LoreStore();
+      const generator = new LoreGenerator(new LmService(), store);
       expect(generator.formatComponentContext('src/foo.ts')).toBe('');
       store.dispose();
     });
@@ -353,7 +353,7 @@ describe('DiaryGenerator parsing', () => {
       fs.mkdirSync(path.dirname(filePath), { recursive: true });
       fs.writeFileSync(filePath, 'function charge() {\n  return 42;\n}\n', 'utf8');
 
-      const store = new DiaryStore();
+      const store = new LoreStore();
       const lm = new LmService();
       let capturedPrompt = '';
       (lm as any).generate = async (_system: string, user: string) => {
@@ -365,7 +365,7 @@ describe('DiaryGenerator parsing', () => {
           modelName: 'stub/model',
         };
       };
-      const generator = new DiaryGenerator(lm, store);
+      const generator = new LoreGenerator(lm, store);
 
       const editor = {
         document: {
@@ -404,8 +404,8 @@ describe('DiaryGenerator parsing', () => {
         source: 'human_authored',
         created_at: '2026-04-18T00:00:00Z', updated_at: '2026-04-18T00:00:00Z',
       });
-      const store = new DiaryStore();
-      const generator = new DiaryGenerator(new LmService(), store);
+      const store = new LoreStore();
+      const generator = new LoreGenerator(new LmService(), store);
       const raw = JSON.stringify([
         {
           category: 'behavior', line_start: 1, line_end: 5, text: 'ok',
@@ -429,7 +429,7 @@ describe('DiaryGenerator parsing', () => {
       fs.writeFileSync(path.join(tmpDir, 'src/a.ts'), 'export const A = 1;\n', 'utf8');
       fs.writeFileSync(path.join(tmpDir, 'src/b.ts'), 'export const B = 2;\n', 'utf8');
 
-      const store = new DiaryStore();
+      const store = new LoreStore();
       const lm = new LmService();
       const seenPaths: string[] = [];
       (lm as any).generate = async (_system: string, user: string) => {
@@ -443,7 +443,7 @@ describe('DiaryGenerator parsing', () => {
           modelName: 'stub/model',
         };
       };
-      const generator = new DiaryGenerator(lm, store);
+      const generator = new LoreGenerator(lm, store);
 
       await generator.scanFiles(['src/a.ts', 'src/b.ts'], 'test scope');
 
@@ -461,14 +461,14 @@ describe('DiaryGenerator parsing', () => {
       fs.mkdirSync(path.join(tmpDir, 'src'), { recursive: true });
       fs.writeFileSync(path.join(tmpDir, 'src/real.ts'), 'export {};\n', 'utf8');
 
-      const store = new DiaryStore();
+      const store = new LoreStore();
       const lm = new LmService();
       let calls = 0;
       (lm as any).generate = async () => {
         calls++;
         return { text: '[]', modelName: 'stub/model' };
       };
-      const generator = new DiaryGenerator(lm, store);
+      const generator = new LoreGenerator(lm, store);
 
       await generator.scanFiles(['src/missing.ts', 'src/real.ts'], 'test');
 
@@ -480,14 +480,14 @@ describe('DiaryGenerator parsing', () => {
       fs.mkdirSync(path.join(tmpDir, 'src'), { recursive: true });
       fs.writeFileSync(path.join(tmpDir, 'src/empty.ts'), '', 'utf8');
 
-      const store = new DiaryStore();
+      const store = new LoreStore();
       const lm = new LmService();
       let calls = 0;
       (lm as any).generate = async () => {
         calls++;
         return { text: '[]', modelName: 'stub/model' };
       };
-      const generator = new DiaryGenerator(lm, store);
+      const generator = new LoreGenerator(lm, store);
 
       await generator.scanFiles(['src/empty.ts'], 'test');
 
@@ -500,7 +500,7 @@ describe('DiaryGenerator parsing', () => {
       fs.writeFileSync(path.join(tmpDir, 'src/x.ts'), 'export const X = 1;\n', 'utf8');
       fs.writeFileSync(path.join(tmpDir, 'src/y.ts'), 'export const Y = 2;\n', 'utf8');
 
-      const store = new DiaryStore();
+      const store = new LoreStore();
       const lm = new LmService();
       let i = 0;
       (lm as any).generate = async () => {
@@ -510,7 +510,7 @@ describe('DiaryGenerator parsing', () => {
           modelName: 'stub/model',
         };
       };
-      const generator = new DiaryGenerator(lm, store);
+      const generator = new LoreGenerator(lm, store);
 
       await generator.scanFiles(['src/x.ts', 'src/y.ts'], 'test');
 

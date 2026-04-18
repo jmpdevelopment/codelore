@@ -1,16 +1,16 @@
-# CodeDiary — Implementation Guide
+# CodeLore — Implementation Guide
 
 Context infrastructure for AI-assisted development. A VSCode extension that builds a living knowledge layer — capturing what developers discover, decide, and verify as AI agents modify code at scale.
 
 **Tagline:** "Know what changed and why."
 
-## Why CodeDiary Exists
+## Why CodeLore Exists
 
 AI agents write code fast. AI reviewers review it fast. Both are context-blind.
 
 The agent that rewrites a payment module doesn't know the billing loop has an intentional off-by-one. The AI reviewer that flags it as a bug every PR doesn't know either. The senior engineer who understands it has explained it three times in Slack, twice in PR comments, and once in a meeting. Next quarter she's on a different team and that knowledge is gone.
 
-CodeDiary captures that knowledge, persists it alongside the code, and delivers it at the moment of relevance — to developers, to AI agents, and to AI review tools.
+CodeLore captures that knowledge, persists it alongside the code, and delivers it at the moment of relevance — to developers, to AI agents, and to AI review tools.
 
 ### The Gap It Fills
 
@@ -22,11 +22,11 @@ Existing tools address AI code generation (Cursor, Claude Code, Copilot) and AI 
 
 **Git history** tells you what changed, not what you need to know. `git blame` gives you who and when, not why or what's dangerous. PR comments — where the real knowledge lives — are in a web UI, tied to stale diffs, unsearchable from the IDE, and invisible to AI agents.
 
-CodeDiary annotations are a **separate metadata layer** — visible when needed, invisible when not, queryable, structured for both human and AI consumption, and proactive (they find you, you don't have to find them).
+CodeLore annotations are a **separate metadata layer** — visible when needed, invisible when not, queryable, structured for both human and AI consumption, and proactive (they find you, you don't have to find them).
 
 ### Core Value Propositions
 
-1. **Context for AI agents.** Annotations in `.codediary/` give AI agents a map of what matters before they modify code — fewer hallucinations, fewer re-discoveries, fewer wasted tokens.
+1. **Context for AI agents.** Annotations in `.codelore/` give AI agents a map of what matters before they modify code — fewer hallucinations, fewer re-discoveries, fewer wasted tokens.
 2. **Noise reduction for AI reviewers.** A `verified` annotation saying "off-by-one is intentional" stops your AI review tool from filing the same false positive every sprint.
 3. **Proactive knowledge delivery.** Open a file with critical flags — you get warned. Save changes overlapping known risks — you get briefed. Knowledge finds you at the moment it matters.
 4. **Knowledge capture at point of discovery.** Developers annotate code as they explore and modify it, building structured understanding incrementally across the team.
@@ -36,15 +36,15 @@ CodeDiary annotations are a **separate metadata layer** — visible when needed,
 ## Architecture Overview
 
 ```
-codediary/
+codelore/
 ├── src/
 │   ├── extension.ts              # Activation, command/view registration
 │   ├── models/
 │   │   ├── annotation.ts         # Annotation model + 9 categories + ContentAnchor + FileDependency
 │   │   └── criticalFlag.ts       # Critical region flag + resolution model
 │   ├── storage/
-│   │   ├── diaryStore.ts         # Facade: merges shared + personal stores
-│   │   ├── sharedStore.ts        # Per-file YAML in .codediary/ (git-committed)
+│   │   ├── loreStore.ts         # Facade: merges shared + personal stores
+│   │   ├── sharedStore.ts        # Per-file YAML in .codelore/ (git-committed)
 │   │   └── yamlStore.ts          # Single YAML in .vscode/ (personal, gitignored)
 │   ├── providers/
 │   │   ├── annotationDecorator.ts    # Inline text + colored backgrounds per category
@@ -63,18 +63,18 @@ codediary/
 │   │   ├── filter.ts             # Single chooser that dispatches to category/component/severity/path
 │   │   ├── quickNote.ts          # Ephemeral AI notes + copy annotations to clipboard
 │   │   ├── agentInstructions.ts  # Generate CLAUDE.md/.cursorrules/etc. with knowledge
-│   │   ├── reanchor.ts           # codediary.checkAnchors — verify + picker-driven re-anchor
+│   │   ├── reanchor.ts           # codelore.checkAnchors — verify + picker-driven re-anchor
 │   │   └── search.ts             # Search annotations across codebase
 │   ├── ai/
 │   │   ├── lmService.ts          # vscode.lm API wrapper with model picker
-│   │   ├── diaryGenerator.ts     # AI knowledge extraction (scanFiles batch over full files)
+│   │   ├── loreGenerator.ts     # AI knowledge extraction (scanFiles batch over full files)
 │   │   └── criticalDetector.ts   # AI critical region detection (scanFiles batch over full files)
 │   └── utils/
 │       ├── anchorEngine.ts       # Content + signature hashing, drift detection, re-anchor search
 │       ├── git.ts                # Changed files, line range parsing
 │       └── validation.ts         # Path safety, markdown sanitization, input validation
 ├── test/                         # Vitest unit tests (390+ tests, 98%+ coverage)
-├── .codediary/                   # Shared annotation store (committed to git)
+├── .codelore/                   # Shared annotation store (committed to git)
 ├── package.json
 ├── tsconfig.json
 ├── vitest.config.ts
@@ -86,9 +86,9 @@ codediary/
 
 ### Shared + Personal Storage (Dual-Store Architecture)
 
-- **Shared store** (`.codediary/` directory, committed to git): Per-file YAML mirroring the source tree (e.g., `.codediary/src/auth/middleware.ts.yaml`). Merge-conflict-safe. Knowledge persists across team members and survives turnover.
-- **Personal store** (`.vscode/codediary.yaml`, gitignored): Single flat YAML file for private notes. Allows candid annotations ("I don't understand this") that shouldn't be committed.
-- **DiaryStore facade** merges reads from both stores and routes writes based on a scope picker. Default scope configurable via `codediary.defaultScope` setting.
+- **Shared store** (`.codelore/` directory, committed to git): Per-file YAML mirroring the source tree (e.g., `.codelore/src/auth/middleware.ts.yaml`). Merge-conflict-safe. Knowledge persists across team members and survives turnover.
+- **Personal store** (`.vscode/codelore.yaml`, gitignored): Single flat YAML file for private notes. Allows candid annotations ("I don't understand this") that shouldn't be committed.
+- **LoreStore facade** merges reads from both stores and routes writes based on a scope picker. Default scope configurable via `codelore.defaultScope` setting.
 - **clearAll** only clears the personal store to protect team knowledge.
 - **Personal annotations are excluded from AI context** — private notes never leak into suggestions visible to the team.
 
@@ -151,7 +151,7 @@ No custom LLM infrastructure. Uses `vscode.lm.selectChatModels()` to leverage wh
 
 ### AI Agent Integration
 
-Annotations in `.codediary/` are structured YAML — readable by any AI agent. The `generateAgentInstructions` command writes configuration for Claude Code, Cursor, Copilot, Windsurf, and generic agents, pointing them to the knowledge store.
+Annotations in `.codelore/` are structured YAML — readable by any AI agent. The `generateAgentInstructions` command writes configuration for Claude Code, Cursor, Copilot, Windsurf, and generic agents, pointing them to the knowledge store.
 
 AI agents consume annotations as context (what to preserve, what's dangerous, what's intentional). AI agents can also produce annotations by writing to the YAML files directly.
 
@@ -179,22 +179,22 @@ palette via `menus.commandPalette` `when: false`.
 
 | Command | Title | Keybinding |
 |---------|-------|------------|
-| `codediary.addAnnotation` | Add Annotation | `Cmd+Shift+J` |
-| `codediary.markCritical` | Mark as Critical | — |
-| `codediary.showPreCommitBrief` | Show Pre-Commit Brief | `Cmd+Shift+B` |
-| `codediary.scanFile` | Scan Current File (Knowledge + Critical) | `Cmd+Shift+K` |
-| `codediary.scanComponent` | Scan Component (Knowledge + Critical) | — |
-| `codediary.scanProject` | Scan Entire Project (Knowledge + Critical) | — |
-| `codediary.proposeComponent` | Propose Components (AI) | — |
-| `codediary.manageComponentsForFile` | Manage Components for File | — |
-| `codediary.quickNote` | Quick AI Note (Ephemeral) | `Cmd+Shift+L` |
-| `codediary.copyAnnotationsForFile` | Copy Annotations for Current File | — |
-| `codediary.generateAgentInstructions` | Generate Agent Instruction Files | — |
-| `codediary.checkAnchors` | Check Annotation Anchors | — |
-| `codediary.filter` | Filter | — |
-| `codediary.searchAnnotations` | Search Annotations | — |
-| `codediary.changeModel` | Change AI Model | — |
-| `codediary.clearAll` | Clear Personal Data | — |
+| `codelore.addAnnotation` | Add Annotation | `Cmd+Shift+L` |
+| `codelore.markCritical` | Mark as Critical | — |
+| `codelore.showPreCommitBrief` | Show Pre-Commit Brief | `Cmd+Shift+B` |
+| `codelore.scanFile` | Scan Current File (Knowledge + Critical) | `Cmd+Shift+K` |
+| `codelore.scanComponent` | Scan Component (Knowledge + Critical) | — |
+| `codelore.scanProject` | Scan Entire Project (Knowledge + Critical) | — |
+| `codelore.proposeComponent` | Propose Components (AI) | — |
+| `codelore.manageComponentsForFile` | Manage Components for File | — |
+| `codelore.quickNote` | Quick AI Note (Ephemeral) | `Cmd+Shift+J` |
+| `codelore.copyAnnotationsForFile` | Copy Annotations for Current File | — |
+| `codelore.generateAgentInstructions` | Generate Agent Instruction Files | — |
+| `codelore.checkAnchors` | Check Annotation Anchors | — |
+| `codelore.filter` | Filter | — |
+| `codelore.searchAnnotations` | Search Annotations | — |
+| `codelore.changeModel` | Change AI Model | — |
+| `codelore.clearAll` | Clear Personal Data | — |
 
 ## Sidebar Views
 
@@ -209,8 +209,8 @@ palette via `menus.commandPalette` `when: false`.
 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
-| `codediary.storagePath` | string | `.vscode/codediary.yaml` | Personal storage file path |
-| `codediary.defaultScope` | `shared` \| `personal` | `shared` | Where new annotations are stored by default |
+| `codelore.storagePath` | string | `.vscode/codelore.yaml` | Personal storage file path |
+| `codelore.defaultScope` | `shared` \| `personal` | `shared` | Where new annotations are stored by default |
 
 ## Annotation Categories
 
@@ -257,8 +257,8 @@ Press `F5` in VSCode to launch the Extension Development Host for manual testing
 - Components, Annotations, Pre-Commit Brief, and Critical Review Queue sidebar views
 - Status bar with coverage summary and active-file component membership
 - Annotation search across codebase (text, category, file path filters with jump to source)
-- Unified filter command (`codediary.filter`) that dispatches to category/component/severity/path dimensions
-- Single anchor command (`codediary.checkAnchors`) that verifies all anchors and opens a re-anchor picker for drift
+- Unified filter command (`codelore.filter`) that dispatches to category/component/severity/path dimensions
+- Single anchor command (`codelore.checkAnchors`) that verifies all anchors and opens a re-anchor picker for drift
 - Ephemeral AI notes (`ai_prompt` category, personal scope, excluded from team features)
 - Copy annotations for current file to clipboard
 - Agent instruction file generation (CLAUDE.md, .cursorrules, copilot-instructions, AGENTS.md, .windsurfrules)
@@ -270,22 +270,22 @@ Press `F5` in VSCode to launch the Extension Development Host for manual testing
 ### Deferred (build only if users pull for them)
 - Knowledge coverage heatmap (churn vs annotation coverage)
 - Annotation aging (detect outdated annotations where surrounding code evolved)
-- Team annotation feed (summary of .codediary/ changes after git pull)
+- Team annotation feed (summary of .codelore/ changes after git pull)
 - Quick annotation from AI review comments (bridge between AI reviewer and persistent knowledge)
 - Pre-commit/pre-push guard for unreviewed critical regions
 - JIRA/Linear ticket linkage
 
-# CodeDiary Integration
+# CodeLore Integration
 
-When modifying files in this project, check for CodeDiary annotations before making changes:
+When modifying files in this project, check for CodeLore annotations before making changes:
 
-1. Look for `.codediary/` directory at the project root — it contains per-file YAML annotations committed by the team.
-2. For a file like `src/auth/middleware.ts`, check `.codediary/src/auth/middleware.ts.yaml` for existing annotations.
+1. Look for `.codelore/` directory at the project root — it contains per-file YAML annotations committed by the team.
+2. For a file like `src/auth/middleware.ts`, check `.codelore/src/auth/middleware.ts.yaml` for existing annotations.
 3. Each annotation has: line range, category (`behavior`, `rationale`, `constraint`, `gotcha`, `business_rule`, `performance`, `security`, `human_note`, `ai_prompt`), text, and `source` (`ai_generated | ai_verified | human_authored`). Treat `ai_verified` and `human_authored` entries as authoritative; `ai_generated` entries are drafts pending review.
 4. Annotations may include `dependencies` — cross-file links to related code. When modifying linked files, check the annotations that reference them.
 5. Critical flags mark security-sensitive or high-risk regions — respect these and do not modify flagged code without explicit instruction.
 6. If you add or change code in an annotated region, mention the existing annotation context in your response.
-7. **Re-anchoring**: When you move, rename, or refactor code that has annotations, update the `line_start` and `line_end` fields in the corresponding `.codediary/` YAML file to match the new line positions. Also update `anchor.content_hash` if you change the content — the hash is a truncated SHA-256 of the trimmed non-empty lines joined by newlines. If the annotation has a `signature_hash`, update it based on the function/class signature line.
-8. After making changes, suggest the developer add CodeDiary annotations for the modified regions.
+7. **Re-anchoring**: When you move, rename, or refactor code that has annotations, update the `line_start` and `line_end` fields in the corresponding `.codelore/` YAML file to match the new line positions. Also update `anchor.content_hash` if you change the content — the hash is a truncated SHA-256 of the trimmed non-empty lines joined by newlines. If the annotation has a `signature_hash`, update it based on the function/class signature line.
+8. After making changes, suggest the developer add CodeLore annotations for the modified regions.
 
-# End CodeDiary Integration
+# End CodeLore Integration

@@ -1,4 +1,4 @@
-# CodeDiary
+# CodeLore
 
 **Institutional knowledge layer for AI-accelerated development.** A VSCode extension that captures what AI agents and humans learn about a codebase — decisions, constraints, gotchas, business rules — and makes that knowledge available at the moment of relevance.
 
@@ -8,16 +8,16 @@
 
 On large, mature codebases, the bottleneck isn't writing code — it's comprehension. AI agents modify modules last touched years ago. The knowledge a developer gains while working through unfamiliar code with AI assistance — what a module actually does, why a quirk exists, which regions are dangerous — dies in Slack threads or walks out the door.
 
-CodeDiary captures that knowledge as structured YAML alongside the source tree, surfaces it proactively when it matters (file open, file save, pre-commit), and feeds it back to AI agents and reviewers so they stop re-litigating the same things.
+CodeLore captures that knowledge as structured YAML alongside the source tree, surfaces it proactively when it matters (file open, file save, pre-commit), and feeds it back to AI agents and reviewers so they stop re-litigating the same things.
 
-Unlike inline comments, CodeDiary annotations are a separate metadata layer — queryable, lifecycle-aware, and split into shared (committed to git) and personal (gitignored) scopes so candid notes don't leak.
+Unlike inline comments, CodeLore annotations are a separate metadata layer — queryable, lifecycle-aware, and split into shared (committed to git) and personal (gitignored) scopes so candid notes don't leak.
 
 ## Install
 
 1. Clone and build:
    ```bash
    git clone <repo>
-   cd codediary
+   cd codelore
    npm install
    npm run build
    ```
@@ -27,9 +27,9 @@ Unlike inline comments, CodeDiary annotations are a separate metadata layer — 
 ## First 60 seconds
 
 1. Open a file you want to understand.
-2. Press **`Cmd+Shift+K`** to let CodeDiary scan the file for institutional knowledge. The AI drafts annotations with `source: ai_generated`.
+2. Press **`Cmd+Shift+K`** to let CodeLore scan the file for institutional knowledge. The AI drafts annotations with `source: ai_generated`.
 3. Skim the drafts in the **Annotations** sidebar. For each one that's right, click the ✓ to verify it (stamps `ai_verified` + your handle).
-4. Add your own annotation on a line you understand better than the AI: select the range and press **`Cmd+Shift+J`**.
+4. Add your own annotation on a line you understand better than the AI: select the range and press **`Cmd+Shift+L`**.
 5. Press **`Cmd+Shift+B`** to open the **Pre-Commit Brief** — it cross-references the annotations you have against the diff in your working tree. This is your primary consumption surface.
 
 ## The 8 knowledge categories
@@ -53,38 +53,38 @@ Plus `ai_prompt` — ephemeral personal scratchpad for talking to the AI, never 
 
 Files don't live alone. Components group related files into logical subsystems (a module, a feature area, a service boundary). Use `Manage Components for File` to multi-select which components the current file belongs to in one picker, or ask the AI to propose components via `Propose Components (AI)`.
 
-- Component definitions live at `.codediary/components/<slug>.yaml` with `name`, `description`, `owners`, `files`.
+- Component definitions live at `.codelore/components/<slug>.yaml` with `name`, `description`, `owners`, `files`.
 - The **Components** sidebar view groups files by component; clicking a file opens it.
 - The status bar shows which component(s) your active editor belongs to.
 
 ## AI workflow
 
-CodeDiary is bidirectional: AI agents *read* annotations before modifying code and *author* new annotations when they learn something.
+CodeLore is bidirectional: AI agents *read* annotations before modifying code and *author* new annotations when they learn something.
 
-- **Reading:** `Generate Agent Instruction Files` writes a CodeDiary block into `CLAUDE.md`, `.cursorrules`, `AGENTS.md`, `.github/copilot-instructions.md`, or `.windsurfrules`. The block tells the agent where knowledge lives, how to read it, and how to maintain content/signature anchors on refactor.
-- **Authoring:** The agent writes annotations directly into `.codediary/<path>.yaml` with `source: ai_generated`. Humans promote them to `ai_verified` with the inline ✓ action.
+- **Reading:** `Generate Agent Instruction Files` writes a CodeLore block into `CLAUDE.md`, `.cursorrules`, `AGENTS.md`, `.github/copilot-instructions.md`, or `.windsurfrules`. The block tells the agent where knowledge lives, how to read it, and how to maintain content/signature anchors on refactor.
+- **Authoring:** The agent writes annotations directly into `.codelore/<path>.yaml` with `source: ai_generated`. Humans promote them to `ai_verified` with the inline ✓ action.
 - **Verification status is a field, not a category.** Every annotation has `source: ai_generated | ai_verified | human_authored`. The `ai_generated` ones are drafts; the Pre-Commit Brief flags them as unverified so reviewers can sweep them.
 - No custom LLM — uses `vscode.lm` so it runs on whatever model you already have (GitHub Copilot, Claude, etc.).
 
 ## Keyboard shortcuts
 
-CodeDiary caps itself at 4 chords. Everything else is in the command palette.
+CodeLore caps itself at 4 chords. Everything else is in the command palette.
 
 | Shortcut | Action |
 |---|---|
-| `Cmd+Shift+J` | Add annotation on selection |
+| `Cmd+Shift+L` | Add annotation on selection |
 | `Cmd+Shift+K` | Scan current file for knowledge + critical regions (AI) |
-| `Cmd+Shift+L` | Quick AI note (ephemeral, personal) |
+| `Cmd+Shift+J` | Quick AI note (ephemeral, personal) |
 | `Cmd+Shift+B` | Open Pre-Commit Brief |
 
 On Windows/Linux, swap `Cmd` for `Ctrl`.
 
 ## Storage model
 
-CodeDiary has two stores:
+CodeLore has two stores:
 
-- **Shared** (`.codediary/`, committed to git): per-file YAML mirroring the source tree — `.codediary/src/auth/middleware.ts.yaml` holds annotations for `src/auth/middleware.ts`. Merge-conflict-safe. Survives turnover.
-- **Personal** (`.vscode/codediary.yaml`, gitignored): a single flat YAML for private notes ("I don't understand this") you don't want committed. Also holds any `ai_prompt` entries.
+- **Shared** (`.codelore/`, committed to git): per-file YAML mirroring the source tree — `.codelore/src/auth/middleware.ts.yaml` holds annotations for `src/auth/middleware.ts`. Merge-conflict-safe. Survives turnover.
+- **Personal** (`.vscode/codelore.yaml`, gitignored): a single flat YAML for private notes ("I don't understand this") you don't want committed. Also holds any `ai_prompt` entries.
 
 Personal annotations never leak into AI context or team-facing views. `Clear Personal Data` wipes only the personal store.
 
@@ -108,13 +108,13 @@ Knowledge finds you; you don't have to find it.
 
 ## FAQ
 
-**Do I need an AI model configured?** No. CodeDiary is fully functional with manual annotation. AI features use `vscode.lm` and are opt-in.
+**Do I need an AI model configured?** No. CodeLore is fully functional with manual annotation. AI features use `vscode.lm` and are opt-in.
 
-**Can AI agents write annotations on their own?** Yes — that's the intended model. The agent instruction block tells them to append to `.codediary/<path>.yaml` with `source: ai_generated`. Humans verify in review.
+**Can AI agents write annotations on their own?** Yes — that's the intended model. The agent instruction block tells them to append to `.codelore/<path>.yaml` with `source: ai_generated`. Humans verify in review.
 
 **Are personal notes ever shared with AI?** No. The shared/personal boundary is enforced — personal annotations are excluded from AI prompts and team-facing views.
 
-**Does CodeDiary replace PR review?** No. It captures the knowledge that review tools and comments don't preserve — the kind that usually lives in a senior engineer's head. Use it alongside your existing review process.
+**Does CodeLore replace PR review?** No. It captures the knowledge that review tools and comments don't preserve — the kind that usually lives in a senior engineer's head. Use it alongside your existing review process.
 
 ## Development
 

@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { v4 as uuidv4 } from 'uuid';
-import { DiaryStore } from '../storage/diaryStore';
+import { LoreStore } from '../storage/loreStore';
 import { Annotation, KNOWLEDGE_CATEGORIES, CATEGORY_META, AnnotationCategory, FileDependency } from '../models/annotation';
 import { getGitUser, getRelativePath } from '../utils/git';
 import { computeContentHash, computeSignatureHash } from '../utils/anchorEngine';
@@ -54,9 +54,9 @@ async function promptDependencies(): Promise<FileDependency[]> {
   return deps;
 }
 
-export function registerAnnotateCommands(context: vscode.ExtensionContext, store: DiaryStore): void {
+export function registerAnnotateCommands(context: vscode.ExtensionContext, store: LoreStore): void {
   context.subscriptions.push(
-    vscode.commands.registerCommand('codediary.addAnnotation', async () => {
+    vscode.commands.registerCommand('codelore.addAnnotation', async () => {
       const editor = vscode.window.activeTextEditor;
       if (!editor) { return; }
 
@@ -134,11 +134,11 @@ export function registerAnnotateCommands(context: vscode.ExtensionContext, store
       const scopeLabel = scope === 'shared' ? 'team' : 'working notes';
       const depMsg = dependencies.length > 0 ? ` with ${dependencies.length} dependency link${dependencies.length !== 1 ? 's' : ''}` : '';
       vscode.window.showInformationMessage(
-        `CodeDiary: ${CATEGORY_META[picked.category].label} annotation added (${scopeLabel})${depMsg}`,
+        `CodeLore: ${CATEGORY_META[picked.category].label} annotation added (${scopeLabel})${depMsg}`,
       );
     }),
 
-    vscode.commands.registerCommand('codediary.editAnnotation', async (arg?: string | { annotation?: { id: string } }) => {
+    vscode.commands.registerCommand('codelore.editAnnotation', async (arg?: string | { annotation?: { id: string } }) => {
       // When called from sidebar inline button, arg is the AnnotationNode tree item
       let annotationId: string | undefined;
       if (typeof arg === 'string') {
@@ -186,7 +186,7 @@ export function registerAnnotateCommands(context: vscode.ExtensionContext, store
       store.updateAnnotation(annotationId, { text: newText });
     }),
 
-    vscode.commands.registerCommand('codediary.verifyAnnotation', async (arg?: string | { annotation?: { id: string } }) => {
+    vscode.commands.registerCommand('codelore.verifyAnnotation', async (arg?: string | { annotation?: { id: string } }) => {
       // Flips an ai_generated annotation to ai_verified + stamps verified_by/at.
       // The button only surfaces for ai_generated rows in the sidebar, but the
       // command is also reachable from the palette, so revalidate source here.
@@ -205,7 +205,7 @@ export function registerAnnotateCommands(context: vscode.ExtensionContext, store
         const candidates = store.getAnnotationsForFile(filePath)
           .filter(a => line >= a.line_start && line <= a.line_end && a.source === 'ai_generated');
         if (candidates.length === 0) {
-          vscode.window.showInformationMessage('CodeDiary: No unverified AI annotation at cursor.');
+          vscode.window.showInformationMessage('CodeLore: No unverified AI annotation at cursor.');
           return;
         }
         if (candidates.length === 1) {
@@ -228,13 +228,13 @@ export function registerAnnotateCommands(context: vscode.ExtensionContext, store
 
       if (annotation.source === 'ai_verified') {
         vscode.window.showInformationMessage(
-          `CodeDiary: Already verified${annotation.verified_by ? ` by ${annotation.verified_by}` : ''}.`,
+          `CodeLore: Already verified${annotation.verified_by ? ` by ${annotation.verified_by}` : ''}.`,
         );
         return;
       }
       if (annotation.source === 'human_authored') {
         vscode.window.showInformationMessage(
-          'CodeDiary: Human-authored annotations do not need verification.',
+          'CodeLore: Human-authored annotations do not need verification.',
         );
         return;
       }
@@ -244,10 +244,10 @@ export function registerAnnotateCommands(context: vscode.ExtensionContext, store
         verified_by: getGitUser(),
         verified_at: new Date().toISOString(),
       });
-      vscode.window.showInformationMessage('CodeDiary: Annotation verified.');
+      vscode.window.showInformationMessage('CodeLore: Annotation verified.');
     }),
 
-    vscode.commands.registerCommand('codediary.deleteAnnotation', async (arg?: string | { annotation?: { id: string } }) => {
+    vscode.commands.registerCommand('codelore.deleteAnnotation', async (arg?: string | { annotation?: { id: string } }) => {
       // When called from sidebar inline button, arg is the AnnotationNode tree item
       let annotationId: string | undefined;
       if (typeof arg === 'string') {
@@ -283,7 +283,7 @@ export function registerAnnotateCommands(context: vscode.ExtensionContext, store
       }
 
       store.deleteAnnotation(annotationId);
-      vscode.window.showInformationMessage('CodeDiary: Annotation deleted');
+      vscode.window.showInformationMessage('CodeLore: Annotation deleted');
     }),
   );
 }

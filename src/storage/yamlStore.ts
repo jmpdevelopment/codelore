@@ -6,12 +6,12 @@ import { Annotation, coerceSource } from '../models/annotation';
 import { CriticalFlag } from '../models/criticalFlag';
 import { SCHEMA_VERSION, assertSupportedVersion } from './schema';
 
-export interface DiaryData {
+export interface LoreData {
   annotations: Annotation[];
   critical_flags: CriticalFlag[];
 }
 
-const EMPTY_DATA: DiaryData = {
+const EMPTY_DATA: LoreData = {
   annotations: [],
   critical_flags: [],
 };
@@ -20,7 +20,7 @@ export class YamlStore {
   private _onDidChange = new vscode.EventEmitter<void>();
   readonly onDidChange = this._onDidChange.event;
 
-  private data: DiaryData = { ...EMPTY_DATA, annotations: [], critical_flags: [] };
+  private data: LoreData = { ...EMPTY_DATA, annotations: [], critical_flags: [] };
   private filePath: string | undefined;
   private watcher: vscode.FileSystemWatcher | undefined;
 
@@ -35,8 +35,8 @@ export class YamlStore {
     if (!workspaceFolder) {
       return;
     }
-    const config = vscode.workspace.getConfiguration('codediary');
-    const relative = config.get<string>('storagePath', '.vscode/codediary.yaml');
+    const config = vscode.workspace.getConfiguration('codelore');
+    const relative = config.get<string>('storagePath', '.vscode/codelore.yaml');
     const resolved = path.resolve(workspaceFolder.uri.fsPath, relative);
     // Prevent path traversal outside workspace
     if (!resolved.startsWith(workspaceFolder.uri.fsPath + path.sep)) {
@@ -76,7 +76,7 @@ export class YamlStore {
     }
     try {
       const raw = fs.readFileSync(this.filePath, 'utf8');
-      const parsed = yaml.load(raw) as Partial<DiaryData> | null;
+      const parsed = yaml.load(raw) as Partial<LoreData> | null;
       assertSupportedVersion(parsed, this.filePath);
       this.data = {
         annotations: (parsed?.annotations ?? []).map(a => ({ ...a, source: coerceSource(a.source) })),
@@ -84,7 +84,7 @@ export class YamlStore {
       };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      vscode.window.showErrorMessage(`CodeDiary: ${message}`);
+      vscode.window.showErrorMessage(`CodeLore: ${message}`);
       this.data = { annotations: [], critical_flags: [] };
     }
   }

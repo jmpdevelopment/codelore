@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { DiaryStore } from '../storage/diaryStore';
+import { LoreStore } from '../storage/loreStore';
 import { ChangePlanProvider } from '../views/changePlanProvider';
 import { CriticalQueueProvider } from '../views/criticalQueueProvider';
 import { ANNOTATION_CATEGORIES, CATEGORY_META, AnnotationCategory } from '../models/annotation';
@@ -9,12 +9,12 @@ type FilterAction = 'category' | 'component' | 'severity' | 'path' | 'clear';
 
 export function registerFilterCommand(
   context: vscode.ExtensionContext,
-  store: DiaryStore,
+  store: LoreStore,
   changePlan: ChangePlanProvider,
   criticalQueue: CriticalQueueProvider,
 ): void {
   context.subscriptions.push(
-    vscode.commands.registerCommand('codediary.filter', async () => {
+    vscode.commands.registerCommand('codelore.filter', async () => {
       const annFilters = changePlan.getActiveFilters();
       const critFilters = criticalQueue.getActiveFilters();
 
@@ -81,11 +81,11 @@ async function pickCategory(changePlan: ChangePlanProvider): Promise<void> {
   if (picked) { changePlan.setFilter(picked.category); }
 }
 
-async function pickComponent(store: DiaryStore, changePlan: ChangePlanProvider): Promise<void> {
+async function pickComponent(store: LoreStore, changePlan: ChangePlanProvider): Promise<void> {
   const components = store.getComponents();
   if (components.length === 0) {
     vscode.window.showInformationMessage(
-      'CodeDiary: No components defined yet. Tag a file to create one.',
+      'CodeLore: No components defined yet. Tag a file to create one.',
     );
     return;
   }
@@ -138,5 +138,5 @@ function clearAll(changePlan: ChangePlanProvider, criticalQueue: CriticalQueuePr
   changePlan.setComponentFilter(undefined);
   criticalQueue.setPathFilter(undefined);
   criticalQueue.setSeverityFilter(undefined);
-  vscode.window.showInformationMessage('CodeDiary: All filters cleared');
+  vscode.window.showInformationMessage('CodeLore: All filters cleared');
 }

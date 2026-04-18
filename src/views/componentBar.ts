@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
-import { DiaryStore } from '../storage/diaryStore';
+import { LoreStore } from '../storage/loreStore';
 import { getRelativePath } from '../utils/git';
 
 /**
  * Status bar item showing which component(s) the active editor is tagged
- * into. Clicking the item runs `codediary.tagFileComponent` — "Untagged"
+ * into. Clicking the item runs `codelore.tagFileComponent` — "Untagged"
  * becomes the primary entry point for first-time tagging and for extending
  * a file into additional components.
  *
@@ -15,12 +15,12 @@ export class ComponentBar implements vscode.Disposable {
   private statusBarItem: vscode.StatusBarItem;
   private disposables: vscode.Disposable[] = [];
 
-  constructor(private store: DiaryStore) {
+  constructor(private store: LoreStore) {
     this.statusBarItem = vscode.window.createStatusBarItem(
       vscode.StatusBarAlignment.Left,
       49,
     );
-    this.statusBarItem.command = 'codediary.tagFileComponent';
+    this.statusBarItem.command = 'codelore.tagFileComponent';
 
     this.disposables.push(
       store.onDidChange(() => this.update()),

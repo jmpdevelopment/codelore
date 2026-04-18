@@ -3,8 +3,8 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { CATEGORY_META, KNOWLEDGE_CATEGORIES } from '../models/annotation';
 
-export const CODEDIARY_BLOCK_START = '# CodeDiary Integration';
-export const CODEDIARY_BLOCK_END = '# End CodeDiary Integration';
+export const CODELORE_BLOCK_START = '# CodeLore Integration';
+export const CODELORE_BLOCK_END = '# End CodeLore Integration';
 
 function categoryBullets(): string {
   return KNOWLEDGE_CATEGORIES
@@ -12,29 +12,29 @@ function categoryBullets(): string {
     .join('\n');
 }
 
-export const INSTRUCTION_TEXT = `CodeDiary is this project's institutional knowledge layer. Read it before modifying code, and write back to it when you learn something.
+export const INSTRUCTION_TEXT = `CodeLore is this project's institutional knowledge layer. Read it before modifying code, and write back to it when you learn something.
 
 ## Reading knowledge
 
-1. \`.codediary/\` at the repo root holds per-file YAML annotations. For a file like \`src/auth/middleware.ts\`, read \`.codediary/src/auth/middleware.ts.yaml\` before changing it.
-2. \`.codediary/components/*.yaml\` groups files into logical subsystems. Each component lists \`files\`, a \`description\`, and \`owners\`. When you touch a file in a component, you are acting on the whole component — honor its stated purpose.
+1. \`.codelore/\` at the repo root holds per-file YAML annotations. For a file like \`src/auth/middleware.ts\`, read \`.codelore/src/auth/middleware.ts.yaml\` before changing it.
+2. \`.codelore/components/*.yaml\` groups files into logical subsystems. Each component lists \`files\`, a \`description\`, and \`owners\`. When you touch a file in a component, you are acting on the whole component — honor its stated purpose.
 3. Each annotation has \`file\`, \`line_start\`, \`line_end\`, \`category\`, \`source\`, and \`text\`. The 8 knowledge categories are:
 ${categoryBullets()}
 4. \`dependencies\` on an annotation list cross-file links. When you modify a file that another annotation depends on, surface that upstream annotation in your response.
-5. Critical flags in \`.codediary/<path>.yaml\` mark high-risk regions. Do not modify flagged code without explicit instruction.
+5. Critical flags in \`.codelore/<path>.yaml\` mark high-risk regions. Do not modify flagged code without explicit instruction.
 6. Annotations whose \`source\` is \`ai_generated\` have not been human-verified — treat them as hypotheses, not ground truth. \`ai_verified\` and \`human_authored\` are trusted.
 
 ## Writing knowledge (you are expected to author)
 
-CodeDiary expects AI agents to *author* annotations, not just consume them. After making non-trivial changes or discovering something non-obvious about the code, write annotations for what you learned.
+CodeLore expects AI agents to *author* annotations, not just consume them. After making non-trivial changes or discovering something non-obvious about the code, write annotations for what you learned.
 
-7. Append new annotations to the relevant \`.codediary/<path>.yaml\` file (create it if missing). Required fields: \`id\` (uuid v4), \`file\`, \`line_start\`, \`line_end\`, \`category\` (one of the 8 above — never legacy), \`text\`, \`source: ai_generated\`, \`created_at\` (ISO 8601).
-8. If files form a cohesive subsystem that isn't already a component, propose one at \`.codediary/components/<slug>.yaml\` with \`id\`, \`name\`, \`description\`, \`files\`, \`source: ai_generated\`, \`created_at\`, \`updated_at\`.
+7. Append new annotations to the relevant \`.codelore/<path>.yaml\` file (create it if missing). Required fields: \`id\` (uuid v4), \`file\`, \`line_start\`, \`line_end\`, \`category\` (one of the 8 above — never legacy), \`text\`, \`source: ai_generated\`, \`created_at\` (ISO 8601).
+8. If files form a cohesive subsystem that isn't already a component, propose one at \`.codelore/components/<slug>.yaml\` with \`id\`, \`name\`, \`description\`, \`files\`, \`source: ai_generated\`, \`created_at\`, \`updated_at\`.
 9. Do not fabricate. If you don't know, write nothing. Humans and other agents will read your annotations as the project's memory.
 
 ## Re-anchoring on refactor
 
-10. When you move, rename, or refactor annotated code, update \`line_start\` and \`line_end\` in the corresponding \`.codediary/\` YAML. Also update \`anchor.content_hash\` (truncated SHA-256 of the trimmed non-empty lines joined by \`\\n\`) and \`anchor.signature_hash\` if present (hash of the function/class signature line). Silent drift causes false "stale" warnings and lost context.`;
+10. When you move, rename, or refactor annotated code, update \`line_start\` and \`line_end\` in the corresponding \`.codelore/\` YAML. Also update \`anchor.content_hash\` (truncated SHA-256 of the trimmed non-empty lines joined by \`\\n\`) and \`anchor.signature_hash\` if present (hash of the function/class signature line). Silent drift causes false "stale" warnings and lost context.`;
 
 interface AgentFile {
   label: string;
@@ -51,15 +51,15 @@ const AGENT_FILES: AgentFile[] = [
 ];
 
 export function buildBlock(): string {
-  return `${CODEDIARY_BLOCK_START}\n\n${INSTRUCTION_TEXT}\n\n${CODEDIARY_BLOCK_END}`;
+  return `${CODELORE_BLOCK_START}\n\n${INSTRUCTION_TEXT}\n\n${CODELORE_BLOCK_END}`;
 }
 
 export function updateFileContent(existing: string, block: string): string {
-  const startIdx = existing.indexOf(CODEDIARY_BLOCK_START);
-  const endIdx = existing.indexOf(CODEDIARY_BLOCK_END);
+  const startIdx = existing.indexOf(CODELORE_BLOCK_START);
+  const endIdx = existing.indexOf(CODELORE_BLOCK_END);
 
   if (startIdx !== -1 && endIdx !== -1) {
-    return existing.substring(0, startIdx) + block + existing.substring(endIdx + CODEDIARY_BLOCK_END.length);
+    return existing.substring(0, startIdx) + block + existing.substring(endIdx + CODELORE_BLOCK_END.length);
   }
 
   const trimmed = existing.trimEnd();
@@ -68,10 +68,10 @@ export function updateFileContent(existing: string, block: string): string {
 
 export function registerAgentInstructionCommands(context: vscode.ExtensionContext, _store: unknown): void {
   context.subscriptions.push(
-    vscode.commands.registerCommand('codediary.generateAgentInstructions', async () => {
+    vscode.commands.registerCommand('codelore.generateAgentInstructions', async () => {
       const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
       if (!workspaceRoot) {
-        vscode.window.showErrorMessage('CodeDiary: No workspace folder open.');
+        vscode.window.showErrorMessage('CodeLore: No workspace folder open.');
         return;
       }
 
@@ -118,7 +118,7 @@ export function registerAgentInstructionCommands(context: vscode.ExtensionContex
       const parts: string[] = [];
       if (created > 0) { parts.push(`${created} created`); }
       if (updated > 0) { parts.push(`${updated} updated`); }
-      vscode.window.showInformationMessage(`CodeDiary: Agent instructions — ${parts.join(', ')}.`);
+      vscode.window.showInformationMessage(`CodeLore: Agent instructions — ${parts.join(', ')}.`);
     }),
   );
 }

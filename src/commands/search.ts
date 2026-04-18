@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { DiaryStore, SearchFilter, SearchResult } from '../storage/diaryStore';
+import { LoreStore, SearchFilter, SearchResult } from '../storage/loreStore';
 import { ANNOTATION_CATEGORIES, CATEGORY_META, AnnotationCategory } from '../models/annotation';
 import { isSafeRelativePath } from '../utils/validation';
 
-async function pickSearchFilter(store: DiaryStore): Promise<SearchFilter | undefined> {
+async function pickSearchFilter(store: LoreStore): Promise<SearchFilter | undefined> {
   const filterItems = [
     { label: '$(search) Search all annotations', id: 'all' },
     { label: '$(filter) Filter by category', id: 'category' },
@@ -36,7 +36,7 @@ async function pickSearchFilter(store: DiaryStore): Promise<SearchFilter | undef
     const components = store.getComponents();
     if (components.length === 0) {
       vscode.window.showInformationMessage(
-        'CodeDiary: No components defined yet. Tag a file to create one.',
+        'CodeLore: No components defined yet. Tag a file to create one.',
       );
       return undefined;
     }
@@ -95,16 +95,16 @@ function openResult(result: SearchResult): void {
   });
 }
 
-export function registerSearchCommands(context: vscode.ExtensionContext, store: DiaryStore): void {
+export function registerSearchCommands(context: vscode.ExtensionContext, store: LoreStore): void {
   context.subscriptions.push(
-    vscode.commands.registerCommand('codediary.searchAnnotations', async () => {
+    vscode.commands.registerCommand('codelore.searchAnnotations', async () => {
       const filter = await pickSearchFilter(store);
       if (!filter) { return; }
 
       const results = store.search(filter);
 
       if (results.length === 0) {
-        vscode.window.showInformationMessage('CodeDiary: No results found.');
+        vscode.window.showInformationMessage('CodeLore: No results found.');
         return;
       }
 

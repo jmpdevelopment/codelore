@@ -12,7 +12,7 @@ export class LmService {
     const models = await vscode.lm.selectChatModels();
     if (models.length === 0) {
       vscode.window.showWarningMessage(
-        'CodeDiary: No language model available. Install GitHub Copilot or another LM extension.',
+        'CodeLore: No language model available. Install GitHub Copilot or another LM extension.',
       );
       return undefined;
     }
@@ -38,8 +38,8 @@ export class LmService {
     }));
 
     const picked = await vscode.window.showQuickPick(items, {
-      placeHolder: 'Select which language model CodeDiary should use',
-      title: 'CodeDiary: Choose AI Model',
+      placeHolder: 'Select which language model CodeLore should use',
+      title: 'CodeLore: Choose AI Model',
     });
 
     if (!picked) { return undefined; }
@@ -53,7 +53,7 @@ export class LmService {
     const model = await this.getModel();
     if (model) {
       vscode.window.showInformationMessage(
-        `CodeDiary: Now using ${model.vendor}/${model.family}`,
+        `CodeLore: Now using ${model.vendor}/${model.family}`,
       );
     }
   }
@@ -81,9 +81,9 @@ export class LmService {
       return { text: result.trim(), modelName };
     } catch (err) {
       if (err instanceof vscode.LanguageModelError) {
-        vscode.window.showErrorMessage(`CodeDiary AI: ${err.message}`);
+        vscode.window.showErrorMessage(`CodeLore AI: ${err.message}`);
       } else if (err instanceof Error) {
-        vscode.window.showErrorMessage(`CodeDiary AI: ${err.message}`);
+        vscode.window.showErrorMessage(`CodeLore AI: ${err.message}`);
       }
       return undefined;
     }

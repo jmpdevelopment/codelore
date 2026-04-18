@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { DiaryStore } from '../storage/diaryStore';
+import { LoreStore } from '../storage/loreStore';
 import { Annotation, CATEGORY_META, EPHEMERAL_CATEGORIES, FileDependency } from '../models/annotation';
 import { Component } from '../models/component';
 import { CriticalFlag } from '../models/criticalFlag';
@@ -347,7 +347,7 @@ export class PreCommitBriefProvider implements vscode.TreeDataProvider<BriefTree
   private cachedKnowledge: FileKnowledge[] = [];
   private disposables: vscode.Disposable[] = [];
 
-  constructor(private store: DiaryStore) {
+  constructor(private store: LoreStore) {
     this.disposables.push(
       store.onDidChange(() => this.refresh()),
       // Refresh when user switches files — git state may have changed
@@ -470,7 +470,7 @@ export class PreCommitBriefProvider implements vscode.TreeDataProvider<BriefTree
     if (!cwd) { return []; }
 
     const changedFiles = gitChangedFiles(cwd)
-      .filter(f => !f.startsWith('.codediary/') && !f.endsWith('codediary.yaml'));
+      .filter(f => !f.startsWith('.codelore/') && !f.endsWith('codelore.yaml'));
     if (changedFiles.length === 0) { return []; }
 
     // Build a map of incoming dependencies: which annotations point to which files

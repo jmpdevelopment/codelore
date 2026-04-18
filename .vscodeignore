@@ -6,7 +6,7 @@ test/**
 out/test/**
 node_modules/**
 coverage/**
-.codediary/**
+.codelore/**
 tsconfig.json
 vitest.config.ts
 esbuild.js

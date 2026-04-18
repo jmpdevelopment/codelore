@@ -10,14 +10,14 @@ import {
   Uri,
 } from '../__mocks__/vscode';
 import { ComponentBar } from '../../src/views/componentBar';
-import { DiaryStore } from '../../src/storage/diaryStore';
+import { LoreStore } from '../../src/storage/loreStore';
 import { Component } from '../../src/models/component';
 
 let tmpDir: string;
 
 function writeComponent(dir: string, c: Component): void {
   const yaml = require('js-yaml');
-  const file = path.join(dir, '.codediary', 'components', `${c.id}.yaml`);
+  const file = path.join(dir, '.codelore', 'components', `${c.id}.yaml`);
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, yaml.dump({ version: 2, ...c }), 'utf8');
 }
@@ -31,12 +31,12 @@ function editorFor(relPath: string): any {
 }
 
 beforeEach(() => {
-  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'codediary-compbar-'));
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'codelore-compbar-'));
   fs.mkdirSync(path.join(tmpDir, '.vscode'), { recursive: true });
   __setWorkspaceFolder(tmpDir);
   __setConfig({
-    'codediary.storagePath': '.vscode/codediary.yaml',
-    'codediary.defaultScope': 'shared',
+    'codelore.storagePath': '.vscode/codelore.yaml',
+    'codelore.defaultScope': 'shared',
   });
 });
 
@@ -48,7 +48,7 @@ afterEach(() => {
 describe('ComponentBar', () => {
   it('hides when there is no active editor', () => {
     __setActiveTextEditor(undefined);
-    const store = new DiaryStore();
+    const store = new LoreStore();
     const bar = new ComponentBar(store);
     expect((bar as any).statusBarItem.visible).toBe(false);
     bar.dispose();
@@ -57,7 +57,7 @@ describe('ComponentBar', () => {
 
   it('hides when the workspace has no components defined', () => {
     __setActiveTextEditor(editorFor('src/foo.ts'));
-    const store = new DiaryStore();
+    const store = new LoreStore();
     const bar = new ComponentBar(store);
     expect((bar as any).statusBarItem.visible).toBe(false);
     bar.dispose();
@@ -74,13 +74,13 @@ describe('ComponentBar', () => {
       updated_at: '2026-04-18T00:00:00Z',
     });
     __setActiveTextEditor(editorFor('src/foo.ts'));
-    const store = new DiaryStore();
+    const store = new LoreStore();
     const bar = new ComponentBar(store);
     bar.update();
     const item = (bar as any).statusBarItem;
     expect(item.visible).toBe(true);
     expect(item.text).toBe('$(symbol-namespace) Untagged');
-    expect(item.command).toBe('codediary.tagFileComponent');
+    expect(item.command).toBe('codelore.tagFileComponent');
     bar.dispose();
     store.dispose();
   });
@@ -95,7 +95,7 @@ describe('ComponentBar', () => {
       updated_at: '2026-04-18T00:00:00Z',
     });
     __setActiveTextEditor(editorFor('src/foo.ts'));
-    const store = new DiaryStore();
+    const store = new LoreStore();
     const bar = new ComponentBar(store);
     bar.update();
     const item = (bar as any).statusBarItem;
@@ -116,7 +116,7 @@ describe('ComponentBar', () => {
       created_at: '2026-04-18T00:00:00Z', updated_at: '2026-04-18T00:00:00Z',
     });
     __setActiveTextEditor(editorFor('src/foo.ts'));
-    const store = new DiaryStore();
+    const store = new LoreStore();
     const bar = new ComponentBar(store);
     bar.update();
     const text = (bar as any).statusBarItem.text;
@@ -132,7 +132,7 @@ describe('ComponentBar', () => {
       created_at: '2026-04-18T00:00:00Z', updated_at: '2026-04-18T00:00:00Z',
     });
     __setActiveTextEditor({ document: { uri: Uri.file('/tmp/outside.ts') } });
-    const store = new DiaryStore();
+    const store = new LoreStore();
     const bar = new ComponentBar(store);
     bar.update();
     expect((bar as any).statusBarItem.visible).toBe(false);
@@ -147,7 +147,7 @@ describe('ComponentBar', () => {
       created_at: '2026-04-18T00:00:00Z', updated_at: '2026-04-18T00:00:00Z',
     });
     __setActiveTextEditor(editorFor('src/foo.ts'));
-    const store = new DiaryStore();
+    const store = new LoreStore();
     const bar = new ComponentBar(store);
     bar.update();
     expect((bar as any).statusBarItem.text).toBe('$(symbol-namespace) Untagged');

@@ -1,17 +1,17 @@
 import * as vscode from 'vscode';
-import { DiaryStore, Scope } from '../storage/diaryStore';
+import { LoreStore, Scope } from '../storage/loreStore';
 
 /**
  * Shared scope picker for all commands that write to the store.
  * Consistent labels across annotations and critical flags.
  */
-export async function pickScope(store: DiaryStore): Promise<Scope | undefined> {
+export async function pickScope(store: LoreStore): Promise<Scope | undefined> {
   const defaultScope = store.getDefaultScope();
   const items = [
     {
       label: '$(globe) Team knowledge (persists)',
       description: defaultScope === 'shared' ? '(default)' : '',
-      detail: 'Saved to .codediary/ — committed to git, visible to team',
+      detail: 'Saved to .codelore/ — committed to git, visible to team',
       scope: 'shared' as Scope,
     },
     {

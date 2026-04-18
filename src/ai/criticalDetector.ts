@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { LmService } from './lmService';
-import { DiaryStore } from '../storage/diaryStore';
+import { LoreStore } from '../storage/loreStore';
 import { CriticalFlag, CriticalSeverity } from '../models/criticalFlag';
 import { getRelativePath, getWorkspaceCwd } from '../utils/git';
 import { validLineRange, isValidSeverity, stripJsonFences, truncateText } from '../utils/validation';
@@ -51,7 +51,7 @@ interface DetectedRegion {
 export class CriticalDetector {
   constructor(
     private lm: LmService,
-    private store: DiaryStore,
+    private store: LoreStore,
   ) {}
 
   /**
@@ -71,7 +71,7 @@ export class CriticalDetector {
     await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
-        title: `CodeDiary: Scanning ${filePath} for critical regions...`,
+        title: `CodeLore: Scanning ${filePath} for critical regions...`,
         cancellable: true,
       },
       async (progress, token) => {
@@ -91,7 +91,7 @@ export class CriticalDetector {
 
           if (regions.length === 0) {
             vscode.window.showInformationMessage(
-              `CodeDiary: No critical regions detected in ${filePath} (via ${result.modelName}).`,
+              `CodeLore: No critical regions detected in ${filePath} (via ${result.modelName}).`,
             );
             return;
           }
@@ -123,10 +123,10 @@ export class CriticalDetector {
           }
 
           vscode.window.showInformationMessage(
-            `CodeDiary: ${selected.length} critical regions flagged in ${filePath} (via ${result.modelName}).`,
+            `CodeLore: ${selected.length} critical regions flagged in ${filePath} (via ${result.modelName}).`,
           );
         } catch (err) {
-          vscode.window.showErrorMessage(`CodeDiary: Failed to scan for critical regions: ${err instanceof Error ? err.message : String(err)}`);
+          vscode.window.showErrorMessage(`CodeLore: Failed to scan for critical regions: ${err instanceof Error ? err.message : String(err)}`);
         }
       },
     );
@@ -144,7 +144,7 @@ export class CriticalDetector {
     await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
-        title: `CodeDiary: Critical scan — ${scopeLabel}`,
+        title: `CodeLore: Critical scan — ${scopeLabel}`,
         cancellable: true,
       },
       async (progress, token) => {
@@ -195,7 +195,7 @@ export class CriticalDetector {
 
         const via = modelName ? ` (via ${modelName})` : '';
         vscode.window.showInformationMessage(
-          `CodeDiary: ${flagged} critical regions flagged across ${scanned} files${via}. Review in the Critical Queue.`,
+          `CodeLore: ${flagged} critical regions flagged across ${scanned} files${via}. Review in the Critical Queue.`,
         );
       },
     );

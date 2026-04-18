@@ -5,8 +5,8 @@ import { AnnotationSource } from './annotation';
  * or logical module. Components are tag-first: the definition (description,
  * owners) is optional metadata layered on top of the file list.
  *
- * Stored per-component at `.codediary/components/<id>.yaml`, committed to git.
- * The reverse file→components index is derived at runtime (see DiaryStore).
+ * Stored per-component at `.codelore/components/<id>.yaml`, committed to git.
+ * The reverse file→components index is derived at runtime (see LoreStore).
  */
 export interface Component {
   /** URL-safe slug; used as the YAML filename. */

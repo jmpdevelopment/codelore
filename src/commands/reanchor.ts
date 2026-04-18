@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { DiaryStore } from '../storage/diaryStore';
+import { LoreStore } from '../storage/loreStore';
 import { getRelativePath } from '../utils/git';
 import { checkAnchors, computeContentHash, AnchorCheckResult } from '../utils/anchorEngine';
 import { CATEGORY_META } from '../models/annotation';
@@ -16,12 +16,12 @@ interface ReanchorPickItem extends vscode.QuickPickItem {
  * Replaces the older verify/reanchor split — verify by itself produced no
  * useful action when something was stale, so the picker is the entry point.
  */
-export function registerReanchorCommands(context: vscode.ExtensionContext, store: DiaryStore): void {
+export function registerReanchorCommands(context: vscode.ExtensionContext, store: LoreStore): void {
   context.subscriptions.push(
-    vscode.commands.registerCommand('codediary.checkAnchors', async () => {
+    vscode.commands.registerCommand('codelore.checkAnchors', async () => {
       const editor = vscode.window.activeTextEditor;
       if (!editor) {
-        vscode.window.showInformationMessage('CodeDiary: Open a file first.');
+        vscode.window.showInformationMessage('CodeLore: Open a file first.');
         return;
       }
 
@@ -56,7 +56,7 @@ export function registerReanchorCommands(context: vscode.ExtensionContext, store
         const without = (annotations.length + criticalFlags.length) - totalChecked;
         const trail = without > 0 ? ` (${without} item${without === 1 ? '' : 's'} without an anchor — older entries)` : '';
         vscode.window.showInformationMessage(
-          `CodeDiary: All ${totalChecked} anchor${totalChecked === 1 ? '' : 's'} verified for ${filePath}${trail}.`,
+          `CodeLore: All ${totalChecked} anchor${totalChecked === 1 ? '' : 's'} verified for ${filePath}${trail}.`,
         );
         return;
       }
@@ -158,7 +158,7 @@ export function registerReanchorCommands(context: vscode.ExtensionContext, store
       const parts: string[] = [];
       if (reanchored > 0) { parts.push(`${reanchored} re-anchored`); }
       if (dismissed > 0) { parts.push(`${dismissed} marked stale`); }
-      vscode.window.showInformationMessage(`CodeDiary: ${parts.join(', ')}.`);
+      vscode.window.showInformationMessage(`CodeLore: ${parts.join(', ')}.`);
     }),
   );
 }

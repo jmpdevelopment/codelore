@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { DiaryStore } from '../storage/diaryStore';
+import { LoreStore } from '../storage/loreStore';
 import { Component, isValidComponentId, slugify } from '../models/component';
 import { getGitUser, getRelativePath } from '../utils/git';
 
@@ -22,11 +22,11 @@ function pickedComponent(arg: unknown): Component | undefined {
   return c && typeof c.id === 'string' ? c : undefined;
 }
 
-async function promptForComponent(store: DiaryStore, placeholder: string): Promise<Component | undefined> {
+async function promptForComponent(store: LoreStore, placeholder: string): Promise<Component | undefined> {
   const all = store.getComponents();
   if (all.length === 0) {
     vscode.window.showInformationMessage(
-      'CodeDiary: No components yet. Tag a file to create one.',
+      'CodeLore: No components yet. Tag a file to create one.',
     );
     return undefined;
   }
@@ -42,7 +42,7 @@ async function promptForComponent(store: DiaryStore, placeholder: string): Promi
   return picked ? store.getComponent(picked.id) : undefined;
 }
 
-async function createNewComponent(store: DiaryStore): Promise<Component | undefined> {
+async function createNewComponent(store: LoreStore): Promise<Component | undefined> {
   const name = await vscode.window.showInputBox({
     prompt: 'Component name',
     placeHolder: 'e.g., Billing Engine',
@@ -50,11 +50,11 @@ async function createNewComponent(store: DiaryStore): Promise<Component | undefi
   if (!name) { return undefined; }
   const id = slugify(name);
   if (!isValidComponentId(id)) {
-    vscode.window.showErrorMessage(`CodeDiary: Could not derive a valid id from "${name}".`);
+    vscode.window.showErrorMessage(`CodeLore: Could not derive a valid id from "${name}".`);
     return undefined;
   }
   if (store.getComponent(id)) {
-    vscode.window.showWarningMessage(`CodeDiary: Component "${id}" already exists. Pick it from the list.`);
+    vscode.window.showWarningMessage(`CodeLore: Component "${id}" already exists. Pick it from the list.`);
     return undefined;
   }
   const description = await vscode.window.showInputBox({
@@ -77,7 +77,7 @@ async function createNewComponent(store: DiaryStore): Promise<Component | undefi
   return store.getComponent(id);
 }
 
-async function pickOrCreateComponent(store: DiaryStore): Promise<Component | undefined> {
+async function pickOrCreateComponent(store: LoreStore): Promise<Component | undefined> {
   const existing = store.getComponents();
   const items: Array<vscode.QuickPickItem & { id: string }> = existing.map(c => ({
     label: `$(symbol-namespace) ${c.name}`,
@@ -104,18 +104,18 @@ async function pickOrCreateComponent(store: DiaryStore): Promise<Component | und
 
 export function registerComponentCommands(
   context: vscode.ExtensionContext,
-  store: DiaryStore,
+  store: LoreStore,
 ): void {
   context.subscriptions.push(
-    vscode.commands.registerCommand('codediary.manageComponentsForFile', async () => {
+    vscode.commands.registerCommand('codelore.manageComponentsForFile', async () => {
       const editor = vscode.window.activeTextEditor;
       if (!editor) {
-        vscode.window.showInformationMessage('CodeDiary: Open a file first.');
+        vscode.window.showInformationMessage('CodeLore: Open a file first.');
         return;
       }
       const filePath = getRelativePath(editor.document.uri);
       if (!filePath) {
-        vscode.window.showInformationMessage('CodeDiary: File must live inside the workspace.');
+        vscode.window.showInformationMessage('CodeLore: File must live inside the workspace.');
         return;
       }
 
@@ -126,7 +126,7 @@ export function registerComponentCommands(
         if (!created) { return; }
         store.components.addFile(created.id, filePath);
         vscode.window.showInformationMessage(
-          `CodeDiary: Tagged ${filePath} into "${created.name}".`,
+          `CodeLore: Tagged ${filePath} into "${created.name}".`,
         );
         return;
       }
@@ -179,10 +179,10 @@ export function registerComponentCommands(
       if (added.length > 0) { parts.push(`tagged into ${added.join(', ')}`); }
       if (removed.length > 0) { parts.push(`untagged from ${removed.join(', ')}`); }
       if (parts.length === 0) { return; }
-      vscode.window.showInformationMessage(`CodeDiary: ${filePath} ${parts.join('; ')}.`);
+      vscode.window.showInformationMessage(`CodeLore: ${filePath} ${parts.join('; ')}.`);
     }),
 
-    vscode.commands.registerCommand('codediary.editComponent', async (arg?: unknown) => {
+    vscode.commands.registerCommand('codelore.editComponent', async (arg?: unknown) => {
       const component = pickedComponent(arg)
         ?? (await promptForComponent(store, 'Which component should be edited?'));
       if (!component) { return; }
@@ -216,7 +216,7 @@ export function registerComponentCommands(
         description: description.trim() || undefined,
         owners: ownerList.length > 0 ? ownerList : undefined,
       });
-      vscode.window.showInformationMessage(`CodeDiary: Updated "${name.trim()}".`);
+      vscode.window.showInformationMessage(`CodeLore: Updated "${name.trim()}".`);
     }),
   );
 }

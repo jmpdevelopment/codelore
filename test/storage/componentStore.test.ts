@@ -24,7 +24,7 @@ function makeComponent(overrides: Partial<Component> = {}): Component {
 }
 
 beforeEach(() => {
-  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'codediary-component-'));
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'codelore-component-'));
   __setWorkspaceFolder(tmpDir);
 });
 
@@ -35,14 +35,14 @@ afterEach(() => {
 
 describe('ComponentStore', () => {
   describe('constructor', () => {
-    it('initializes empty when .codediary/components/ does not exist', () => {
+    it('initializes empty when .codelore/components/ does not exist', () => {
       const store = new ComponentStore();
       expect(store.getAll()).toEqual([]);
       store.dispose();
     });
 
     it('loads existing YAML files', () => {
-      const dir = path.join(tmpDir, '.codediary', 'components');
+      const dir = path.join(tmpDir, '.codelore', 'components');
       fs.mkdirSync(dir, { recursive: true });
       fs.writeFileSync(
         path.join(dir, 'billing.yaml'),
@@ -67,7 +67,7 @@ describe('ComponentStore', () => {
     });
 
     it('skips malformed YAML files', () => {
-      const dir = path.join(tmpDir, '.codediary', 'components');
+      const dir = path.join(tmpDir, '.codelore', 'components');
       fs.mkdirSync(dir, { recursive: true });
       fs.writeFileSync(path.join(dir, 'broken.yaml'), '!!! not: [valid yaml');
       fs.writeFileSync(path.join(dir, 'valid.yaml'), yaml.dump({
@@ -87,7 +87,7 @@ describe('ComponentStore', () => {
     });
 
     it('skips components with invalid ids', () => {
-      const dir = path.join(tmpDir, '.codediary', 'components');
+      const dir = path.join(tmpDir, '.codelore', 'components');
       fs.mkdirSync(dir, { recursive: true });
       fs.writeFileSync(path.join(dir, 'bad.yaml'), yaml.dump({
         version: 2,
@@ -105,7 +105,7 @@ describe('ComponentStore', () => {
     });
 
     it('rejects legacy v1 YAML without version field', () => {
-      const dir = path.join(tmpDir, '.codediary', 'components');
+      const dir = path.join(tmpDir, '.codelore', 'components');
       fs.mkdirSync(dir, { recursive: true });
       fs.writeFileSync(
         path.join(dir, 'auth.yaml'),
@@ -131,7 +131,7 @@ describe('ComponentStore', () => {
       const store = new ComponentStore();
       store.upsert(makeComponent({ id: 'billing' }));
 
-      const filePath = path.join(tmpDir, '.codediary', 'components', 'billing.yaml');
+      const filePath = path.join(tmpDir, '.codelore', 'components', 'billing.yaml');
       expect(fs.existsSync(filePath)).toBe(true);
       const parsed = yaml.load(fs.readFileSync(filePath, 'utf8')) as any;
       expect(parsed.version).toBe(SCHEMA_VERSION);
@@ -176,7 +176,7 @@ describe('ComponentStore', () => {
     it('removes the YAML file and returns true', () => {
       const store = new ComponentStore();
       store.upsert(makeComponent({ id: 'billing' }));
-      const filePath = path.join(tmpDir, '.codediary', 'components', 'billing.yaml');
+      const filePath = path.join(tmpDir, '.codelore', 'components', 'billing.yaml');
       expect(fs.existsSync(filePath)).toBe(true);
 
       expect(store.delete('billing')).toBe(true);

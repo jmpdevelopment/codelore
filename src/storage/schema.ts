@@ -1,5 +1,5 @@
 /**
- * Current on-disk schema version for CodeDiary YAML files. v1 (no `version:`
+ * Current on-disk schema version for CodeLore YAML files. v1 (no `version:`
  * field) was the pre-pivot review-workflow schema; v2 is the knowledge-store
  * schema introduced 2026-04-18 and is the only version this release supports.
  */
@@ -16,10 +16,10 @@ export function assertSupportedVersion(data: unknown, sourceLabel: string): void
   if (version === SCHEMA_VERSION) { return; }
   if (version === undefined || version === 1) {
     throw new Error(
-      `CodeDiary v1 schema is not supported (file: ${sourceLabel}); this release requires v2.`,
+      `CodeLore v1 schema is not supported (file: ${sourceLabel}); this release requires v2.`,
     );
   }
   throw new Error(
-    `CodeDiary: unknown schema version ${String(version)} in ${sourceLabel} (expected ${SCHEMA_VERSION}).`,
+    `CodeLore: unknown schema version ${String(version)} in ${sourceLabel} (expected ${SCHEMA_VERSION}).`,
   );
 }

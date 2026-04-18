@@ -12,7 +12,7 @@ import {
   commands,
 } from '../__mocks__/vscode';
 import { registerFilterCommand } from '../../src/commands/filter';
-import { DiaryStore } from '../../src/storage/diaryStore';
+import { LoreStore } from '../../src/storage/loreStore';
 import { ChangePlanProvider } from '../../src/views/changePlanProvider';
 import { CriticalQueueProvider } from '../../src/views/criticalQueueProvider';
 import { Annotation } from '../../src/models/annotation';
@@ -51,12 +51,12 @@ function makeFlag(overrides: Partial<CriticalFlag> = {}): CriticalFlag {
 }
 
 beforeEach(() => {
-  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'codediary-filter-'));
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'codelore-filter-'));
   fs.mkdirSync(path.join(tmpDir, '.vscode'), { recursive: true });
   __setWorkspaceFolder(tmpDir);
   __setConfig({
-    'codediary.storagePath': '.vscode/codediary.yaml',
-    'codediary.defaultScope': 'shared',
+    'codelore.storagePath': '.vscode/codelore.yaml',
+    'codelore.defaultScope': 'shared',
   });
   __resetPrompts();
 });
@@ -66,9 +66,9 @@ afterEach(() => {
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
 
-describe('codediary.filter', () => {
+describe('codelore.filter', () => {
   function setup() {
-    const store = new DiaryStore();
+    const store = new LoreStore();
     const changePlan = new ChangePlanProvider(store);
     const criticalQueue = new CriticalQueueProvider(store);
     const ctx = makeContext();
@@ -79,7 +79,7 @@ describe('codediary.filter', () => {
   it('returns silently when the dimension picker is dismissed', async () => {
     const { changePlan, dispose } = setup();
     __queueQuickPick(undefined);
-    await commands.executeCommand('codediary.filter');
+    await commands.executeCommand('codelore.filter');
     expect(changePlan.getActiveFilters().category).toBeUndefined();
     dispose();
   });
@@ -90,7 +90,7 @@ describe('codediary.filter', () => {
       { action: 'category' },
       { category: 'gotcha' },
     );
-    await commands.executeCommand('codediary.filter');
+    await commands.executeCommand('codelore.filter');
     expect(changePlan.getActiveFilters().category).toBe('gotcha');
     dispose();
   });
@@ -101,7 +101,7 @@ describe('codediary.filter', () => {
       { action: 'severity' },
       { severity: 'high' },
     );
-    await commands.executeCommand('codediary.filter');
+    await commands.executeCommand('codelore.filter');
     expect(criticalQueue.getActiveFilters().severity).toBe('high');
     dispose();
   });
@@ -109,7 +109,7 @@ describe('codediary.filter', () => {
   it('component dimension warns and exits when no components exist', async () => {
     const { changePlan, dispose } = setup();
     __queueQuickPick({ action: 'component' });
-    await commands.executeCommand('codediary.filter');
+    await commands.executeCommand('codelore.filter');
     expect(changePlan.getActiveFilters().component).toBeUndefined();
     dispose();
   });
@@ -128,7 +128,7 @@ describe('codediary.filter', () => {
       { action: 'component' },
       { id: 'billing' },
     );
-    await commands.executeCommand('codediary.filter');
+    await commands.executeCommand('codelore.filter');
     expect(changePlan.getActiveFilters().component).toBe('billing');
     dispose();
   });
@@ -137,7 +137,7 @@ describe('codediary.filter', () => {
     const { changePlan, criticalQueue, dispose } = setup();
     __queueQuickPick({ action: 'path' });
     __queueInputBox('src/auth');
-    await commands.executeCommand('codediary.filter');
+    await commands.executeCommand('codelore.filter');
     expect(changePlan.getActiveFilters().path).toBe('src/auth');
     expect(criticalQueue.getActiveFilters().path).toBe('src/auth');
     dispose();
@@ -151,7 +151,7 @@ describe('codediary.filter', () => {
 
     __queueQuickPick({ action: 'path' });
     __queueInputBox('   ');
-    await commands.executeCommand('codediary.filter');
+    await commands.executeCommand('codelore.filter');
 
     expect(changePlan.getActiveFilters().path).toBeUndefined();
     expect(criticalQueue.getActiveFilters().path).toBeUndefined();
@@ -174,7 +174,7 @@ describe('codediary.filter', () => {
     criticalQueue.setSeverityFilter('critical');
 
     __queueQuickPick({ action: 'clear' });
-    await commands.executeCommand('codediary.filter');
+    await commands.executeCommand('codelore.filter');
 
     expect(changePlan.getActiveFilters()).toEqual({
       category: undefined, path: undefined, component: undefined,

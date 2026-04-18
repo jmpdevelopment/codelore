@@ -1,6 +1,6 @@
 {
-  "name": "codediary",
-  "displayName": "CodeDiary",
+  "name": "codelore",
+  "displayName": "CodeLore",
   "description": "Institutional knowledge capture for large codebases undergoing AI-accelerated development. Annotate, review, and build shared understanding as AI agents modify your code.",
   "version": "0.1.0",
   "publisher": "jmpdevelopment",
@@ -8,12 +8,12 @@
   "icon": "icon.png",
   "repository": {
     "type": "git",
-    "url": "https://github.com/codediary/codediary.git"
+    "url": "https://github.com/jmpdevelopment/codelore.git"
   },
   "bugs": {
-    "url": "https://github.com/codediary/codediary/issues"
+    "url": "https://github.com/jmpdevelopment/codelore/issues"
   },
-  "homepage": "https://github.com/codediary/codediary#readme",
+  "homepage": "https://github.com/jmpdevelopment/codelore#readme",
   "engines": {
     "vscode": "^1.95.0"
   },
@@ -29,7 +29,7 @@
     "code documentation",
     "AI development",
     "team knowledge sharing",
-    "code diary"
+    "code lore"
   ],
   "activationEvents": [
     "onStartupFinished"
@@ -38,139 +38,139 @@
   "contributes": {
     "commands": [
       {
-        "command": "codediary.addAnnotation",
-        "title": "CodeDiary: Add Annotation",
+        "command": "codelore.addAnnotation",
+        "title": "CodeLore: Add Annotation",
         "icon": "$(note)"
       },
       {
-        "command": "codediary.editAnnotation",
-        "title": "CodeDiary: Edit Annotation",
+        "command": "codelore.editAnnotation",
+        "title": "CodeLore: Edit Annotation",
         "icon": "$(edit)"
       },
       {
-        "command": "codediary.deleteAnnotation",
-        "title": "CodeDiary: Delete Annotation",
+        "command": "codelore.deleteAnnotation",
+        "title": "CodeLore: Delete Annotation",
         "icon": "$(trash)"
       },
       {
-        "command": "codediary.verifyAnnotation",
-        "title": "CodeDiary: Verify AI Annotation",
+        "command": "codelore.verifyAnnotation",
+        "title": "CodeLore: Verify AI Annotation",
         "icon": "$(verified)"
       },
       {
-        "command": "codediary.markCritical",
-        "title": "CodeDiary: Mark as Critical",
+        "command": "codelore.markCritical",
+        "title": "CodeLore: Mark as Critical",
         "icon": "$(shield)"
       },
       {
-        "command": "codediary.clearAll",
-        "title": "CodeDiary: Clear Personal Data"
+        "command": "codelore.clearAll",
+        "title": "CodeLore: Clear Personal Data"
       },
       {
-        "command": "codediary.manageComponentsForFile",
-        "title": "CodeDiary: Manage Components for File",
+        "command": "codelore.manageComponentsForFile",
+        "title": "CodeLore: Manage Components for File",
         "icon": "$(symbol-namespace)"
       },
       {
-        "command": "codediary.editComponent",
-        "title": "CodeDiary: Edit Component",
+        "command": "codelore.editComponent",
+        "title": "CodeLore: Edit Component",
         "icon": "$(edit)"
       },
       {
-        "command": "codediary.filter",
-        "title": "CodeDiary: Filter",
+        "command": "codelore.filter",
+        "title": "CodeLore: Filter",
         "icon": "$(filter)"
       },
       {
-        "command": "codediary.refreshSidebar",
-        "title": "CodeDiary: Refresh",
+        "command": "codelore.refreshSidebar",
+        "title": "CodeLore: Refresh",
         "icon": "$(refresh)"
       },
       {
-        "command": "codediary.scanFile",
-        "title": "CodeDiary: Scan Current File (Knowledge + Critical)",
+        "command": "codelore.scanFile",
+        "title": "CodeLore: Scan Current File (Knowledge + Critical)",
         "icon": "$(sparkle)"
       },
       {
-        "command": "codediary.scanComponent",
-        "title": "CodeDiary: Scan Component (Knowledge + Critical)",
+        "command": "codelore.scanComponent",
+        "title": "CodeLore: Scan Component (Knowledge + Critical)",
         "icon": "$(symbol-namespace)"
       },
       {
-        "command": "codediary.scanProject",
-        "title": "CodeDiary: Scan Entire Project (Knowledge + Critical)",
+        "command": "codelore.scanProject",
+        "title": "CodeLore: Scan Entire Project (Knowledge + Critical)",
         "icon": "$(globe)"
       },
       {
-        "command": "codediary.proposeComponent",
-        "title": "CodeDiary: Propose Components (AI)",
+        "command": "codelore.proposeComponent",
+        "title": "CodeLore: Propose Components (AI)",
         "icon": "$(symbol-namespace)"
       },
       {
-        "command": "codediary.changeModel",
-        "title": "CodeDiary: Change AI Model"
+        "command": "codelore.changeModel",
+        "title": "CodeLore: Change AI Model"
       },
       {
-        "command": "codediary.searchAnnotations",
-        "title": "CodeDiary: Search Annotations",
+        "command": "codelore.searchAnnotations",
+        "title": "CodeLore: Search Annotations",
         "icon": "$(search)"
       },
       {
-        "command": "codediary.resolveCritical",
-        "title": "CodeDiary: Resolve Critical Flag",
+        "command": "codelore.resolveCritical",
+        "title": "CodeLore: Resolve Critical Flag",
         "icon": "$(check)"
       },
       {
-        "command": "codediary.removeCritical",
-        "title": "CodeDiary: Remove Critical Flag",
+        "command": "codelore.removeCritical",
+        "title": "CodeLore: Remove Critical Flag",
         "icon": "$(trash)"
       },
       {
-        "command": "codediary.quickNote",
-        "title": "CodeDiary: Quick AI Note (Ephemeral)",
+        "command": "codelore.quickNote",
+        "title": "CodeLore: Quick AI Note (Ephemeral)",
         "icon": "$(robot)"
       },
       {
-        "command": "codediary.copyAnnotationsForFile",
-        "title": "CodeDiary: Copy Annotations for Current File",
+        "command": "codelore.copyAnnotationsForFile",
+        "title": "CodeLore: Copy Annotations for Current File",
         "icon": "$(copy)"
       },
       {
-        "command": "codediary.generateAgentInstructions",
-        "title": "CodeDiary: Generate Agent Instruction Files",
+        "command": "codelore.generateAgentInstructions",
+        "title": "CodeLore: Generate Agent Instruction Files",
         "icon": "$(file-code)"
       },
       {
-        "command": "codediary.checkAnchors",
-        "title": "CodeDiary: Check Annotation Anchors",
+        "command": "codelore.checkAnchors",
+        "title": "CodeLore: Check Annotation Anchors",
         "icon": "$(pin)"
       },
       {
-        "command": "codediary.showPreCommitBrief",
-        "title": "CodeDiary: Show Pre-Commit Brief",
+        "command": "codelore.showPreCommitBrief",
+        "title": "CodeLore: Show Pre-Commit Brief",
         "icon": "$(checklist)"
       }
     ],
     "keybindings": [
       {
-        "command": "codediary.addAnnotation",
-        "key": "ctrl+shift+j",
-        "mac": "cmd+shift+j",
-        "when": "editorTextFocus"
-      },
-      {
-        "command": "codediary.quickNote",
+        "command": "codelore.addAnnotation",
         "key": "ctrl+shift+l",
         "mac": "cmd+shift+l",
         "when": "editorTextFocus"
       },
       {
-        "command": "codediary.showPreCommitBrief",
+        "command": "codelore.quickNote",
+        "key": "ctrl+shift+j",
+        "mac": "cmd+shift+j",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "codelore.showPreCommitBrief",
         "key": "ctrl+shift+b",
         "mac": "cmd+shift+b"
       },
       {
-        "command": "codediary.scanFile",
+        "command": "codelore.scanFile",
         "key": "ctrl+shift+k",
         "mac": "cmd+shift+k",
         "when": "editorTextFocus"
@@ -179,177 +179,177 @@
     "menus": {
       "editor/context": [
         {
-          "submenu": "codediary.submenu",
-          "group": "codediary@1"
+          "submenu": "codelore.submenu",
+          "group": "codelore@1"
         }
       ],
-      "codediary.submenu": [
+      "codelore.submenu": [
         {
-          "command": "codediary.addAnnotation",
+          "command": "codelore.addAnnotation",
           "group": "annotation@1"
         },
         {
-          "command": "codediary.markCritical",
+          "command": "codelore.markCritical",
           "group": "critical@1"
         },
         {
-          "command": "codediary.scanFile",
+          "command": "codelore.scanFile",
           "group": "ai@1"
         },
         {
-          "command": "codediary.resolveCritical",
+          "command": "codelore.resolveCritical",
           "group": "critical@2"
         },
         {
-          "command": "codediary.removeCritical",
+          "command": "codelore.removeCritical",
           "group": "critical@3"
         },
         {
-          "command": "codediary.quickNote",
+          "command": "codelore.quickNote",
           "group": "annotation@2"
         },
         {
-          "command": "codediary.copyAnnotationsForFile",
+          "command": "codelore.copyAnnotationsForFile",
           "group": "annotation@3"
         }
       ],
       "view/title": [
         {
-          "command": "codediary.filter",
-          "when": "view == codediary.changePlan || view == codediary.criticalQueue",
+          "command": "codelore.filter",
+          "when": "view == codelore.changePlan || view == codelore.criticalQueue",
           "group": "navigation@2"
         },
         {
-          "command": "codediary.refreshSidebar",
-          "when": "view == codediary.changePlan || view == codediary.criticalQueue || view == codediary.preCommitBrief || view == codediary.components",
+          "command": "codelore.refreshSidebar",
+          "when": "view == codelore.changePlan || view == codelore.criticalQueue || view == codelore.preCommitBrief || view == codelore.components",
           "group": "navigation@5"
         },
         {
-          "command": "codediary.manageComponentsForFile",
-          "when": "view == codediary.components",
+          "command": "codelore.manageComponentsForFile",
+          "when": "view == codelore.components",
           "group": "navigation@1"
         },
         {
-          "command": "codediary.proposeComponent",
-          "when": "view == codediary.components",
+          "command": "codelore.proposeComponent",
+          "when": "view == codelore.components",
           "group": "navigation@2"
         }
       ],
       "view/item/context": [
         {
-          "command": "codediary.editComponent",
-          "when": "view == codediary.components && viewItem == component",
+          "command": "codelore.editComponent",
+          "when": "view == codelore.components && viewItem == component",
           "group": "inline@1"
         },
         {
-          "command": "codediary.verifyAnnotation",
-          "when": "view == codediary.changePlan && viewItem == annotation-ai-generated",
+          "command": "codelore.verifyAnnotation",
+          "when": "view == codelore.changePlan && viewItem == annotation-ai-generated",
           "group": "inline@0"
         },
         {
-          "command": "codediary.editAnnotation",
-          "when": "view == codediary.changePlan && viewItem =~ /^annotation/",
+          "command": "codelore.editAnnotation",
+          "when": "view == codelore.changePlan && viewItem =~ /^annotation/",
           "group": "inline@1"
         },
         {
-          "command": "codediary.deleteAnnotation",
-          "when": "view == codediary.changePlan && viewItem =~ /^annotation/",
+          "command": "codelore.deleteAnnotation",
+          "when": "view == codelore.changePlan && viewItem =~ /^annotation/",
           "group": "inline@2"
         },
         {
-          "command": "codediary.resolveCritical",
-          "when": "view == codediary.criticalQueue && viewItem == criticalFlag",
+          "command": "codelore.resolveCritical",
+          "when": "view == codelore.criticalQueue && viewItem == criticalFlag",
           "group": "inline@1"
         },
         {
-          "command": "codediary.removeCritical",
-          "when": "view == codediary.criticalQueue && viewItem == criticalFlag",
+          "command": "codelore.removeCritical",
+          "when": "view == codelore.criticalQueue && viewItem == criticalFlag",
           "group": "inline@2"
         }
       ],
       "commandPalette": [
         {
-          "command": "codediary.refreshSidebar",
+          "command": "codelore.refreshSidebar",
           "when": "false"
         },
         {
-          "command": "codediary.editAnnotation",
+          "command": "codelore.editAnnotation",
           "when": "false"
         },
         {
-          "command": "codediary.deleteAnnotation",
+          "command": "codelore.deleteAnnotation",
           "when": "false"
         },
         {
-          "command": "codediary.editComponent",
+          "command": "codelore.editComponent",
           "when": "false"
         },
         {
-          "command": "codediary.verifyAnnotation",
+          "command": "codelore.verifyAnnotation",
           "when": "false"
         },
         {
-          "command": "codediary.resolveCritical",
+          "command": "codelore.resolveCritical",
           "when": "false"
         },
         {
-          "command": "codediary.removeCritical",
+          "command": "codelore.removeCritical",
           "when": "false"
         }
       ]
     },
     "submenus": [
       {
-        "id": "codediary.submenu",
-        "label": "CodeDiary"
+        "id": "codelore.submenu",
+        "label": "CodeLore"
       }
     ],
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "codediary-sidebar",
-          "title": "CodeDiary",
+          "id": "codelore-sidebar",
+          "title": "CodeLore",
           "icon": "$(notebook)"
         }
       ]
     },
     "views": {
-      "codediary-sidebar": [
+      "codelore-sidebar": [
         {
-          "id": "codediary.components",
+          "id": "codelore.components",
           "name": "Components"
         },
         {
-          "id": "codediary.changePlan",
+          "id": "codelore.changePlan",
           "name": "Annotations",
           "visibility": "collapsed"
         },
         {
-          "id": "codediary.preCommitBrief",
+          "id": "codelore.preCommitBrief",
           "name": "Pre-Commit Brief"
         },
         {
-          "id": "codediary.criticalQueue",
+          "id": "codelore.criticalQueue",
           "name": "Critical Review Queue"
         }
       ]
     },
     "configuration": {
-      "title": "CodeDiary",
+      "title": "CodeLore",
       "properties": {
-        "codediary.storagePath": {
+        "codelore.storagePath": {
           "type": "string",
-          "default": ".vscode/codediary.yaml",
-          "description": "Path to the CodeDiary storage file (relative to workspace root)."
+          "default": ".vscode/codelore.yaml",
+          "description": "Path to the CodeLore storage file (relative to workspace root)."
         },
-        "codediary.defaultScope": {
+        "codelore.defaultScope": {
           "type": "string",
           "enum": [
             "shared",
             "personal"
           ],
           "default": "shared",
-          "description": "Default scope for new annotations and review markers. 'shared' commits to .codediary/ (visible to team), 'personal' stays in .vscode/ (just for you)."
+          "description": "Default scope for new annotations and review markers. 'shared' commits to .codelore/ (visible to team), 'personal' stays in .vscode/ (just for you)."
         }
       }
     }

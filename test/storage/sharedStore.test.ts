@@ -35,7 +35,7 @@ function makeFlag(overrides: Partial<CriticalFlag> = {}): CriticalFlag {
 }
 
 beforeEach(() => {
-  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'codediary-shared-'));
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'codelore-shared-'));
   __setWorkspaceFolder(tmpDir);
 });
 
@@ -46,15 +46,15 @@ afterEach(() => {
 
 describe('SharedStore', () => {
   describe('constructor', () => {
-    it('initializes empty when .codediary/ does not exist', () => {
+    it('initializes empty when .codelore/ does not exist', () => {
       const store = new SharedStore();
       expect(store.getAnnotations()).toEqual([]);
       expect(store.getCriticalFlags()).toEqual([]);
       store.dispose();
     });
 
-    it('loads existing YAML files from .codediary/', () => {
-      const yamlDir = path.join(tmpDir, '.codediary', 'src');
+    it('loads existing YAML files from .codelore/', () => {
+      const yamlDir = path.join(tmpDir, '.codelore', 'src');
       fs.mkdirSync(yamlDir, { recursive: true });
       fs.writeFileSync(
         path.join(yamlDir, 'foo.ts.yaml'),
@@ -74,7 +74,7 @@ describe('SharedStore', () => {
     });
 
     it('skips malformed YAML files', () => {
-      const yamlDir = path.join(tmpDir, '.codediary', 'src');
+      const yamlDir = path.join(tmpDir, '.codelore', 'src');
       fs.mkdirSync(yamlDir, { recursive: true });
       fs.writeFileSync(path.join(yamlDir, 'bad.ts.yaml'), '{{not yaml');
       const store = new SharedStore();
@@ -89,7 +89,7 @@ describe('SharedStore', () => {
       store.addAnnotation(makeAnnotation());
       expect(store.getAnnotations()).toHaveLength(1);
 
-      const yamlPath = path.join(tmpDir, '.codediary', 'src', 'foo.ts.yaml');
+      const yamlPath = path.join(tmpDir, '.codelore', 'src', 'foo.ts.yaml');
       expect(fs.existsSync(yamlPath)).toBe(true);
       store.dispose();
     });
@@ -142,7 +142,7 @@ describe('SharedStore', () => {
       const store = new SharedStore();
       store.addAnnotation(makeAnnotation({ id: 'a1' }));
       store.deleteAnnotation('a1');
-      const yamlPath = path.join(tmpDir, '.codediary', 'src', 'foo.ts.yaml');
+      const yamlPath = path.join(tmpDir, '.codelore', 'src', 'foo.ts.yaml');
       expect(fs.existsSync(yamlPath)).toBe(false);
       store.dispose();
     });
@@ -151,8 +151,8 @@ describe('SharedStore', () => {
       const store = new SharedStore();
       store.addAnnotation(makeAnnotation({ id: 'a1', file: 'deep/nested/file.ts' }));
       store.deleteAnnotation('a1');
-      expect(fs.existsSync(path.join(tmpDir, '.codediary', 'deep', 'nested'))).toBe(false);
-      expect(fs.existsSync(path.join(tmpDir, '.codediary', 'deep'))).toBe(false);
+      expect(fs.existsSync(path.join(tmpDir, '.codelore', 'deep', 'nested'))).toBe(false);
+      expect(fs.existsSync(path.join(tmpDir, '.codelore', 'deep'))).toBe(false);
       store.dispose();
     });
   });
@@ -264,14 +264,14 @@ describe('SharedStore', () => {
       store.dispose();
 
       const raw = fs.readFileSync(
-        path.join(tmpDir, '.codediary', 'src', 'foo.ts.yaml'),
+        path.join(tmpDir, '.codelore', 'src', 'foo.ts.yaml'),
         'utf8',
       );
       expect(raw.startsWith('version: 2\n')).toBe(true);
     });
 
     it('loads a v2 file with the version field present', () => {
-      const yamlDir = path.join(tmpDir, '.codediary', 'src');
+      const yamlDir = path.join(tmpDir, '.codelore', 'src');
       fs.mkdirSync(yamlDir, { recursive: true });
       fs.writeFileSync(
         path.join(yamlDir, 'modern.ts.yaml'),
@@ -284,7 +284,7 @@ describe('SharedStore', () => {
     });
 
     it('rejects v1 files (no version field)', () => {
-      const yamlDir = path.join(tmpDir, '.codediary', 'src');
+      const yamlDir = path.join(tmpDir, '.codelore', 'src');
       fs.mkdirSync(yamlDir, { recursive: true });
       fs.writeFileSync(
         path.join(yamlDir, 'legacy.ts.yaml'),
@@ -297,7 +297,7 @@ describe('SharedStore', () => {
     });
 
     it('coerces unknown source values to human_authored on load', () => {
-      const yamlDir = path.join(tmpDir, '.codediary', 'src');
+      const yamlDir = path.join(tmpDir, '.codelore', 'src');
       fs.mkdirSync(yamlDir, { recursive: true });
       fs.writeFileSync(
         path.join(yamlDir, 'file.ts.yaml'),
@@ -321,7 +321,7 @@ describe('SharedStore', () => {
     });
 
     it('does not leak the version field into cached annotation data', () => {
-      const yamlDir = path.join(tmpDir, '.codediary', 'src');
+      const yamlDir = path.join(tmpDir, '.codelore', 'src');
       fs.mkdirSync(yamlDir, { recursive: true });
       fs.writeFileSync(
         path.join(yamlDir, 'modern.ts.yaml'),

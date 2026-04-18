@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { DiaryStore } from '../storage/diaryStore';
+import { LoreStore } from '../storage/loreStore';
 import { CriticalFlag, CriticalSeverity } from '../models/criticalFlag';
 import { isSafeRelativePath, sanitizeMarkdownText } from '../utils/validation';
 
@@ -66,7 +66,7 @@ export class CriticalQueueProvider implements vscode.TreeDataProvider<CriticalNo
   private filterPath: string | undefined;
   private filterSeverity: CriticalSeverity | undefined;
 
-  constructor(private store: DiaryStore) {
+  constructor(private store: LoreStore) {
     store.onDidChange(() => this.refresh());
   }
 

@@ -35,10 +35,10 @@ function makeFlag(overrides: Partial<CriticalFlag> = {}): CriticalFlag {
 }
 
 beforeEach(() => {
-  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'codediary-test-'));
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'codelore-test-'));
   fs.mkdirSync(path.join(tmpDir, '.vscode'), { recursive: true });
   __setWorkspaceFolder(tmpDir);
-  __setConfig({ 'codediary.storagePath': '.vscode/codediary.yaml' });
+  __setConfig({ 'codelore.storagePath': '.vscode/codelore.yaml' });
 });
 
 afterEach(() => {
@@ -68,7 +68,7 @@ annotations:
     created_at: "2026-01-01T00:00:00Z"
 critical_flags: []
 `;
-      fs.writeFileSync(path.join(tmpDir, '.vscode/codediary.yaml'), yamlContent);
+      fs.writeFileSync(path.join(tmpDir, '.vscode/codelore.yaml'), yamlContent);
       const store = new YamlStore();
       expect(store.getAnnotations()).toHaveLength(1);
       expect(store.getAnnotations()[0].id).toBe('ann-1');
@@ -76,7 +76,7 @@ critical_flags: []
     });
 
     it('handles malformed YAML gracefully', () => {
-      fs.writeFileSync(path.join(tmpDir, '.vscode/codediary.yaml'), '{{invalid yaml');
+      fs.writeFileSync(path.join(tmpDir, '.vscode/codelore.yaml'), '{{invalid yaml');
       const store = new YamlStore();
       expect(store.getAnnotations()).toEqual([]);
       store.dispose();
@@ -231,7 +231,7 @@ critical_flags: []
       store.addAnnotation(makeAnnotation());
       store.dispose();
 
-      const raw = fs.readFileSync(path.join(tmpDir, '.vscode/codediary.yaml'), 'utf8');
+      const raw = fs.readFileSync(path.join(tmpDir, '.vscode/codelore.yaml'), 'utf8');
       expect(raw.startsWith('version: 2\n')).toBe(true);
     });
 
@@ -247,7 +247,7 @@ critical_flags: []
     created_at: "2026-01-01T00:00:00Z"
 critical_flags: []
 `;
-      fs.writeFileSync(path.join(tmpDir, '.vscode/codediary.yaml'), v1);
+      fs.writeFileSync(path.join(tmpDir, '.vscode/codelore.yaml'), v1);
 
       const store = new YamlStore();
       // v1 files are not loaded; user sees an error message.
@@ -268,7 +268,7 @@ annotations:
     created_at: "2026-01-01T00:00:00Z"
 critical_flags: []
 `;
-      fs.writeFileSync(path.join(tmpDir, '.vscode/codediary.yaml'), v2);
+      fs.writeFileSync(path.join(tmpDir, '.vscode/codelore.yaml'), v2);
 
       const store = new YamlStore();
       expect(store.getAnnotations()).toHaveLength(1);
@@ -289,7 +289,7 @@ annotations:
     created_at: "2026-01-01T00:00:00Z"
 critical_flags: []
 `;
-      fs.writeFileSync(path.join(tmpDir, '.vscode/codediary.yaml'), yamlContent);
+      fs.writeFileSync(path.join(tmpDir, '.vscode/codelore.yaml'), yamlContent);
 
       const store = new YamlStore();
       expect(store.getAnnotations()[0].source).toBe('human_authored');
@@ -309,7 +309,7 @@ annotations:
     created_at: "2026-01-01T00:00:00Z"
 critical_flags: []
 `;
-      fs.writeFileSync(path.join(tmpDir, '.vscode/codediary.yaml'), v2);
+      fs.writeFileSync(path.join(tmpDir, '.vscode/codelore.yaml'), v2);
 
       const store = new YamlStore();
       const ann = store.getAnnotations()[0] as unknown as Record<string, unknown>;
@@ -320,10 +320,10 @@ critical_flags: []
 
   describe('save', () => {
     it('creates parent directory if it does not exist', () => {
-      __setConfig({ 'codediary.storagePath': 'deep/nested/dir/codediary.yaml' });
+      __setConfig({ 'codelore.storagePath': 'deep/nested/dir/codelore.yaml' });
       const store = new YamlStore();
       store.addAnnotation(makeAnnotation());
-      const filePath = path.join(tmpDir, 'deep/nested/dir/codediary.yaml');
+      const filePath = path.join(tmpDir, 'deep/nested/dir/codelore.yaml');
       expect(fs.existsSync(filePath)).toBe(true);
       store.dispose();
     });

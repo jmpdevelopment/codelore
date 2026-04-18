@@ -1,13 +1,13 @@
 import * as vscode from 'vscode';
 import { v4 as uuidv4 } from 'uuid';
-import { DiaryStore } from '../storage/diaryStore';
+import { LoreStore } from '../storage/loreStore';
 import { Annotation } from '../models/annotation';
 import { getGitUser, getRelativePath } from '../utils/git';
 import { computeContentHash, computeSignatureHash } from '../utils/anchorEngine';
 
-export function registerQuickNoteCommands(context: vscode.ExtensionContext, store: DiaryStore): void {
+export function registerQuickNoteCommands(context: vscode.ExtensionContext, store: LoreStore): void {
   context.subscriptions.push(
-    vscode.commands.registerCommand('codediary.quickNote', async () => {
+    vscode.commands.registerCommand('codelore.quickNote', async () => {
       const editor = vscode.window.activeTextEditor;
       if (!editor) { return; }
 
@@ -42,13 +42,13 @@ export function registerQuickNoteCommands(context: vscode.ExtensionContext, stor
       };
 
       store.addAnnotation(annotation, 'personal');
-      vscode.window.showInformationMessage('CodeDiary: AI note added (ephemeral, personal)');
+      vscode.window.showInformationMessage('CodeLore: AI note added (ephemeral, personal)');
     }),
 
-    vscode.commands.registerCommand('codediary.copyAnnotationsForFile', async () => {
+    vscode.commands.registerCommand('codelore.copyAnnotationsForFile', async () => {
       const editor = vscode.window.activeTextEditor;
       if (!editor) {
-        vscode.window.showInformationMessage('CodeDiary: Open a file first.');
+        vscode.window.showInformationMessage('CodeLore: Open a file first.');
         return;
       }
 
@@ -59,12 +59,12 @@ export function registerQuickNoteCommands(context: vscode.ExtensionContext, stor
       const criticalFlags = store.getCriticalFlagsForFile(filePath);
 
       if (annotations.length === 0 && criticalFlags.length === 0) {
-        vscode.window.showInformationMessage('CodeDiary: No annotations or critical flags for this file.');
+        vscode.window.showInformationMessage('CodeLore: No annotations or critical flags for this file.');
         return;
       }
 
       const lines: string[] = [];
-      lines.push(`# CodeDiary annotations for ${filePath}`);
+      lines.push(`# CodeLore annotations for ${filePath}`);
       lines.push('');
 
       if (annotations.length > 0) {
@@ -86,7 +86,7 @@ export function registerQuickNoteCommands(context: vscode.ExtensionContext, stor
 
       await vscode.env.clipboard.writeText(lines.join('\n'));
       vscode.window.showInformationMessage(
-        `CodeDiary: Copied ${annotations.length} annotation(s) and ${criticalFlags.length} critical flag(s) to clipboard.`,
+        `CodeLore: Copied ${annotations.length} annotation(s) and ${criticalFlags.length} critical flag(s) to clipboard.`,
       );
     }),
   );
