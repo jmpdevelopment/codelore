@@ -1,0 +1,15 @@
+version: 2
+annotations:
+  - id: a32a98fd-f5a4-4ad2-ab83-cac313d41e41
+    file: src/models/criticalFlag.ts
+    line_start: 10
+    line_end: 10
+    category: constraint
+    text: >-
+      description is optional in the model but the annotation pipeline's output schema treats it as required — consumers
+      should always populate it.
+    source: ai_generated
+    created_at: '2026-04-18T15:57:21.853Z'
+    author: jmpdevelopment
+    components:
+      - models

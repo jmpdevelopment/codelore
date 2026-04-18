@@ -1,0 +1,41 @@
+version: 2
+annotations:
+  - id: 88500509-221f-464c-acff-24927edbe6df
+    file: src/commands/agentInstructions.ts
+    line_start: 57
+    line_end: 67
+    category: behavior
+    text: >-
+      updateFileContent replaces everything between the start and end sentinel markers (inclusive of markers). If only
+      one marker is found (e.g., end deleted by user), it falls through to the append path, duplicating the block.
+    source: ai_generated
+    created_at: '2026-04-18T15:56:00.502Z'
+    author: jmpdevelopment
+    components:
+      - commands
+  - id: 2a4d3494-664e-4769-9239-74e45c624b90
+    file: src/commands/agentInstructions.ts
+    line_start: 6
+    line_end: 7
+    category: constraint
+    text: >-
+      CODELORE_BLOCK_START and CODELORE_BLOCK_END are sentinel strings used to locate the managed section in agent
+      instruction files. Changing these values will orphan existing blocks in user repos.
+    source: ai_generated
+    created_at: '2026-04-18T15:56:00.532Z'
+    author: jmpdevelopment
+    components:
+      - commands
+  - id: 16025635-9ef0-4265-b508-81a6dc571997
+    file: src/commands/agentInstructions.ts
+    line_start: 99
+    line_end: 115
+    category: gotcha
+    text: >-
+      File I/O is synchronous (readFileSync/writeFileSync) on the main extension host thread. For most users this is
+      fine, but on slow filesystems or with many files picked it will block the extension host.
+    source: ai_generated
+    created_at: '2026-04-18T15:56:00.553Z'
+    author: jmpdevelopment
+    components:
+      - commands

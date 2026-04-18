@@ -1,0 +1,35 @@
+version: 2
+annotations:
+  - id: 459389df-4128-4267-be93-3a81e588e058
+    file: test/commands/search.test.ts
+    line_start: 210
+    line_end: 224
+    category: behavior
+    text: >-
+      seedComponent writes component YAML directly to disk under `.codelore/components/`, bypassing LoreStore APIs. This
+      means LoreStore must discover components from the filesystem at construction or search time.
+    source: ai_generated
+    created_at: '2026-04-18T15:59:58.982Z'
+    author: jmpdevelopment
+  - id: f7226f2f-d317-446f-958c-0dbac2309f85
+    file: test/commands/search.test.ts
+    line_start: 100
+    line_end: 109
+    category: behavior
+    text: >-
+      Category filter intentionally excludes critical flags from results — search with a category set returns only
+      annotations.
+    source: ai_generated
+    created_at: '2026-04-18T15:59:59.000Z'
+    author: jmpdevelopment
+  - id: 6350dbbe-ccf2-45fa-8385-feb7a52a8497
+    file: test/commands/search.test.ts
+    line_start: 238
+    line_end: 249
+    category: constraint
+    text: >-
+      Annotations can match a component filter via explicit `components` tag even when the annotation's file is not in
+      the component's file list. Both paths (file membership and tag membership) must be maintained in LoreStore.search.
+    source: ai_generated
+    created_at: '2026-04-18T15:59:59.014Z'
+    author: jmpdevelopment

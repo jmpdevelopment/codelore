@@ -1,0 +1,45 @@
+version: 2
+annotations:
+  - id: 956646eb-6c34-4797-a046-6961ea796345
+    file: src/views/changePlanProvider.ts
+    line_start: 42
+    line_end: 57
+    category: security
+    text: >-
+      Path traversal is guarded by `isSafeRelativePath` before constructing the file URI for the navigation command.
+      Without this check, a malicious `annotation.file` value could open arbitrary files outside the workspace.
+    source: ai_generated
+    created_at: '2026-04-18T15:59:10.696Z'
+    author: jmpdevelopment
+    components:
+      - views
+  - id: b6d29abc-d5b6-4545-bd59-c77dd8a81f05
+    file: src/views/changePlanProvider.ts
+    line_start: 124
+    line_end: 132
+    category: behavior
+    text: >-
+      Component filter matches annotations two ways: explicit `components` tag on the annotation OR the annotation's
+      file being listed in the component definition. This mirrors `LoreStore.search` logic and both must stay in sync.
+    source: ai_generated
+    created_at: '2026-04-18T15:59:10.725Z'
+    author: jmpdevelopment
+    dependencies:
+      - file: src/storage/loreStore.ts
+        relationship: component filter logic must stay in sync
+    components:
+      - views
+  - id: 251bc6dd-166b-4617-8a3d-df892431c4d7
+    file: src/views/changePlanProvider.ts
+    line_start: 39
+    line_end: 39
+    category: gotcha
+    text: >-
+      `contextValue` varies by `annotation.source` — `'annotation-ai-generated'` vs `'annotation'`. This controls which
+      context menu actions appear via `package.json` `view/item/context` contributions. Renaming these strings will
+      silently break menus.
+    source: ai_generated
+    created_at: '2026-04-18T15:59:10.748Z'
+    author: jmpdevelopment
+    components:
+      - views

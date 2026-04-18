@@ -1,0 +1,28 @@
+version: 2
+annotations:
+  - id: 5f0d83df-cb45-4076-8d61-565296df390f
+    file: src/views/componentsProvider.ts
+    line_start: 37
+    line_end: 43
+    category: behavior
+    text: >-
+      FileNode only creates an openable command when a workspace folder exists AND the path passes `isSafeRelativePath`.
+      Otherwise the node renders but is not clickable.
+    source: ai_generated
+    created_at: '2026-04-18T15:59:21.425Z'
+    author: jmpdevelopment
+    components:
+      - views
+  - id: ef7228ef-4106-4710-95cc-516a76289402
+    file: src/views/componentsProvider.ts
+    line_start: 37
+    line_end: 41
+    category: security
+    text: >-
+      Path traversal is guarded by `isSafeRelativePath` before joining with the workspace root. The sanitizeMarkdownText
+      calls on lines 17-22 prevent markdown injection in tooltips.
+    source: ai_generated
+    created_at: '2026-04-18T15:59:21.454Z'
+    author: jmpdevelopment
+    components:
+      - views

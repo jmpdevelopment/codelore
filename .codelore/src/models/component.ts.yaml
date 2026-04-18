@@ -1,0 +1,29 @@
+version: 2
+annotations:
+  - id: 047da69a-eb2f-486b-9b83-40003a0281ec
+    file: src/models/component.ts
+    line_start: 33
+    line_end: 33
+    category: constraint
+    text: >-
+      SLUG_RE requires the id to start and end with alphanumeric (not hyphen), so single-char ids are valid only if
+      alphanumeric, and two-char ids cannot be "a-b". Max 64 chars.
+    source: ai_generated
+    created_at: '2026-04-18T15:57:18.713Z'
+    author: jmpdevelopment
+    components:
+      - models
+  - id: 7b1178d4-5308-4135-8870-624dcdd9e5f9
+    file: src/models/component.ts
+    line_start: 39
+    line_end: 47
+    category: gotcha
+    text: >-
+      slugify can produce ids that fail isValidComponentId — e.g. a single hyphen input yields the fallback 'component',
+      but an input like "A" yields "a" (valid). However, a 64-char slug ending in hyphen after slice will fail the
+      regex's end-anchor requirement since replace(/^-+|-+$/g, '') runs before slice.
+    source: ai_generated
+    created_at: '2026-04-18T15:57:18.742Z'
+    author: jmpdevelopment
+    components:
+      - models

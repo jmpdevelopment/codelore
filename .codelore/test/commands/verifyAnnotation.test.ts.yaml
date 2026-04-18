@@ -1,0 +1,36 @@
+version: 2
+annotations:
+  - id: 5b51140b-b292-4a4a-a214-836e6d2f606e
+    file: test/commands/verifyAnnotation.test.ts
+    line_start: 82
+    line_end: 93
+    category: behavior
+    text: >-
+      Cursor-based fallback resolves annotations by matching the editor's file path and checking if the cursor line
+      falls within [line_start, line_end]. The fakeEditor helper uses 0-based line indexing (line - 1) to match VS
+      Code's Selection API.
+    source: ai_generated
+    created_at: '2026-04-18T16:00:05.654Z'
+    author: jmpdevelopment
+  - id: b172d694-88ff-421f-a608-0120097b146d
+    file: test/commands/verifyAnnotation.test.ts
+    line_start: 111
+    line_end: 130
+    category: business_rule
+    text: >-
+      Already-verified annotations are idempotent: re-verifying must not overwrite the original verified_by/verified_at
+      fields.
+    source: ai_generated
+    created_at: '2026-04-18T16:00:05.685Z'
+    author: jmpdevelopment
+  - id: 0f03d649-4e9f-4211-9589-99c786bf9970
+    file: test/commands/verifyAnnotation.test.ts
+    line_start: 149
+    line_end: 162
+    category: behavior
+    text: >-
+      When resolving from cursor, already-verified annotations are filtered out so only ai_generated ones are
+      candidates. If exactly one remains, no QuickPick prompt is shown.
+    source: ai_generated
+    created_at: '2026-04-18T16:00:05.706Z'
+    author: jmpdevelopment

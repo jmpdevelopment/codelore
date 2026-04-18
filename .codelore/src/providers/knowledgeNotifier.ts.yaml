@@ -1,0 +1,55 @@
+version: 2
+annotations:
+  - id: 5d148f0a-4209-4a0b-b616-04c17540818e
+    file: src/providers/knowledgeNotifier.ts
+    line_start: 29
+    line_end: 32
+    category: behavior
+    text: >-
+      When the LoreStore changes (e.g., new annotations added), both notification caches are fully cleared, so users
+      will be re-notified about files they already dismissed. This is intentional to surface newly added knowledge.
+    source: ai_generated
+    created_at: '2026-04-18T15:57:44.393Z'
+    author: jmpdevelopment
+    components:
+      - providers
+  - id: ba2401bd-308a-4537-9e9c-ce38eae591b6
+    file: src/providers/knowledgeNotifier.ts
+    line_start: 73
+    line_end: 73
+    category: gotcha
+    text: >-
+      gitDiff is called synchronously on every file save. If the repo is large or on a slow filesystem, this could block
+      the extension host.
+    source: ai_generated
+    created_at: '2026-04-18T15:57:44.429Z'
+    author: jmpdevelopment
+    components:
+      - providers
+  - id: f57e515a-17a4-4c26-a197-fdd4dfbb1bfb
+    file: src/providers/knowledgeNotifier.ts
+    line_start: 102
+    line_end: 107
+    category: behavior
+    text: >-
+      On save, overlapping critical flags are counted in the total but only unresolved ones appear in the message text.
+      If all overlapping flags are reviewed, the critical part is silently omitted from the message while
+      annotations/deps may still trigger it.
+    source: ai_generated
+    created_at: '2026-04-18T15:57:44.449Z'
+    author: jmpdevelopment
+    components:
+      - providers
+  - id: c25da84d-2505-449e-8df7-39d52c72fdfb
+    file: src/providers/knowledgeNotifier.ts
+    line_start: 120
+    line_end: 125
+    category: constraint
+    text: >-
+      findIncomingDependencies does a full scan of all annotations across all files. Performance depends on total
+      annotation count in the store.
+    source: ai_generated
+    created_at: '2026-04-18T15:57:44.464Z'
+    author: jmpdevelopment
+    components:
+      - providers

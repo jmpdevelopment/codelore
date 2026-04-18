@@ -1,0 +1,64 @@
+version: 2
+annotations:
+  - id: eac9de52-a4e0-4959-bb67-9bd64f67a8a6
+    file: src/commands/reanchor.ts
+    line_start: 41
+    line_end: 46
+    category: gotcha
+    text: >-
+      Critical flags are identified by array index (`flag-${i}`), so reanchoring depends on the order returned by
+      `getCriticalFlagsForFile` being stable within a single invocation. If that order ever changes mid-operation, the
+      wrong flag gets updated.
+    source: ai_generated
+    created_at: '2026-04-18T15:56:48.333Z'
+    author: jmpdevelopment
+    components:
+      - commands
+  - id: e1bcf226-77c9-459a-9b85-44df5a8a5851
+    file: src/commands/reanchor.ts
+    line_start: 142
+    line_end: 142
+    category: behavior
+    text: >-
+      `updateCriticalFlag` is keyed by `(filePath, flag.line_start)` — the *original* line_start. If two critical flags
+      share the same original line_start, only one will be updated correctly.
+    source: ai_generated
+    created_at: '2026-04-18T15:56:48.366Z'
+    author: jmpdevelopment
+    components:
+      - commands
+  - id: 2895b526-3831-4834-9c88-9418e70d5caa
+    file: src/commands/reanchor.ts
+    line_start: 148
+    line_end: 155
+    category: behavior
+    text: >-
+      When a user picks a no-candidate item, annotations get their anchor blanked and marked stale, but critical flags
+      with no candidate are silently ignored (no else-branch for critical_flag without candidate).
+    source: ai_generated
+    created_at: '2026-04-18T15:56:48.386Z'
+    author: jmpdevelopment
+    components:
+      - commands
+  - id: b807a37c-558a-480a-b6d3-14fe0b3a3328
+    file: src/commands/reanchor.ts
+    line_start: 13
+    line_end: 18
+    category: rationale
+    text: >-
+      This command intentionally merges the old verify+reanchor two-step into a single picker-based flow because verify
+      alone was not actionable.
+    source: ai_generated
+    created_at: '2026-04-18T15:56:48.401Z'
+    author: jmpdevelopment
+    components:
+      - commands
+critical_flags:
+  - file: src/commands/reanchor.ts
+    line_start: 148
+    line_end: 155
+    severity: medium
+    description: >-
+      No-candidate critical flags selected by the user are silently dropped (not marked stale), so the user gets no
+      feedback and the flag stays in a misleading non-stale state.
+    human_reviewed: false

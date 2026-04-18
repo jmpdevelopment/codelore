@@ -1,0 +1,12 @@
+version: 2
+id: models
+name: Models
+description: Core domain models for annotations, components, and critical flags.
+files:
+  - src/models/annotation.ts
+  - src/models/component.ts
+  - src/models/criticalFlag.ts
+source: ai_generated
+created_at: '2026-04-18T15:55:17.563Z'
+updated_at: '2026-04-18T15:55:17.587Z'
+author: jmpdevelopment

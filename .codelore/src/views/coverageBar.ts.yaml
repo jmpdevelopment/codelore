@@ -1,0 +1,28 @@
+version: 2
+annotations:
+  - id: 2be54475-463a-49b9-86ca-4258f7255a82
+    file: src/views/coverageBar.ts
+    line_start: 26
+    line_end: 27
+    category: behavior
+    text: >-
+      getAnnotations() and getCriticalFlags() return store-wide data, not scoped to the active editor. The status bar
+      always shows global counts regardless of which file is open.
+    source: ai_generated
+    created_at: '2026-04-18T15:59:26.028Z'
+    author: jmpdevelopment
+    components:
+      - views
+  - id: 50a43b83-8256-431d-8bb1-c81875da8b6a
+    file: src/views/coverageBar.ts
+    line_start: 13
+    line_end: 13
+    category: gotcha
+    text: >-
+      The status bar item triggers 'codelore.showChangePlan'. If that command is not registered, clicking the bar
+      silently fails.
+    source: ai_generated
+    created_at: '2026-04-18T15:59:26.058Z'
+    author: jmpdevelopment
+    components:
+      - views

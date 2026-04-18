@@ -1,0 +1,41 @@
+version: 2
+annotations:
+  - id: eaa0c86f-4e5b-4bee-bb90-9877e2fc7b92
+    file: src/providers/criticalDecorator.ts
+    line_start: 72
+    line_end: 73
+    category: behavior
+    text: >-
+      Flags use 1-based line numbers; converted to 0-based here with Math.max(0,...) clamping. line_end uses
+      MAX_SAFE_INTEGER to extend the range to end-of-line.
+    source: ai_generated
+    created_at: '2026-04-18T15:57:36.801Z'
+    author: jmpdevelopment
+    components:
+      - providers
+  - id: 6f8459d9-0042-4e25-b4fb-4a279bae2dc2
+    file: src/providers/criticalDecorator.ts
+    line_start: 38
+    line_end: 39
+    category: gotcha
+    text: >-
+      The onDidOpenTextDocument handler uses a 100ms setTimeout before updating, likely to wait for the editor to become
+      active. This is a race-condition workaround, not a guarantee.
+    source: ai_generated
+    created_at: '2026-04-18T15:57:36.817Z'
+    author: jmpdevelopment
+    components:
+      - providers
+  - id: 685c2383-752f-415c-8789-5af103b28313
+    file: src/providers/criticalDecorator.ts
+    line_start: 20
+    line_end: 23
+    category: behavior
+    text: >-
+      The unreviewedDecoration base type has no color — severity-specific colors are applied entirely via per-item
+      renderOptions.after, so the base type is intentionally minimal.
+    source: ai_generated
+    created_at: '2026-04-18T15:57:36.829Z'
+    author: jmpdevelopment
+    components:
+      - providers

@@ -1,0 +1,70 @@
+version: 2
+annotations:
+  - id: e766234a-ce2d-4d14-85ff-6a020b2d45de
+    file: src/ai/loreGenerator.ts
+    line_start: 278
+    line_end: 282
+    category: behavior
+    text: >-
+      During interactive review, overlapping entries are only auto-deleted if their source is not 'human_authored'.
+      Human-written annotations are preserved even when the AI suggests a replacement covering the same line range.
+    source: ai_generated
+    created_at: '2026-04-18T15:55:53.863Z'
+    author: jmpdevelopment
+    components:
+      - ai-services
+  - id: 058779fd-4a90-44bd-932e-8fcdecfb05b7
+    file: src/ai/loreGenerator.ts
+    line_start: 218
+    line_end: 231
+    category: behavior
+    text: >-
+      Batch scan (scanFiles) auto-accepts all AI output without user review—entries are marked 'ai_generated' and flags
+      as 'human_reviewed: false'. The user is expected to review them later via the sidebar/Critical Queue.
+    source: ai_generated
+    created_at: '2026-04-18T15:55:53.882Z'
+    author: jmpdevelopment
+    components:
+      - ai-services
+  - id: 1f7616cc-fdf9-4aff-94ce-a33583bf8014
+    file: src/ai/loreGenerator.ts
+    line_start: 436
+    line_end: 436
+    category: constraint
+    text: >-
+      Only shared-layer annotations are fed back to the model as existing context; personal notes are intentionally
+      excluded to keep them private and avoid polluting the prompt.
+    source: ai_generated
+    created_at: '2026-04-18T15:55:53.899Z'
+    author: jmpdevelopment
+    dependencies:
+      - file: src/storage/loreStore.ts
+        relationship: relies on shared vs personal layer separation
+    components:
+      - ai-services
+  - id: a12781a1-113e-4ef6-9ed9-f0122a729e87
+    file: src/ai/loreGenerator.ts
+    line_start: 427
+    line_end: 429
+    category: rationale
+    text: >-
+      Sibling files in a component are capped at 8 to keep the prompt within reasonable token limits while still giving
+      the model awareness of related files.
+    source: ai_generated
+    created_at: '2026-04-18T15:55:53.914Z'
+    author: jmpdevelopment
+    components:
+      - ai-services
+  - id: b519ae71-10ae-4f2a-8057-1b5a7a626420
+    file: src/ai/loreGenerator.ts
+    line_start: 350
+    line_end: 363
+    category: gotcha
+    text: >-
+      parseScanOutput silently returns empty results on any JSON parse failure. If the model returns malformed JSON, the
+      user sees 'nothing surfaced' with no indication of a parse error.
+    source: ai_generated
+    created_at: '2026-04-18T15:55:53.931Z'
+    author: jmpdevelopment
+    components:
+      - ai-services

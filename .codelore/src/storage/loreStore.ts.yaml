@@ -1,0 +1,77 @@
+version: 2
+annotations:
+  - id: baae5c68-a72c-42d2-b62b-dde75bac70a3
+    file: src/storage/loreStore.ts
+    line_start: 126
+    line_end: 133
+    category: behavior
+    text: >-
+      Update/delete operations resolve scope by scanning shared first, then falling back to personal. If IDs collide
+      across stores, the shared annotation always wins — the personal one becomes unreachable for updates.
+    source: ai_generated
+    created_at: '2026-04-18T15:58:04.998Z'
+    author: jmpdevelopment
+    components:
+      - storage
+  - id: 17b0e0e8-1f53-4cf0-b358-87c61b2e71f8
+    file: src/storage/loreStore.ts
+    line_start: 165
+    line_end: 173
+    category: gotcha
+    text: >-
+      Critical flags are keyed by (file, line_start) not by a unique id. If two flags share the same file and line_start
+      but differ in line_end, updateCriticalFlag will match the wrong one. Contrast with removeCriticalFlag which uses
+      (file, line_start, line_end).
+    source: ai_generated
+    created_at: '2026-04-18T15:58:05.035Z'
+    author: jmpdevelopment
+    components:
+      - storage
+  - id: 435ff7c3-0369-4ae7-8adc-bad0edca7864
+    file: src/storage/loreStore.ts
+    line_start: 175
+    line_end: 178
+    category: behavior
+    text: >-
+      removeCriticalFlag deletes from BOTH stores unconditionally, unlike annotations where only the owning store is
+      touched.
+    source: ai_generated
+    created_at: '2026-04-18T15:58:05.054Z'
+    author: jmpdevelopment
+    components:
+      - storage
+  - id: e3c97571-89c8-443a-b5ce-966133aea49e
+    file: src/storage/loreStore.ts
+    line_start: 54
+    line_end: 54
+    category: rationale
+    text: >-
+      fileComponentsIndex is a lazy cache invalidated on ComponentStore changes (line 64). Null signals stale; rebuilt
+      on next read.
+    source: ai_generated
+    created_at: '2026-04-18T15:58:05.069Z'
+    author: jmpdevelopment
+    components:
+      - storage
+  - id: 392ac532-b969-47a5-ac95-a614065a17d5
+    file: src/storage/loreStore.ts
+    line_start: 239
+    line_end: 260
+    category: behavior
+    text: >-
+      Critical flags are excluded from search results whenever a category filter is set, since categories only apply to
+      annotations.
+    source: ai_generated
+    created_at: '2026-04-18T15:58:05.083Z'
+    author: jmpdevelopment
+    components:
+      - storage
+critical_flags:
+  - file: src/storage/loreStore.ts
+    line_start: 165
+    line_end: 173
+    severity: medium
+    description: >-
+      Critical flags are identified by (file, line_start) only — two flags on the same starting line will collide,
+      causing the wrong flag to be updated.
+    human_reviewed: false

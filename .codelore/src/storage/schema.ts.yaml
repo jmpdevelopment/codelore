@@ -1,0 +1,37 @@
+version: 2
+annotations:
+  - id: 4b294c06-9738-45d9-8752-f096c54432df
+    file: src/storage/schema.ts
+    line_start: 14
+    line_end: 14
+    category: constraint
+    text: >-
+      If `data` is falsy or not an object, the function silently returns without validating. Callers must ensure
+      non-object inputs are handled elsewhere or this becomes a bypass.
+    source: ai_generated
+    created_at: '2026-04-18T15:58:11.168Z'
+    author: jmpdevelopment
+    components:
+      - storage
+  - id: a993029e-f7b7-44e8-9880-3588e4714e92
+    file: src/storage/schema.ts
+    line_start: 17
+    line_end: 21
+    category: business_rule
+    text: >-
+      No v1→v2 migration path exists. v1 files (or files missing a version field) are hard-rejected. Adding migration
+      later requires changing this guard.
+    source: ai_generated
+    created_at: '2026-04-18T15:58:11.198Z'
+    author: jmpdevelopment
+    components:
+      - storage
+critical_flags:
+  - file: src/storage/schema.ts
+    line_start: 14
+    line_end: 14
+    severity: medium
+    description: >-
+      Passing null, undefined, or a non-object (e.g. a YAML file that parses to a bare string) silently passes
+      validation, potentially letting invalid data through.
+    human_reviewed: false

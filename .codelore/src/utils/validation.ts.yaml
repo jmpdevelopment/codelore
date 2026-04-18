@@ -1,0 +1,53 @@
+version: 2
+annotations:
+  - id: 498aef81-702d-4c4c-9293-6a194290cf2f
+    file: src/utils/validation.ts
+    line_start: 25
+    line_end: 26
+    category: behavior
+    text: >-
+      If line_end is missing/invalid, it defaults to line_start (single-line range). If line_end < line_start, it's
+      clamped to line_start via Math.max.
+    source: ai_generated
+    created_at: '2026-04-18T15:59:03.174Z'
+    author: jmpdevelopment
+    components:
+      - utils
+  - id: 25a71405-ec28-45d6-8d18-c4e871068958
+    file: src/utils/validation.ts
+    line_start: 43
+    line_end: 49
+    category: security
+    text: >-
+      Path traversal guard for stored file paths. Rejects absolute paths and `..` segments after normalization. Used to
+      ensure annotation file paths can't escape the workspace root.
+    source: ai_generated
+    created_at: '2026-04-18T15:59:03.206Z'
+    author: jmpdevelopment
+    components:
+      - utils
+  - id: ef066766-6a2d-4ed7-b60c-98d305886f87
+    file: src/utils/validation.ts
+    line_start: 47
+    line_end: 47
+    category: gotcha
+    text: >-
+      The `..` check uses `path.sep` which is OS-specific. On Windows this checks for `\..` but a path containing `/..`
+      after normalize would still use `\`, so this is safe. However, paths stored on one OS and read on another could
+      behave differently.
+    source: ai_generated
+    created_at: '2026-04-18T15:59:03.226Z'
+    author: jmpdevelopment
+    components:
+      - utils
+  - id: a726a3c7-c254-4a58-9019-a7197e24b16c
+    file: src/utils/validation.ts
+    line_start: 70
+    line_end: 73
+    category: security
+    text: Strips markdown link syntax to prevent `command:` URI injection in VS Code MarkdownString hover content.
+    source: ai_generated
+    created_at: '2026-04-18T15:59:03.241Z'
+    author: jmpdevelopment
+    components:
+      - utils

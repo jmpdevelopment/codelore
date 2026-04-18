@@ -1,0 +1,42 @@
+version: 2
+annotations:
+  - id: a92f7bea-e5e1-46b9-afa7-6b441cfebef1
+    file: src/ai/lmService.ts
+    line_start: 77
+    line_end: 77
+    category: gotcha
+    text: >-
+      System and user prompts are concatenated into a single User message rather than using separate system/user roles.
+      This is likely because vscode.LanguageModelChatMessage may not expose a System role, but it means the model sees
+      no role distinction.
+    source: ai_generated
+    created_at: '2026-04-18T15:55:43.943Z'
+    author: jmpdevelopment
+    components:
+      - ai-services
+  - id: 73df9aeb-17a7-4a95-9f7f-e47805b724ce
+    file: src/ai/lmService.ts
+    line_start: 26
+    line_end: 29
+    category: behavior
+    text: >-
+      selectedModelId is cached in memory only; if the cached model disappears (e.g., extension uninstalled), it falls
+      through to re-selection. Reloading the VS Code window resets the choice.
+    source: ai_generated
+    created_at: '2026-04-18T15:55:43.963Z'
+    author: jmpdevelopment
+    components:
+      - ai-services
+  - id: ecfca185-1eb9-4d1e-a10e-26460808f615
+    file: src/ai/lmService.ts
+    line_start: 97
+    line_end: 106
+    category: behavior
+    text: >-
+      On non-LanguageModelError failures (e.g., CancellationError), no user-facing message is shown and undefined is
+      silently returned. Callers must handle undefined as a possible no-op result.
+    source: ai_generated
+    created_at: '2026-04-18T15:55:43.979Z'
+    author: jmpdevelopment
+    components:
+      - ai-services

@@ -1,0 +1,56 @@
+version: 2
+annotations:
+  - id: 1557a283-c614-4fea-a89c-6a671ac925f1
+    file: src/ai/componentProposer.ts
+    line_start: 153
+    line_end: 163
+    category: behavior
+    text: >-
+      Candidate file gathering uses a three-tier fallback: git uncommitted changes → files referenced by existing
+      annotations/flags → workspace source file scan (capped at 200). This means on a clean-git first run with no
+      annotations, the full workspace scan kicks in.
+    source: ai_generated
+    created_at: '2026-04-18T15:55:37.041Z'
+    author: jmpdevelopment
+    components:
+      - ai-services
+  - id: f0d96ede-9c10-405a-97a4-1f27f24efa30
+    file: src/ai/componentProposer.ts
+    line_start: 191
+    line_end: 214
+    category: constraint
+    text: >-
+      File matching between model output and valid files is case-insensitive with leading './' stripped.
+      Model-hallucinated files are silently dropped; proposals with zero matched files are discarded entirely.
+    source: ai_generated
+    created_at: '2026-04-18T15:55:37.059Z'
+    author: jmpdevelopment
+    components:
+      - ai-services
+  - id: 8a46b621-6938-4bfa-acb1-21320becdd32
+    file: src/ai/componentProposer.ts
+    line_start: 206
+    line_end: 206
+    category: gotcha
+    text: >-
+      Duplicate component ids are skipped silently — both ids already in the store AND ids seen earlier in the same
+      model response. If the model proposes two components that slugify to the same id, the second is lost with no user
+      feedback.
+    source: ai_generated
+    created_at: '2026-04-18T15:55:37.076Z'
+    author: jmpdevelopment
+    components:
+      - ai-services
+  - id: 66f65d69-3b6d-4a72-b310-0cbe2498ecad
+    file: src/ai/componentProposer.ts
+    line_start: 8
+    line_end: 17
+    category: rationale
+    text: >-
+      Intentionally sends only file paths (not contents) to keep prompt size small enough for hundreds of files and to
+      work language-agnostically.
+    source: ai_generated
+    created_at: '2026-04-18T15:55:37.093Z'
+    author: jmpdevelopment
+    components:
+      - ai-services

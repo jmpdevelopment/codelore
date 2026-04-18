@@ -1,0 +1,46 @@
+version: 2
+annotations:
+  - id: a1c9a650-62e5-4124-888e-bfe29437fcdf
+    file: src/extension.ts
+    line_start: 23
+    line_end: 28
+    category: behavior
+    text: >-
+      LoreStore is the single source of truth for all persistent knowledge; it is created once and shared by reference
+      with every provider, view, and command registrar.
+    source: ai_generated
+    created_at: '2026-04-18T15:57:06.943Z'
+    author: jmpdevelopment
+  - id: b2dc82fe-38c9-4911-ac14-b6c1fd63dbc4
+    file: src/extension.ts
+    line_start: 113
+    line_end: 113
+    category: gotcha
+    text: >-
+      Non-null assertion (`!`) assumes `chosenId` always matches a component. Safe only because `chosenId` was derived
+      from the same `components` array, but a race with store mutations could violate this.
+    source: ai_generated
+    created_at: '2026-04-18T15:57:06.978Z'
+    author: jmpdevelopment
+  - id: 02bfef29-71dd-4b36-9fdc-dfe6a2864039
+    file: src/extension.ts
+    line_start: 149
+    line_end: 154
+    category: business_rule
+    text: >-
+      Project-wide scan requires explicit user confirmation via a modal warning because each file triggers a separate
+      LLM call that may incur real monetary cost.
+    source: ai_generated
+    created_at: '2026-04-18T15:57:06.998Z'
+    author: jmpdevelopment
+  - id: f7d02860-7a60-4afe-baf1-962344d1a5ea
+    file: src/extension.ts
+    line_start: 133
+    line_end: 147
+    category: rationale
+    text: >-
+      First-run bootstrap: components are proposed before scanning so AI-generated annotations can be tagged into
+      subsystems rather than landing as an unstructured flat list.
+    source: ai_generated
+    created_at: '2026-04-18T15:57:07.014Z'
+    author: jmpdevelopment

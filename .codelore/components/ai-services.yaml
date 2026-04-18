@@ -1,0 +1,12 @@
+version: 2
+id: ai-services
+name: AI Services
+description: Language model integration for generating lore and proposing components.
+files:
+  - src/ai/componentProposer.ts
+  - src/ai/lmService.ts
+  - src/ai/loreGenerator.ts
+source: ai_generated
+created_at: '2026-04-18T15:55:17.563Z'
+updated_at: '2026-04-18T15:55:17.585Z'
+author: jmpdevelopment

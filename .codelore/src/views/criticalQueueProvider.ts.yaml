@@ -1,0 +1,44 @@
+version: 2
+annotations:
+  - id: f44058d9-c074-4861-b428-c363657a0f14
+    file: src/views/criticalQueueProvider.ts
+    line_start: 47
+    line_end: 52
+    category: security
+    text: >-
+      Path traversal is guarded by `isSafeRelativePath` before constructing the file URI for navigation. The command is
+      only created when this check passes.
+    source: ai_generated
+    created_at: '2026-04-18T15:59:32.323Z'
+    author: jmpdevelopment
+    components:
+      - views
+  - id: 661598c6-25fe-41bb-ae01-90e2273c1c1e
+    file: src/views/criticalQueueProvider.ts
+    line_start: 107
+    line_end: 112
+    category: behavior
+    text: >-
+      Sort order: unreviewed flags always appear before reviewed ones, then sub-sorted by severity (critical → high →
+      medium).
+    source: ai_generated
+    created_at: '2026-04-18T15:59:32.353Z'
+    author: jmpdevelopment
+    components:
+      - views
+  - id: 00a704b6-5066-4925-aeba-7e9c7ad12e4f
+    file: src/views/criticalQueueProvider.ts
+    line_start: 24
+    line_end: 32
+    category: security
+    text: >-
+      All user-supplied text (description, resolved_by, resolution_comment) is sanitized via `sanitizeMarkdownText`
+      before being embedded in MarkdownString tooltips to prevent Markdown injection.
+    source: ai_generated
+    created_at: '2026-04-18T15:59:32.374Z'
+    author: jmpdevelopment
+    dependencies:
+      - file: src/utils/validation.ts
+        relationship: provides isSafeRelativePath and sanitizeMarkdownText
+    components:
+      - views

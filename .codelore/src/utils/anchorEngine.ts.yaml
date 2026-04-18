@@ -1,0 +1,81 @@
+version: 2
+annotations:
+  - id: c4cc062f-fd7c-491b-a1b0-f8e9fc393f72
+    file: src/utils/anchorEngine.ts
+    line_start: 27
+    line_end: 33
+    category: behavior
+    text: >-
+      Content hash normalizes by trimming and removing empty lines, so pure whitespace/blank-line changes won't
+      invalidate anchors. Hash is truncated to 16 hex chars (64 bits).
+    source: ai_generated
+    created_at: '2026-04-18T15:58:46.156Z'
+    author: jmpdevelopment
+    components:
+      - utils
+  - id: 8b867337-5a3e-40d4-b1ad-408d9b37dcaa
+    file: src/utils/anchorEngine.ts
+    line_start: 18
+    line_end: 18
+    category: gotcha
+    text: >-
+      This regex is very broad — it matches any line starting with an identifier followed by `(`, which will match plain
+      function calls, if-statements with parens, etc. This inflates signature candidates and could cause false-positive
+      signature matches.
+    source: ai_generated
+    created_at: '2026-04-18T15:58:46.187Z'
+    author: jmpdevelopment
+    components:
+      - utils
+  - id: 1ff1d0db-ce99-43b8-8f38-d9532caa6e8b
+    file: src/utils/anchorEngine.ts
+    line_start: 139
+    line_end: 148
+    category: performance
+    text: >-
+      Sliding-window reanchoring computes a SHA-256 hash for every possible window position — O(n × regionSize) work per
+      stale annotation. Could be expensive on large files with many stale items.
+    source: ai_generated
+    created_at: '2026-04-18T15:58:46.207Z'
+    author: jmpdevelopment
+    components:
+      - utils
+  - id: 814ea56c-14db-4d39-9c08-d782cc543770
+    file: src/utils/anchorEngine.ts
+    line_start: 163
+    line_end: 170
+    category: behavior
+    text: >-
+      Signature fallback blindly re-uses the original region size starting from the matched signature line, clamping to
+      EOF. If the function body grew or shrank, the region will be wrong.
+    source: ai_generated
+    created_at: '2026-04-18T15:58:46.223Z'
+    author: jmpdevelopment
+    components:
+      - utils
+  - id: a5107e51-5840-4938-8269-b9aa378d09b0
+    file: src/utils/anchorEngine.ts
+    line_start: 27
+    line_end: 28
+    category: constraint
+    text: >-
+      All line parameters are 1-based. The slice converts to 0-based internally. Callers must pass 1-based
+      line_start/line_end.
+    source: ai_generated
+    created_at: '2026-04-18T15:58:46.237Z'
+    author: jmpdevelopment
+    components:
+      - utils
+  - id: a5b75e0a-cc6f-4011-993b-c819283599f3
+    file: src/utils/anchorEngine.ts
+    line_start: 200
+    line_end: 204
+    category: behavior
+    text: >-
+      Items without a content_hash are silently skipped and excluded from results entirely — they won't appear as stale
+      or valid.
+    source: ai_generated
+    created_at: '2026-04-18T15:58:46.249Z'
+    author: jmpdevelopment
+    components:
+      - utils

@@ -1,0 +1,12 @@
+version: 2
+id: providers
+name: Providers
+description: Editor decorators and notification providers.
+files:
+  - src/providers/annotationDecorator.ts
+  - src/providers/criticalDecorator.ts
+  - src/providers/knowledgeNotifier.ts
+source: ai_generated
+created_at: '2026-04-18T15:55:17.563Z'
+updated_at: '2026-04-18T15:55:17.587Z'
+author: jmpdevelopment

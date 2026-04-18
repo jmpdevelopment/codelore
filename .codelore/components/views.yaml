@@ -1,0 +1,14 @@
+version: 2
+id: views
+name: Views
+description: Tree view and status bar UI providers.
+files:
+  - src/views/changePlanProvider.ts
+  - src/views/componentBar.ts
+  - src/views/componentsProvider.ts
+  - src/views/coverageBar.ts
+  - src/views/criticalQueueProvider.ts
+source: ai_generated
+created_at: '2026-04-18T15:55:17.563Z'
+updated_at: '2026-04-18T15:55:17.587Z'
+author: jmpdevelopment

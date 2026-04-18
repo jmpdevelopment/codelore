@@ -1,0 +1,80 @@
+version: 2
+annotations:
+  - id: b2352930-62a5-4bad-98c9-e330077f019c
+    file: src/storage/componentStore.ts
+    line_start: 57
+    line_end: 65
+    category: security
+    text: >-
+      Symlink escape defense: resolves real paths of both the candidate directory and workspace root, rejecting if the
+      components dir escapes the workspace. This check runs at construction time and again before every write (lines
+      122-131).
+    source: ai_generated
+    created_at: '2026-04-18T15:57:54.639Z'
+    author: jmpdevelopment
+    components:
+      - storage
+  - id: 415bfbc7-adf6-4b8a-baea-8ebcce4ad110
+    file: src/storage/componentStore.ts
+    line_start: 84
+    line_end: 93
+    category: security
+    text: >-
+      Path traversal defense: yamlPath() validates the component id AND checks the resolved path stays under basePath.
+      All disk writes and deletes go through this function.
+    source: ai_generated
+    created_at: '2026-04-18T15:57:54.670Z'
+    author: jmpdevelopment
+    components:
+      - storage
+  - id: 11d9a27a-5404-428e-ad4c-d1983fc2b00e
+    file: src/storage/componentStore.ts
+    line_start: 75
+    line_end: 81
+    category: behavior
+    text: >-
+      File watcher triggers a full cache reload (loadAll) on any .yaml change/create/delete. This means external edits
+      (e.g., git checkout) are picked up automatically, but every change causes a full directory re-read.
+    source: ai_generated
+    created_at: '2026-04-18T15:57:54.689Z'
+    author: jmpdevelopment
+    components:
+      - storage
+  - id: 07809697-6b7c-4f44-9586-b565a33cd27e
+    file: src/storage/componentStore.ts
+    line_start: 54
+    line_end: 55
+    category: gotcha
+    text: Only the first workspace folder is used. Multi-root workspaces will silently ignore components in other folders.
+    source: ai_generated
+    created_at: '2026-04-18T15:57:54.704Z'
+    author: jmpdevelopment
+    components:
+      - storage
+  - id: 8717a81f-29b2-4761-b8c4-d899f3d16052
+    file: src/storage/componentStore.ts
+    line_start: 105
+    line_end: 105
+    category: constraint
+    text: >-
+      Each YAML file must pass assertSupportedVersion or it will be rejected with an error message shown to the user.
+      Schema version is also prepended on every write (line 133).
+    source: ai_generated
+    created_at: '2026-04-18T15:57:54.717Z'
+    author: jmpdevelopment
+    dependencies:
+      - file: src/storage/schema.ts
+        relationship: SCHEMA_VERSION and assertSupportedVersion must stay in sync
+    components:
+      - storage
+  - id: 248e613c-8507-408b-b67a-b1aa08385bbe
+    file: src/storage/componentStore.ts
+    line_start: 40
+    line_end: 40
+    category: behavior
+    text: If updated_at is missing from the YAML, it silently falls back to created_at rather than leaving it undefined.
+    source: ai_generated
+    created_at: '2026-04-18T15:57:54.729Z'
+    author: jmpdevelopment
+    components:
+      - storage

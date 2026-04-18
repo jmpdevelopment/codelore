@@ -1,0 +1,12 @@
+version: 2
+id: utils
+name: Utilities
+description: Shared utilities for anchoring, git integration, and validation.
+files:
+  - src/utils/anchorEngine.ts
+  - src/utils/git.ts
+  - src/utils/validation.ts
+source: ai_generated
+created_at: '2026-04-18T15:55:17.563Z'
+updated_at: '2026-04-18T15:55:17.588Z'
+author: jmpdevelopment

@@ -1,0 +1,41 @@
+version: 2
+annotations:
+  - id: caff3777-7c45-44fb-a18c-53511e961ca5
+    file: src/commands/filter.ts
+    line_start: 57
+    line_end: 57
+    category: behavior
+    text: >-
+      If the user dismisses the quick pick (Escape), `choice` is undefined and the command silently exits. Same pattern
+      applies to all sub-pickers (lines 81, 103, 116, 129).
+    source: ai_generated
+    created_at: '2026-04-18T15:56:25.167Z'
+    author: jmpdevelopment
+    components:
+      - commands
+  - id: 039c1409-a8dc-4cb0-a02c-c74a2ae74f50
+    file: src/commands/filter.ts
+    line_start: 81
+    line_end: 81
+    category: gotcha
+    text: >-
+      Selecting the 'Clear category filter' item calls `setFilter(undefined)`, but dismissing the picker does nothing.
+      This asymmetry means users must explicitly pick the clear option rather than pressing Escape to reset.
+    source: ai_generated
+    created_at: '2026-04-18T15:56:25.199Z'
+    author: jmpdevelopment
+    components:
+      - commands
+  - id: b15a7dcf-4afa-4bc9-bacf-b0547f05aa6e
+    file: src/commands/filter.ts
+    line_start: 46
+    line_end: 46
+    category: behavior
+    text: >-
+      Path filter display falls back from annotations to critical filters (`annFilters.path ?? critFilters.path`), so if
+      they diverge (which the code doesn't currently allow since `pickPath` sets both), only one would show.
+    source: ai_generated
+    created_at: '2026-04-18T15:56:25.219Z'
+    author: jmpdevelopment
+    components:
+      - commands

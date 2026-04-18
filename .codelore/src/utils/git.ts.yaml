@@ -1,0 +1,43 @@
+version: 2
+annotations:
+  - id: cf3318fb-e4b9-4c35-a2c6-287cb6cf1cc0
+    file: src/utils/git.ts
+    line_start: 22
+    line_end: 32
+    category: behavior
+    text: >-
+      gitDiff first tries `diff HEAD` (staged+unstaged vs last commit); if that's empty, falls back to unstaged-only
+      diff. This means for brand-new repos with no commits, the HEAD diff will throw and the function returns undefined
+      (the fallback is inside the try, not a separate catch path).
+    source: ai_generated
+    created_at: '2026-04-18T15:58:55.216Z'
+    author: jmpdevelopment
+    components:
+      - utils
+  - id: ccfd364b-8e23-4e8c-b35a-289320cecb88
+    file: src/utils/git.ts
+    line_start: 36
+    line_end: 48
+    category: gotcha
+    text: >-
+      gitChangedFiles has the same HEAD-then-unstaged fallback as gitDiff, but the fallback only triggers on empty
+      output, not on error. In a repo with no commits, `git diff HEAD --name-only` throws, so the catch returns [] —
+      newly added but unstaged files in an init-only repo will be invisible.
+    source: ai_generated
+    created_at: '2026-04-18T15:58:55.244Z'
+    author: jmpdevelopment
+    components:
+      - utils
+  - id: 53d2cc0f-7ed8-4607-883c-9ff9d85e929d
+    file: src/utils/git.ts
+    line_start: 59
+    line_end: 71
+    category: constraint
+    text: >-
+      parseChangedLineRanges only extracts the new-file side of hunk headers. Hunks with count=0 (pure deletions) are
+      intentionally excluded (line 66). Callers should be aware that deleted-only hunks produce no ranges.
+    source: ai_generated
+    created_at: '2026-04-18T15:58:55.266Z'
+    author: jmpdevelopment
+    components:
+      - utils

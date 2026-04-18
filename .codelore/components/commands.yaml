@@ -1,0 +1,18 @@
+version: 2
+id: commands
+name: Commands
+description: VS Code command handlers for user-facing actions.
+files:
+  - src/commands/agentInstructions.ts
+  - src/commands/annotate.ts
+  - src/commands/component.ts
+  - src/commands/filter.ts
+  - src/commands/markCritical.ts
+  - src/commands/quickNote.ts
+  - src/commands/reanchor.ts
+  - src/commands/scopePicker.ts
+  - src/commands/search.ts
+source: ai_generated
+created_at: '2026-04-18T15:55:17.563Z'
+updated_at: '2026-04-18T15:55:17.586Z'
+author: jmpdevelopment

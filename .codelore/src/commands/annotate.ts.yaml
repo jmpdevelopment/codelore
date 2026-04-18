@@ -1,0 +1,68 @@
+version: 2
+annotations:
+  - id: dc476c13-443d-4af9-a6ea-0d7d330055c9
+    file: src/commands/annotate.ts
+    line_start: 67
+    line_end: 68
+    category: behavior
+    text: >-
+      Lines are converted from 0-based VS Code positions to 1-based for storage. All annotation line numbers in the
+      store are 1-based.
+    source: ai_generated
+    created_at: '2026-04-18T15:56:09.902Z'
+    author: jmpdevelopment
+    components:
+      - commands
+  - id: 9c7487bf-fc14-48fc-bb2d-493cbef5b9d7
+    file: src/commands/annotate.ts
+    line_start: 100
+    line_end: 104
+    category: gotcha
+    text: >-
+      When user picks 'Replace existing', ALL overlapping annotations are deleted before the new one is created—not just
+      exact matches. This could silently remove partially-overlapping annotations the user didn't intend to replace.
+    source: ai_generated
+    created_at: '2026-04-18T15:56:09.936Z'
+    author: jmpdevelopment
+    components:
+      - commands
+  - id: dc28334d-c6db-41ff-b7f4-e89ddbabb96b
+    file: src/commands/annotate.ts
+    line_start: 125
+    line_end: 125
+    category: behavior
+    text: >-
+      If the user submits an empty string for text, it falls back to the category's default description rather than
+      storing empty text.
+    source: ai_generated
+    created_at: '2026-04-18T15:56:09.956Z'
+    author: jmpdevelopment
+    components:
+      - commands
+  - id: d86d5439-2d80-4b15-ae08-e263ad953730
+    file: src/commands/annotate.ts
+    line_start: 141
+    line_end: 175
+    category: behavior
+    text: >-
+      Edit/delete/verify commands accept a polymorphic arg: either a raw string id, a tree-item-like object with
+      `.annotation.id`, or undefined (falls back to cursor-based lookup). This supports both sidebar buttons and command
+      palette invocation.
+    source: ai_generated
+    created_at: '2026-04-18T15:56:09.972Z'
+    author: jmpdevelopment
+    components:
+      - commands
+  - id: 56f844c7-e349-4441-b6ca-244ba451e621
+    file: src/commands/annotate.ts
+    line_start: 229
+    line_end: 240
+    category: constraint
+    text: >-
+      Verify only transitions `ai_generated` → `ai_verified`. Human-authored and already-verified annotations are no-ops
+      with user feedback. Any other source value would fall through and be updated anyway.
+    source: ai_generated
+    created_at: '2026-04-18T15:56:09.986Z'
+    author: jmpdevelopment
+    components:
+      - commands

@@ -1,0 +1,76 @@
+version: 2
+annotations:
+  - id: 5ef74fc3-d296-440d-a251-77fe490b33ab
+    file: src/storage/yamlStore.ts
+    line_start: 40
+    line_end: 56
+    category: security
+    text: >-
+      Path traversal defense: resolveFilePath validates that the resolved storage path stays within the workspace both
+      by string prefix check and by resolving symlinks via realpathSync. If either check fails, filePath is left
+      undefined, which disables all reads and writes.
+    source: ai_generated
+    created_at: '2026-04-18T15:58:35.770Z'
+    author: jmpdevelopment
+    components:
+      - storage
+  - id: cf20b2cd-702f-4afe-bfa5-01d21857f6c8
+    file: src/storage/yamlStore.ts
+    line_start: 161
+    line_end: 169
+    category: gotcha
+    text: >-
+      Critical flags are keyed by (file, line_start) for updates but by (file, line_start, line_end) for removal. Two
+      flags sharing the same file and line_start but different line_end will collide on update (first match wins) but
+      can be independently removed.
+    source: ai_generated
+    created_at: '2026-04-18T15:58:35.792Z'
+    author: jmpdevelopment
+    components:
+      - storage
+  - id: a30ff667-fcf5-41ca-a4f5-e3e4387d3c0b
+    file: src/storage/yamlStore.ts
+    line_start: 66
+    line_end: 69
+    category: behavior
+    text: >-
+      The file watcher only listens for onDidChange (modifications), not onDidCreate or onDidDelete. If the YAML file is
+      created after startup or deleted externally, the store won't react until the next explicit load or file change.
+    source: ai_generated
+    created_at: '2026-04-18T15:58:35.807Z'
+    author: jmpdevelopment
+    components:
+      - storage
+  - id: 40fdce59-2914-4f61-9ad7-7b0e842982fa
+    file: src/storage/yamlStore.ts
+    line_start: 34
+    line_end: 34
+    category: constraint
+    text: Only the first workspace folder is used. Multi-root workspaces will silently ignore all folders beyond index 0.
+    source: ai_generated
+    created_at: '2026-04-18T15:58:35.823Z'
+    author: jmpdevelopment
+    components:
+      - storage
+  - id: 834c064d-12bf-4587-a8bb-18658aa39edf
+    file: src/storage/yamlStore.ts
+    line_start: 95
+    line_end: 108
+    category: security
+    text: >-
+      mkdirSync with recursive:true runs before the symlink re-check on save, so a race between directory creation and
+      symlink replacement is theoretically possible but narrow.
+    source: ai_generated
+    created_at: '2026-04-18T15:58:35.838Z'
+    author: jmpdevelopment
+    components:
+      - storage
+critical_flags:
+  - file: src/storage/yamlStore.ts
+    line_start: 95
+    line_end: 97
+    severity: medium
+    description: >-
+      Directory is created (mkdirSync) before the symlink safety re-check on lines 99-108, leaving a small TOCTOU window
+      where a symlink could be placed between mkdir and the realpath check.
+    human_reviewed: false

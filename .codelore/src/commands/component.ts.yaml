@@ -1,0 +1,58 @@
+version: 2
+annotations:
+  - id: 8b1f2fab-6ad9-4041-a899-522358678a3f
+    file: src/commands/component.ts
+    line_start: 122
+    line_end: 132
+    category: behavior
+    text: >-
+      When no components exist yet, the multi-select picker is skipped entirely and the user is sent straight to
+      pickOrCreateComponent (single-select + create flow). This avoids showing an empty multi-pick.
+    source: ai_generated
+    created_at: '2026-04-18T15:56:18.090Z'
+    author: jmpdevelopment
+    components:
+      - commands
+  - id: f0444d36-2bcd-4cdb-9f61-83f73f0e92b0
+    file: src/commands/component.ts
+    line_start: 152
+    line_end: 153
+    category: gotcha
+    text: >-
+      If the user selects the 'Create new' item AND existing components in the multi-pick, the new component is created
+      separately after the add/remove loop (line 170-176). The newly created component won't appear in pickedIds, so it
+      can't be accidentally removed in the same pass.
+    source: ai_generated
+    created_at: '2026-04-18T15:56:18.121Z'
+    author: jmpdevelopment
+    components:
+      - commands
+  - id: 03bb4fa4-0b22-47e9-818e-324c59362ed8
+    file: src/commands/component.ts
+    line_start: 51
+    line_end: 58
+    category: constraint
+    text: >-
+      Component id is derived via slugify(name) and must pass isValidComponentId. Duplicate ids are rejected with a
+      warning. Changing slugify logic in models/component.ts will affect what names are accepted here.
+    source: ai_generated
+    created_at: '2026-04-18T15:56:18.141Z'
+    author: jmpdevelopment
+    dependencies:
+      - file: src/models/component.ts
+        relationship: slugify and isValidComponentId must stay in sync
+    components:
+      - commands
+  - id: 7c95ced4-6966-4f64-ac08-04f8c377c8d6
+    file: src/commands/component.ts
+    line_start: 213
+    line_end: 218
+    category: behavior
+    text: >-
+      editComponent upserts the full component object spread with edits, meaning the id and files array are preserved
+      from the original. The id is never changed even if the name changes.
+    source: ai_generated
+    created_at: '2026-04-18T15:56:18.157Z'
+    author: jmpdevelopment
+    components:
+      - commands

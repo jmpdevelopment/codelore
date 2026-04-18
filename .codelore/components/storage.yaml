@@ -1,0 +1,14 @@
+version: 2
+id: storage
+name: Storage
+description: Persistence layer for lore, components, and shared data.
+files:
+  - src/storage/componentStore.ts
+  - src/storage/loreStore.ts
+  - src/storage/schema.ts
+  - src/storage/sharedStore.ts
+  - src/storage/yamlStore.ts
+source: ai_generated
+created_at: '2026-04-18T15:55:17.563Z'
+updated_at: '2026-04-18T15:55:17.587Z'
+author: jmpdevelopment

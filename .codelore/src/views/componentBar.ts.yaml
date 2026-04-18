@@ -1,0 +1,28 @@
+version: 2
+annotations:
+  - id: fd65cc41-87fc-41e1-81bd-5cf3d1d27b46
+    file: src/views/componentBar.ts
+    line_start: 44
+    line_end: 47
+    category: behavior
+    text: >-
+      Status bar is completely hidden when no components are defined in the store, so users won't discover the tagging
+      workflow until at least one component exists.
+    source: ai_generated
+    created_at: '2026-04-18T15:59:14.984Z'
+    author: jmpdevelopment
+    components:
+      - views
+  - id: 45d40518-784e-4949-a7b8-23c22abc2fc1
+    file: src/views/componentBar.ts
+    line_start: 58
+    line_end: 58
+    category: behavior
+    text: >-
+      When a file belongs to multiple components, only the first name is shown with a `+N` suffix; display order depends
+      on whatever `getComponentsForFile` returns.
+    source: ai_generated
+    created_at: '2026-04-18T15:59:15.004Z'
+    author: jmpdevelopment
+    components:
+      - views

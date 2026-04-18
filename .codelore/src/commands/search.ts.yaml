@@ -1,0 +1,43 @@
+version: 2
+annotations:
+  - id: ee8e10ba-29b7-457c-a539-8b0fe3cec84d
+    file: src/commands/search.ts
+    line_start: 56
+    line_end: 60
+    category: gotcha
+    text: >-
+      The 'critical' mode returns a stub filter with empty strings; the caller (searchAnnotations command) does NOT
+      actually filter to only critical flags despite the comment on line 58 suggesting it should. This likely relies on
+      store.search() behavior to include critical flags when no category is set.
+    source: ai_generated
+    created_at: '2026-04-18T15:56:59.308Z'
+    author: jmpdevelopment
+    components:
+      - commands
+  - id: 3dd27643-1630-41f7-8301-e867f9b56779
+    file: src/commands/search.ts
+    line_start: 86
+    line_end: 88
+    category: security
+    text: >-
+      Path traversal is guarded by isSafeRelativePath before joining with workspace root. Defense is in
+      ../utils/validation.
+    source: ai_generated
+    created_at: '2026-04-18T15:56:59.338Z'
+    author: jmpdevelopment
+    dependencies:
+      - file: src/utils/validation.ts
+        relationship: provides path safety check
+    components:
+      - commands
+  - id: 60a2940f-a397-472c-8e7b-cbabe5f02a34
+    file: src/commands/search.ts
+    line_start: 84
+    line_end: 85
+    category: behavior
+    text: Only the first workspace folder is used; multi-root workspaces will not resolve files from other roots.
+    source: ai_generated
+    created_at: '2026-04-18T15:56:59.358Z'
+    author: jmpdevelopment
+    components:
+      - commands

@@ -1,0 +1,105 @@
+version: 2
+annotations:
+  - id: 49dc0ed3-7a38-40a1-829b-90d23ea3642a
+    file: src/storage/sharedStore.ts
+    line_start: 53
+    line_end: 61
+    category: security
+    text: >-
+      Symlink check on constructor: if `.codelore` exists and resolves outside the workspace, the store silently
+      disables itself (basePath stays undefined). This prevents reading/writing through a malicious symlink.
+    source: ai_generated
+    created_at: '2026-04-18T15:58:25.314Z'
+    author: jmpdevelopment
+    components:
+      - storage
+  - id: c8e08622-8aa1-4154-9a5a-5301d79a0762
+    file: src/storage/sharedStore.ts
+    line_start: 80
+    line_end: 87
+    category: security
+    text: >-
+      Path traversal guard: `yamlPath` resolves the target and asserts it stays under `basePath`. Throws on traversal
+      (e.g. `../../etc/passwd`). All read/write paths funnel through this method.
+    source: ai_generated
+    created_at: '2026-04-18T15:58:25.347Z'
+    author: jmpdevelopment
+    components:
+      - storage
+  - id: bc9c8626-12f4-40e0-aaed-f41b4fcbaf2e
+    file: src/storage/sharedStore.ts
+    line_start: 126
+    line_end: 135
+    category: security
+    text: >-
+      Second symlink safety check at write time: after `mkdirSync` could have created dirs, re-resolves the real path of
+      the target directory to ensure it hasn't escaped the workspace. Silent no-op on failure.
+    source: ai_generated
+    created_at: '2026-04-18T15:58:25.366Z'
+    author: jmpdevelopment
+    components:
+      - storage
+  - id: 6a38c3bb-dbca-4f36-810b-9dc4794e002a
+    file: src/storage/sharedStore.ts
+    line_start: 71
+    line_end: 77
+    category: gotcha
+    text: >-
+      The file watcher triggers a full `loadAll()` on every single YAML change/create/delete. For large `.codelore/`
+      trees this re-reads every file from disk on each event.
+    source: ai_generated
+    created_at: '2026-04-18T15:58:25.382Z'
+    author: jmpdevelopment
+    components:
+      - storage
+  - id: ef63e8b6-c8c0-4761-861c-7aa54f627feb
+    file: src/storage/sharedStore.ts
+    line_start: 107
+    line_end: 119
+    category: behavior
+    text: >-
+      When all annotations and critical_flags are removed from a source file, the corresponding YAML file is deleted and
+      empty parent directories are cleaned up recursively.
+    source: ai_generated
+    created_at: '2026-04-18T15:58:25.396Z'
+    author: jmpdevelopment
+    components:
+      - storage
+  - id: 04289178-2f37-4c4c-a0fa-82b0af7e7009
+    file: src/storage/sharedStore.ts
+    line_start: 249
+    line_end: 258
+    category: gotcha
+    text: >-
+      `updateCriticalFlag` matches by `line_start` only (not `line_end`), so if two flags share the same `line_start`
+      only the first is updated. Compare with `removeCriticalFlag` which matches on both `line_start` and `line_end`.
+    source: ai_generated
+    created_at: '2026-04-18T15:58:25.408Z'
+    author: jmpdevelopment
+    components:
+      - storage
+  - id: 2c2ea50f-ba66-4380-b9bf-2e39960f48b2
+    file: src/storage/sharedStore.ts
+    line_start: 30
+    line_end: 38
+    category: constraint
+    text: >-
+      `parseFileData` calls `assertSupportedVersion` which throws on v1 schema files — any old-format YAML will surface
+      as an error message to the user and return empty data.
+    source: ai_generated
+    created_at: '2026-04-18T15:58:25.420Z'
+    author: jmpdevelopment
+    dependencies:
+      - file: src/storage/schema.ts
+        relationship: assertSupportedVersion defines accepted schema versions
+    components:
+      - storage
+critical_flags:
+  - file: src/storage/sharedStore.ts
+    line_start: 249
+    line_end: 252
+    severity: medium
+    description: >-
+      updateCriticalFlag identifies flags by line_start alone; duplicate line_start values will cause only the first
+      match to be updated, silently ignoring others.
+    human_reviewed: false

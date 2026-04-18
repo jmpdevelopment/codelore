@@ -1,0 +1,28 @@
+version: 2
+annotations:
+  - id: 1bbf0e59-94f6-45f1-abca-71d7c6b049ec
+    file: src/models/annotation.ts
+    line_start: 27
+    line_end: 29
+    category: behavior
+    text: >-
+      coerceSource silently defaults unrecognized or non-string values to 'human_authored'. Any new AnnotationSource
+      variant added to the type but not to VALID_SOURCES will be coerced away.
+    source: ai_generated
+    created_at: '2026-04-18T15:57:11.798Z'
+    author: jmpdevelopment
+    components:
+      - models
+  - id: 960cc0d5-f829-44ba-8f4d-12dc959f214f
+    file: src/models/annotation.ts
+    line_start: 5
+    line_end: 16
+    category: constraint
+    text: >-
+      ANNOTATION_CATEGORIES is the single source of truth for valid category strings; AnnotationCategory is derived from
+      it. Adding/removing/reordering entries here affects all downstream consumers (serialization, UI, LLM prompts).
+    source: ai_generated
+    created_at: '2026-04-18T15:57:11.829Z'
+    author: jmpdevelopment
+    components:
+      - models
