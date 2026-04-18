@@ -2,8 +2,10 @@ import * as vscode from 'vscode';
 import { Annotation, AnnotationCategory, CATEGORY_META } from '../models/annotation';
 import { ReviewMarker } from '../models/reviewMarker';
 import { CriticalFlag } from '../models/criticalFlag';
+import { Component } from '../models/component';
 import { YamlStore } from './yamlStore';
 import { SharedStore } from './sharedStore';
+import { ComponentStore } from './componentStore';
 
 export type Scope = 'shared' | 'personal';
 
@@ -36,13 +38,60 @@ export class DiaryStore {
 
   readonly personal: YamlStore;
   readonly shared: SharedStore;
+  readonly components: ComponentStore;
+
+  /**
+   * Lazily-built reverse index: file path → components that list it.
+   * Invalidated whenever ComponentStore fires onDidChange. A full rebuild
+   * is O(total files across all components), which is cheap at team scale.
+   */
+  private fileComponentsIndex: Map<string, Component[]> | null = null;
 
   constructor() {
     this.personal = new YamlStore();
     this.shared = new SharedStore();
+    this.components = new ComponentStore();
 
     this.personal.onDidChange(() => this._onDidChange.fire());
     this.shared.onDidChange(() => this._onDidChange.fire());
+    this.components.onDidChange(() => {
+      this.fileComponentsIndex = null;
+      this._onDidChange.fire();
+    });
+  }
+
+  // --- Components (facade over ComponentStore + derived file index) ---
+
+  getComponents(): Component[] {
+    return this.components.getAll();
+  }
+
+  getComponent(id: string): Component | undefined {
+    return this.components.get(id);
+  }
+
+  /** Components that include the given workspace-relative file path. */
+  getComponentsForFile(file: string): Component[] {
+    return this.buildFileComponentsIndex().get(file) ?? [];
+  }
+
+  /** All files tagged into at least one component — useful for coverage views. */
+  getComponentTaggedFiles(): string[] {
+    return [...this.buildFileComponentsIndex().keys()];
+  }
+
+  private buildFileComponentsIndex(): Map<string, Component[]> {
+    if (this.fileComponentsIndex) { return this.fileComponentsIndex; }
+    const index = new Map<string, Component[]>();
+    for (const component of this.components.getAll()) {
+      for (const file of component.files) {
+        const existing = index.get(file);
+        if (existing) { existing.push(component); }
+        else { index.set(file, [component]); }
+      }
+    }
+    this.fileComponentsIndex = index;
+    return index;
   }
 
   getDefaultScope(): Scope {
@@ -247,6 +296,7 @@ export class DiaryStore {
   dispose(): void {
     this.personal.dispose();
     this.shared.dispose();
+    this.components.dispose();
     this._onDidChange.dispose();
   }
 }

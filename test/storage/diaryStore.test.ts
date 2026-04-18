@@ -18,7 +18,7 @@ function makeAnnotation(overrides: Partial<Annotation> = {}): Annotation {
     line_end: 20,
     category: 'verified',
     text: 'Looks good',
-    source: 'manual',
+    source: 'human_authored',
     created_at: '2026-01-01T00:00:00Z',
     ...overrides,
   };
@@ -459,6 +459,102 @@ describe('DiaryStore', () => {
       store.addAnnotation(makeAnnotation({ id: 'a1' }), 'shared');
       store.addAnnotation(makeAnnotation({ id: 'a2' }), 'personal');
       expect(fired).toBe(2);
+      store.dispose();
+    });
+
+    it('fires onDidChange when components change', () => {
+      const store = new DiaryStore();
+      let fired = 0;
+      store.onDidChange(() => fired++);
+      store.components.upsert({
+        id: 'billing',
+        name: 'Billing',
+        files: [],
+        source: 'human_authored',
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z',
+      });
+      expect(fired).toBe(1);
+      store.dispose();
+    });
+  });
+
+  describe('components', () => {
+    it('exposes components via the facade', () => {
+      const store = new DiaryStore();
+      store.components.upsert({
+        id: 'billing',
+        name: 'Billing',
+        files: ['src/billing/calc.ts'],
+        source: 'human_authored',
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z',
+      });
+
+      expect(store.getComponents()).toHaveLength(1);
+      expect(store.getComponent('billing')?.name).toBe('Billing');
+      expect(store.getComponent('missing')).toBeUndefined();
+      store.dispose();
+    });
+
+    it('builds a reverse file→components index', () => {
+      const store = new DiaryStore();
+      store.components.upsert({
+        id: 'billing', name: 'Billing',
+        files: ['src/shared.ts', 'src/billing/calc.ts'],
+        source: 'human_authored',
+        created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z',
+      });
+      store.components.upsert({
+        id: 'reporting', name: 'Reporting',
+        files: ['src/shared.ts', 'src/reports.ts'],
+        source: 'human_authored',
+        created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z',
+      });
+
+      const shared = store.getComponentsForFile('src/shared.ts').map(c => c.id).sort();
+      expect(shared).toEqual(['billing', 'reporting']);
+
+      expect(store.getComponentsForFile('src/billing/calc.ts').map(c => c.id)).toEqual(['billing']);
+      expect(store.getComponentsForFile('src/untracked.ts')).toEqual([]);
+      store.dispose();
+    });
+
+    it('getComponentTaggedFiles returns all files across components', () => {
+      const store = new DiaryStore();
+      store.components.upsert({
+        id: 'a', name: 'A',
+        files: ['src/a1.ts', 'src/a2.ts'],
+        source: 'human_authored',
+        created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z',
+      });
+      store.components.upsert({
+        id: 'b', name: 'B',
+        files: ['src/a2.ts', 'src/b1.ts'],
+        source: 'human_authored',
+        created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z',
+      });
+
+      const files = store.getComponentTaggedFiles().sort();
+      expect(files).toEqual(['src/a1.ts', 'src/a2.ts', 'src/b1.ts']);
+      store.dispose();
+    });
+
+    it('invalidates the index when components change', () => {
+      const store = new DiaryStore();
+      store.components.upsert({
+        id: 'billing', name: 'Billing',
+        files: ['src/a.ts'],
+        source: 'human_authored',
+        created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z',
+      });
+      expect(store.getComponentsForFile('src/a.ts')).toHaveLength(1);
+
+      store.components.addFile('billing', 'src/b.ts');
+      expect(store.getComponentsForFile('src/b.ts')).toHaveLength(1);
+
+      store.components.removeFile('billing', 'src/a.ts');
+      expect(store.getComponentsForFile('src/a.ts')).toEqual([]);
       store.dispose();
     });
   });
