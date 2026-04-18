@@ -70,6 +70,15 @@
         "title": "CodeDiary: Migrate Store to v2 (knowledge-first categories)"
       },
       {
+        "command": "codediary.tagFileComponent",
+        "title": "CodeDiary: Tag File into Component",
+        "icon": "$(symbol-namespace)"
+      },
+      {
+        "command": "codediary.untagFileComponent",
+        "title": "CodeDiary: Untag File from Component"
+      },
+      {
         "command": "codediary.setNarrative",
         "title": "CodeDiary: Set Change Narrative"
       },
