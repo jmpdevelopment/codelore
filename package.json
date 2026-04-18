@@ -3,8 +3,9 @@
   "displayName": "CodeDiary",
   "description": "Institutional knowledge capture for large codebases undergoing AI-accelerated development. Annotate, review, and build shared understanding as AI agents modify your code.",
   "version": "0.1.0",
-  "publisher": "codediary",
+  "publisher": "jmpdevelopment",
   "license": "MIT",
+  "icon": "icon.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/codediary/codediary.git"
@@ -14,7 +15,7 @@
   },
   "homepage": "https://github.com/codediary/codediary#readme",
   "engines": {
-    "vscode": "^1.85.0"
+    "vscode": "^1.95.0"
   },
   "categories": [
     "Other"
@@ -367,7 +368,7 @@
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^25.5.0",
     "@types/uuid": "^10.0.0",
-    "@types/vscode": "^1.110.0",
+    "@types/vscode": "~1.95.0",
     "@vitest/coverage-v8": "^4.1.0",
     "esbuild": "^0.27.4",
     "typescript": "^5.9.3",
