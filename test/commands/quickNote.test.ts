@@ -23,66 +23,70 @@ afterEach(() => {
 });
 
 describe('Quick Note behavior', () => {
-  it('ai_prompt annotations are stored in personal scope', () => {
+  it('human_note annotations persist under the chosen scope', () => {
     const store = new LoreStore();
     store.addAnnotation({
       id: 'qn-1',
       file: 'src/foo.ts',
       line_start: 1,
       line_end: 5,
-      category: 'ai_prompt',
-      text: 'Refactor this to use async/await',
+      category: 'human_note',
+      text: 'Investigate why this branch was added',
       source: 'human_authored',
       created_at: new Date().toISOString(),
-    }, 'personal');
+    }, 'shared');
 
     const annotations = store.getAnnotationsForFile('src/foo.ts');
     expect(annotations).toHaveLength(1);
-    expect(annotations[0].category).toBe('ai_prompt');
-    expect(annotations[0].text).toBe('Refactor this to use async/await');
+    expect(annotations[0].category).toBe('human_note');
+    expect(annotations[0].text).toBe('Investigate why this branch was added');
     store.dispose();
   });
 
-  it('ai_prompt category exists in store after add', () => {
+  it('honours the personal scope when that is the default', () => {
+    __setConfig({
+      'codelore.storagePath': '.vscode/codelore.yaml',
+      'codelore.defaultScope': 'personal',
+    });
     const store = new LoreStore();
     store.addAnnotation({
       id: 'qn-2',
       file: 'src/bar.ts',
       line_start: 10,
       line_end: 15,
-      category: 'ai_prompt',
-      text: 'Add error handling here',
+      category: 'human_note',
+      text: 'Private reminder',
       source: 'human_authored',
       created_at: new Date().toISOString(),
-    }, 'personal');
+    }, store.getDefaultScope());
 
-    const all = store.getAnnotations();
-    expect(all.some(a => a.category === 'ai_prompt')).toBe(true);
+    expect(store.personal.getAnnotations()).toHaveLength(1);
+    expect(store.shared.getAnnotations()).toHaveLength(0);
     store.dispose();
   });
 
-  it('multiple quick notes on same file', () => {
+  it('multiple notes on the same file', () => {
     const store = new LoreStore();
     store.addAnnotation({
       id: 'qn-3',
       file: 'src/foo.ts',
       line_start: 1,
       line_end: 5,
-      category: 'ai_prompt',
+      category: 'human_note',
       text: 'Note 1',
       source: 'human_authored',
       created_at: new Date().toISOString(),
-    }, 'personal');
+    }, 'shared');
     store.addAnnotation({
       id: 'qn-4',
       file: 'src/foo.ts',
       line_start: 10,
       line_end: 20,
-      category: 'ai_prompt',
+      category: 'human_note',
       text: 'Note 2',
       source: 'human_authored',
       created_at: new Date().toISOString(),
-    }, 'personal');
+    }, 'shared');
 
     expect(store.getAnnotationsForFile('src/foo.ts')).toHaveLength(2);
     store.dispose();

@@ -31,7 +31,7 @@ describe('Copy annotations formatting', () => {
       file: 'src/auth.ts',
       line_start: 10,
       line_end: 20,
-      category: 'verified',
+      category: 'security',
       text: 'Token validation looks correct',
       source: 'human_authored',
       created_at: new Date().toISOString(),
@@ -41,7 +41,7 @@ describe('Copy annotations formatting', () => {
       file: 'src/auth.ts',
       line_start: 30,
       line_end: 40,
-      category: 'needs_review',
+      category: 'gotcha',
       text: 'Rate limiting logic needs checking',
       source: 'human_authored',
       created_at: new Date().toISOString(),
@@ -57,9 +57,9 @@ describe('Copy annotations formatting', () => {
     }
 
     const output = lines.join('\n');
-    expect(output).toContain('VERIFIED');
+    expect(output).toContain('SECURITY');
     expect(output).toContain('Token validation looks correct');
-    expect(output).toContain('NEEDS_REVIEW');
+    expect(output).toContain('GOTCHA');
     expect(output).toContain('L10-20');
     expect(output).toContain('L30-40');
     store.dispose();

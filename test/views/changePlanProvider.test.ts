@@ -301,7 +301,7 @@ describe('ChangePlanProvider', () => {
     const store = new LoreStore();
     const categories = [
       'behavior', 'rationale', 'constraint', 'gotcha',
-      'performance', 'security', 'human_note', 'business_rule', 'ai_prompt',
+      'performance', 'security', 'human_note', 'business_rule',
     ] as const;
     categories.forEach((cat, i) => {
       store.addAnnotation(makeAnnotation({ id: `a${i}`, category: cat, file: 'src/foo.ts' }));

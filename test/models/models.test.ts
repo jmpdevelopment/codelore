@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import {
   ANNOTATION_CATEGORIES,
   CATEGORY_META,
-  KNOWLEDGE_CATEGORIES,
   coerceSource,
   type AnnotationSource,
   type Annotation,
@@ -11,9 +10,8 @@ import {
 import type { CriticalFlag, CriticalSeverity } from '../../src/models/criticalFlag';
 
 describe('Annotation model', () => {
-  it('exposes 8 knowledge categories + ai_prompt = 9 total', () => {
-    expect(KNOWLEDGE_CATEGORIES).toHaveLength(8);
-    expect(ANNOTATION_CATEGORIES).toHaveLength(9);
+  it('exposes 8 knowledge categories', () => {
+    expect(ANNOTATION_CATEGORIES).toHaveLength(8);
   });
 
   it('all categories have metadata', () => {
@@ -27,8 +25,8 @@ describe('Annotation model', () => {
     }
   });
 
-  it('knowledge categories are the post-pivot set', () => {
-    expect([...KNOWLEDGE_CATEGORIES]).toEqual([
+  it('categories are the post-pivot set', () => {
+    expect([...ANNOTATION_CATEGORIES]).toEqual([
       'behavior', 'rationale', 'constraint', 'gotcha',
       'business_rule', 'performance', 'security', 'human_note',
     ]);

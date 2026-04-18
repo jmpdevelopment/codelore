@@ -4,7 +4,7 @@ When modifying files in this project, check for CodeLore annotations before maki
 
 1. Look for `.codelore/` directory at the project root — it contains per-file YAML annotations committed by the team.
 2. For a file like `src/auth/middleware.ts`, check `.codelore/src/auth/middleware.ts.yaml` for existing annotations.
-3. Each annotation has: line range, category (verified, needs_review, modified, confused, hallucination, intent, accepted, business_rule, ai_prompt), and text.
+3. Each annotation has: line range, category (behavior, rationale, constraint, gotcha, business_rule, performance, security, human_note), and text.
 4. Annotations may include `dependencies` — cross-file links to related code. When modifying linked files, check the annotations that reference them.
 5. Critical flags mark security-sensitive or high-risk regions — respect these and do not modify flagged code without explicit instruction.
 6. If you add or change code in an annotated region, mention the existing annotation context in your response.

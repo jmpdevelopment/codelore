@@ -16,9 +16,11 @@ AI-driven refactors, team turnover, and noisy AI reviewers.
 - **Components.** Group files into named components with descriptions and
   owners. Tag-first flow: the `Manage Components for File` command
   multi-selects memberships in a single picker.
-- **Eight knowledge categories + AI prompt:** verified, needs review,
-  modified, don't understand, potential hallucination, intent note,
-  accepted as-is, business rule, and ephemeral AI prompt.
+- **Eight knowledge categories:** behavior, rationale, constraint,
+  gotcha, business rule, performance, security, and human note.
+  Verification status (`ai_generated`, `ai_verified`, `human_authored`)
+  is tracked as a separate field so AI drafts can be promoted to
+  verified without changing the category.
 - **Critical regions.** Mark, resolve, and remove critical flags on
   high-risk code with severity and human-reviewed lifecycle.
 - **Content + signature anchoring.** Annotations survive whitespace

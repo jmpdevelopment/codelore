@@ -9,11 +9,11 @@ import {
   buildBlock,
   updateFileContent,
 } from '../../src/commands/agentInstructions';
-import { KNOWLEDGE_CATEGORIES } from '../../src/models/annotation';
+import { ANNOTATION_CATEGORIES } from '../../src/models/annotation';
 
 const LEGACY_CATEGORY_NAMES = [
   'verified', 'needs_review', 'modified', 'confused',
-  'hallucination', 'intent', 'accepted',
+  'hallucination', 'intent', 'accepted', 'ai_prompt',
 ] as const;
 
 let tmpDir: string;
@@ -28,7 +28,7 @@ afterEach(() => {
 
 describe('Agent instruction text', () => {
   it('lists every knowledge category', () => {
-    for (const cat of KNOWLEDGE_CATEGORIES) {
+    for (const cat of ANNOTATION_CATEGORIES) {
       expect(INSTRUCTION_TEXT).toContain(`\`${cat}\``);
     }
   });

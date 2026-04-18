@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { v4 as uuidv4 } from 'uuid';
 import { LoreStore } from '../storage/loreStore';
-import { Annotation, KNOWLEDGE_CATEGORIES, CATEGORY_META, AnnotationCategory, FileDependency } from '../models/annotation';
+import { Annotation, ANNOTATION_CATEGORIES, CATEGORY_META, AnnotationCategory, FileDependency } from '../models/annotation';
 import { getGitUser, getRelativePath } from '../utils/git';
 import { computeContentHash, computeSignatureHash } from '../utils/anchorEngine';
 import { truncateText } from '../utils/validation';
@@ -67,7 +67,7 @@ export function registerAnnotateCommands(context: vscode.ExtensionContext, store
       const lineStart = selection.start.line + 1;
       const lineEnd = selection.end.line + 1;
 
-      const items = KNOWLEDGE_CATEGORIES.map(cat => ({
+      const items = ANNOTATION_CATEGORIES.map(cat => ({
         label: `${CATEGORY_META[cat].icon} ${CATEGORY_META[cat].label}`,
         description: CATEGORY_META[cat].description,
         category: cat as AnnotationCategory,

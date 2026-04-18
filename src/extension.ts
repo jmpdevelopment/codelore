@@ -10,7 +10,6 @@ import { CoverageBar } from './views/coverageBar';
 import { ComponentBar } from './views/componentBar';
 import { registerAnnotateCommands } from './commands/annotate';
 import { registerCriticalCommands } from './commands/markCritical';
-import { registerExportCommands } from './commands/clearAll';
 import { registerSearchCommands } from './commands/search';
 import { registerQuickNoteCommands } from './commands/quickNote';
 import { registerAgentInstructionCommands } from './commands/agentInstructions';
@@ -50,7 +49,6 @@ export function activate(context: vscode.ExtensionContext): void {
   // Commands
   registerAnnotateCommands(context, store);
   registerCriticalCommands(context, store);
-  registerExportCommands(context, store);
   registerSearchCommands(context, store);
   registerQuickNoteCommands(context, store);
   registerAgentInstructionCommands(context, store);

@@ -47,8 +47,6 @@ Annotations describe properties of the code, not workflow state:
 | `security` | Trust boundary, auth assumption, sanitization requirement |
 | `human_note` | Free-form human commentary — observations, questions |
 
-Plus `ai_prompt` — ephemeral personal scratchpad for talking to the AI, never exported.
-
 ## Components
 
 Files don't live alone. Components group related files into logical subsystems (a module, a feature area, a service boundary). Use `Manage Components for File` to multi-select which components the current file belongs to in one picker, or ask the AI to propose components via `Propose Components (AI)`.
@@ -74,7 +72,7 @@ CodeLore caps itself at 3 chords. Everything else is in the command palette.
 |---|---|
 | `Cmd+Shift+L` | Add annotation on selection |
 | `Cmd+Shift+K` | Scan current file for knowledge + critical regions (AI) |
-| `Cmd+Shift+J` | Quick AI note (ephemeral, personal) |
+| `Cmd+Shift+J` | Quick `human_note` on selection (skips the category picker) |
 
 On Windows/Linux, swap `Cmd` for `Ctrl`.
 
@@ -83,9 +81,9 @@ On Windows/Linux, swap `Cmd` for `Ctrl`.
 CodeLore has two stores:
 
 - **Shared** (`.codelore/`, committed to git): per-file YAML mirroring the source tree — `.codelore/src/auth/middleware.ts.yaml` holds annotations for `src/auth/middleware.ts`. Merge-conflict-safe. Survives turnover.
-- **Personal** (`.vscode/codelore.yaml`, gitignored): a single flat YAML for private notes ("I don't understand this") you don't want committed. Also holds any `ai_prompt` entries.
+- **Personal** (`.vscode/codelore.yaml`, gitignored): a single flat YAML for private notes ("I don't understand this") you don't want committed.
 
-Personal annotations never leak into AI context or team-facing views. `Clear Personal Data` wipes only the personal store.
+Personal annotations never leak into AI context or team-facing views. Delete `.vscode/codelore.yaml` directly if you want to wipe them.
 
 ### Anchoring
 

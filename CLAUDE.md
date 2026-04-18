@@ -57,10 +57,9 @@ codelore/
 │   ├── commands/
 │   │   ├── annotate.ts           # Add/edit/delete annotations with scope picker
 │   │   ├── markCritical.ts       # Flag critical regions, resolve/remove
-│   │   ├── clearAll.ts           # Clear personal data
 │   │   ├── component.ts          # Manage component memberships for a file, edit components
 │   │   ├── filter.ts             # Single chooser that dispatches to category/component/severity/path
-│   │   ├── quickNote.ts          # Ephemeral AI notes + copy annotations to clipboard
+│   │   ├── quickNote.ts          # One-tap human_note (no category picker) + copy annotations to clipboard
 │   │   ├── agentInstructions.ts  # Generate CLAUDE.md/.cursorrules/etc. with knowledge
 │   │   ├── reanchor.ts           # codelore.checkAnchors — verify + picker-driven re-anchor
 │   │   └── search.ts             # Search annotations across codebase
@@ -88,7 +87,6 @@ codelore/
 - **Shared store** (`.codelore/` directory, committed to git): Per-file YAML mirroring the source tree (e.g., `.codelore/src/auth/middleware.ts.yaml`). Merge-conflict-safe. Knowledge persists across team members and survives turnover.
 - **Personal store** (`.vscode/codelore.yaml`, gitignored): Single flat YAML file for private notes. Allows candid annotations ("I don't understand this") that shouldn't be committed.
 - **LoreStore facade** merges reads from both stores and routes writes based on a scope picker. Default scope configurable via `codelore.defaultScope` setting.
-- **clearAll** only clears the personal store to protect team knowledge.
 - **Personal annotations are excluded from AI context** — private notes never leak into suggestions visible to the team.
 
 ### Proactive Notifications
@@ -173,14 +171,13 @@ palette via `menus.commandPalette` `when: false`.
 | `codelore.scanProject` | Scan Entire Project (Knowledge + Critical) | — |
 | `codelore.proposeComponent` | Propose Components (AI) | — |
 | `codelore.manageComponentsForFile` | Manage Components for File | — |
-| `codelore.quickNote` | Quick AI Note (Ephemeral) | `Cmd+Shift+J` |
+| `codelore.quickNote` | Quick Note | `Cmd+Shift+J` |
 | `codelore.copyAnnotationsForFile` | Copy Annotations for Current File | — |
 | `codelore.generateAgentInstructions` | Generate Agent Instruction Files | — |
 | `codelore.checkAnchors` | Check Annotation Anchors | — |
 | `codelore.filter` | Filter | — |
 | `codelore.searchAnnotations` | Search Annotations | — |
 | `codelore.changeModel` | Change AI Model | — |
-| `codelore.clearAll` | Clear Personal Data | — |
 
 ## Sidebar Views
 
@@ -213,7 +210,6 @@ ai_generated | ai_verified | human_authored`), not a category.
 | `performance` | Hot path, complexity assumption, benchmark-sensitive region |
 | `security` | Trust boundary, auth assumption, sanitization requirement |
 | `human_note` | Free-form human commentary — observations, questions |
-| `ai_prompt` | Ephemeral note for AI agent — personal-only, excluded from team features |
 
 ## Development
 
@@ -230,7 +226,7 @@ Press `F5` in VSCode to launch the Extension Development Host for manual testing
 ## Implementation Status
 
 ### Complete
-- Inline annotations across 8 knowledge categories + `ai_prompt`, scope picker, content + signature anchoring
+- Inline annotations across 8 knowledge categories, scope picker, content + signature anchoring
 - `source: ai_generated | ai_verified | human_authored` tracked as a separate field from category; inline ✓ action promotes AI drafts to verified
 - Critical flag lifecycle (flag with severity, resolve with comment, remove)
 - Components: tag-first grouping with a single `manageComponentsForFile` multi-select picker
@@ -243,7 +239,7 @@ Press `F5` in VSCode to launch the Extension Development Host for manual testing
 - Annotation search across codebase (text, category, file path filters with jump to source)
 - Unified filter command (`codelore.filter`) that dispatches to category/component/severity/path dimensions
 - Single anchor command (`codelore.checkAnchors`) that verifies all anchors and opens a re-anchor picker for drift
-- Ephemeral AI notes (`ai_prompt` category, personal scope, excluded from team features)
+- Quick note command (`Cmd+Shift+J`) that skips the category picker and writes a `human_note` at the configured default scope
 - Copy annotations for current file to clipboard
 - Agent instruction file generation (CLAUDE.md, .cursorrules, copilot-instructions, AGENTS.md, .windsurfrules)
 - Shared/personal dual-store architecture with privacy boundary (personal excluded from AI context)
@@ -265,7 +261,7 @@ When modifying files in this project, check for CodeLore annotations before maki
 
 1. Look for `.codelore/` directory at the project root — it contains per-file YAML annotations committed by the team.
 2. For a file like `src/auth/middleware.ts`, check `.codelore/src/auth/middleware.ts.yaml` for existing annotations.
-3. Each annotation has: line range, category (`behavior`, `rationale`, `constraint`, `gotcha`, `business_rule`, `performance`, `security`, `human_note`, `ai_prompt`), text, and `source` (`ai_generated | ai_verified | human_authored`). Treat `ai_verified` and `human_authored` entries as authoritative; `ai_generated` entries are drafts pending review.
+3. Each annotation has: line range, category (`behavior`, `rationale`, `constraint`, `gotcha`, `business_rule`, `performance`, `security`, `human_note`), text, and `source` (`ai_generated | ai_verified | human_authored`). Treat `ai_verified` and `human_authored` entries as authoritative; `ai_generated` entries are drafts pending review.
 4. Annotations may include `dependencies` — cross-file links to related code. When modifying linked files, check the annotations that reference them.
 5. Critical flags mark security-sensitive or high-risk regions — respect these and do not modify flagged code without explicit instruction.
 6. If you add or change code in an annotated region, mention the existing annotation context in your response.

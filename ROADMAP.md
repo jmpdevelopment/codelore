@@ -8,8 +8,8 @@ deliberately resisted building features on speculation.
 ## Shipping in 0.1.0
 
 See [CHANGELOG.md](CHANGELOG.md) for the full release notes. The short
-version: structured YAML knowledge store, 8 knowledge categories +
-`ai_prompt`, components, critical flags, proactive
+version: structured YAML knowledge store, 8 knowledge categories,
+components, critical flags, proactive
 file-open/save notifications, three AI scan entry points
 (file/component/project), content + signature anchoring, and agent
 instruction file generation.

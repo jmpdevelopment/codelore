@@ -262,13 +262,6 @@ export class LoreStore {
     return results;
   }
 
-  // --- Bulk ---
-
-  clearAll(): void {
-    this.personal.clearAll();
-    // Don't clear shared — too dangerous for team data
-  }
-
   dispose(): void {
     this.personal.dispose();
     this.shared.dispose();

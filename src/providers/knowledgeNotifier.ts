@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { LoreStore } from '../storage/loreStore';
-import { EPHEMERAL_CATEGORIES, Annotation } from '../models/annotation';
+import { Annotation } from '../models/annotation';
 import { getRelativePath, getWorkspaceCwd, gitDiff, parseChangedLineRanges, rangesOverlap } from '../utils/git';
 
 /**
@@ -77,8 +77,7 @@ export class KnowledgeNotifier implements vscode.Disposable {
     if (changedRanges.length === 0) { return; }
 
     // Check for overlapping knowledge
-    const annotations = this.store.getAnnotationsForFile(filePath)
-      .filter(a => !EPHEMERAL_CATEGORIES.has(a.category));
+    const annotations = this.store.getAnnotationsForFile(filePath);
     const criticalFlags = this.store.getCriticalFlagsForFile(filePath);
 
     const overlappingAnnotations = annotations.filter(a =>
@@ -121,7 +120,6 @@ export class KnowledgeNotifier implements vscode.Disposable {
   private findIncomingDependencies(filePath: string): Annotation[] {
     return this.store.getAnnotations().filter(a =>
       a.file !== filePath
-      && !EPHEMERAL_CATEGORIES.has(a.category)
       && a.dependencies?.some(d => d.file === filePath),
     );
   }

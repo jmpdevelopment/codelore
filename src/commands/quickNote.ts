@@ -19,8 +19,8 @@ export function registerQuickNoteCommands(context: vscode.ExtensionContext, stor
       const lineEnd = selection.end.line + 1;
 
       const text = await vscode.window.showInputBox({
-        prompt: `AI note for lines ${lineStart}-${lineEnd} (ephemeral — excluded from export)`,
-        placeHolder: 'Quick note for AI agent...',
+        prompt: `Quick note for lines ${lineStart}-${lineEnd}`,
+        placeHolder: 'Your note about this code...',
       });
       if (text === undefined || text.trim() === '') { return; }
 
@@ -28,12 +28,13 @@ export function registerQuickNoteCommands(context: vscode.ExtensionContext, stor
       const contentHash = computeContentHash(fileLines, lineStart, lineEnd);
       const signatureHash = computeSignatureHash(fileLines, lineStart, lineEnd);
 
+      const scope = store.getDefaultScope();
       const annotation: Annotation = {
         id: uuidv4(),
         file: filePath,
         line_start: lineStart,
         line_end: lineEnd,
-        category: 'ai_prompt',
+        category: 'human_note',
         text: text.trim(),
         source: 'human_authored',
         created_at: new Date().toISOString(),
@@ -41,8 +42,9 @@ export function registerQuickNoteCommands(context: vscode.ExtensionContext, stor
         anchor: { content_hash: contentHash, signature_hash: signatureHash, stale: false },
       };
 
-      store.addAnnotation(annotation, 'personal');
-      vscode.window.showInformationMessage('CodeLore: AI note added (ephemeral, personal)');
+      store.addAnnotation(annotation, scope);
+      const scopeLabel = scope === 'shared' ? 'team' : 'personal';
+      vscode.window.showInformationMessage(`CodeLore: Note added (${scopeLabel})`);
     }),
 
     vscode.commands.registerCommand('codelore.copyAnnotationsForFile', async () => {

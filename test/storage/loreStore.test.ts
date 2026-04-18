@@ -205,18 +205,6 @@ describe('LoreStore', () => {
     });
   });
 
-  describe('clearAll', () => {
-    it('only clears personal store', () => {
-      const store = new LoreStore();
-      store.addAnnotation(makeAnnotation({ id: 'a1' }), 'shared');
-      store.addAnnotation(makeAnnotation({ id: 'a2' }), 'personal');
-      store.clearAll();
-      expect(store.shared.getAnnotations()).toHaveLength(1);
-      expect(store.personal.getAnnotations()).toHaveLength(0);
-      store.dispose();
-    });
-  });
-
   describe('findOverlapping', () => {
     it('finds annotations that overlap the given range', () => {
       const store = new LoreStore();

@@ -1,13 +1,13 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import { CATEGORY_META, KNOWLEDGE_CATEGORIES } from '../models/annotation';
+import { CATEGORY_META, ANNOTATION_CATEGORIES } from '../models/annotation';
 
 export const CODELORE_BLOCK_START = '# CodeLore Integration';
 export const CODELORE_BLOCK_END = '# End CodeLore Integration';
 
 function categoryBullets(): string {
-  return KNOWLEDGE_CATEGORIES
+  return ANNOTATION_CATEGORIES
     .map(cat => `   - \`${cat}\` — ${CATEGORY_META[cat].description}`)
     .join('\n');
 }

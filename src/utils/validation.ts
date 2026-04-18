@@ -1,5 +1,5 @@
 import * as path from 'path';
-import { AnnotationCategory, ANNOTATION_CATEGORIES, KNOWLEDGE_CATEGORIES } from '../models/annotation';
+import { AnnotationCategory, ANNOTATION_CATEGORIES } from '../models/annotation';
 import { CriticalSeverity } from '../models/criticalFlag';
 
 const VALID_SEVERITIES: CriticalSeverity[] = ['critical', 'high', 'medium'];
@@ -28,14 +28,6 @@ export function validLineRange(lineStart: unknown, lineEnd: unknown): { line_sta
 
 export function isValidCategory(value: unknown): value is AnnotationCategory {
   return typeof value === 'string' && (ANNOTATION_CATEGORIES as readonly string[]).includes(value);
-}
-
-/**
- * Stricter check for new-annotation creation flows: only the knowledge-first
- * categories are acceptable (ai_prompt is ephemeral and excluded).
- */
-export function isValidKnowledgeCategory(value: unknown): value is (typeof KNOWLEDGE_CATEGORIES)[number] {
-  return typeof value === 'string' && (KNOWLEDGE_CATEGORIES as readonly string[]).includes(value);
 }
 
 export function isValidSeverity(value: unknown): value is CriticalSeverity {

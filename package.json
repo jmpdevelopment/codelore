@@ -63,10 +63,6 @@
         "icon": "$(shield)"
       },
       {
-        "command": "codelore.clearAll",
-        "title": "CodeLore: Clear Personal Data"
-      },
-      {
         "command": "codelore.manageComponentsForFile",
         "title": "CodeLore: Manage Components for File",
         "icon": "$(symbol-namespace)"

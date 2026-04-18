@@ -10,7 +10,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { getGitUser, getRelativePath, getWorkspaceCwd } from '../utils/git';
 import {
   validLineRange,
-  isValidKnowledgeCategory,
+  isValidCategory,
   isValidSeverity,
   isSafeRelativePath,
   stripJsonFences,
@@ -371,7 +371,7 @@ export class LoreGenerator {
       if (!e || typeof e !== 'object') { continue; }
       const range = validLineRange(e.line_start, e.line_end);
       if (!range) { continue; }
-      if (!isValidKnowledgeCategory(e.category)) { continue; }
+      if (!isValidCategory(e.category)) { continue; }
       if (typeof e.text !== 'string' || !e.text.trim()) { continue; }
       results.push({
         category: e.category,

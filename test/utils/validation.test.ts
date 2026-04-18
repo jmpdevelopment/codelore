@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isSafeRelativePath, sanitizeMarkdownText, stripJsonFences, truncateText, isValidCategory, isValidKnowledgeCategory } from '../../src/utils/validation';
+import { isSafeRelativePath, sanitizeMarkdownText, stripJsonFences, truncateText, isValidCategory } from '../../src/utils/validation';
 
 describe('isSafeRelativePath', () => {
   it('accepts normal relative paths', () => {
@@ -106,48 +106,21 @@ describe('truncateText', () => {
 });
 
 describe('isValidCategory', () => {
-  it('accepts knowledge categories', () => {
-    expect(isValidCategory('behavior')).toBe(true);
-    expect(isValidCategory('business_rule')).toBe(true);
-    expect(isValidCategory('security')).toBe(true);
-  });
-
-  it('accepts ai_prompt', () => {
-    expect(isValidCategory('ai_prompt')).toBe(true);
+  it('accepts all 8 knowledge categories', () => {
+    for (const cat of ['behavior', 'rationale', 'constraint', 'gotcha', 'business_rule', 'performance', 'security', 'human_note']) {
+      expect(isValidCategory(cat)).toBe(true);
+    }
   });
 
   it('rejects legacy v1 categories', () => {
-    expect(isValidCategory('verified')).toBe(false);
-    expect(isValidCategory('needs_review')).toBe(false);
-    expect(isValidCategory('hallucination')).toBe(false);
+    for (const cat of ['verified', 'needs_review', 'modified', 'confused', 'hallucination', 'intent', 'accepted', 'ai_prompt']) {
+      expect(isValidCategory(cat)).toBe(false);
+    }
   });
 
   it('rejects unknown values', () => {
     expect(isValidCategory('made-up')).toBe(false);
     expect(isValidCategory(42)).toBe(false);
     expect(isValidCategory(undefined)).toBe(false);
-  });
-});
-
-describe('isValidKnowledgeCategory', () => {
-  it('accepts all 8 knowledge categories', () => {
-    for (const cat of ['behavior', 'rationale', 'constraint', 'gotcha', 'business_rule', 'performance', 'security', 'human_note']) {
-      expect(isValidKnowledgeCategory(cat)).toBe(true);
-    }
-  });
-
-  it('rejects legacy v1 categories', () => {
-    for (const cat of ['verified', 'needs_review', 'modified', 'confused', 'hallucination', 'intent', 'accepted']) {
-      expect(isValidKnowledgeCategory(cat)).toBe(false);
-    }
-  });
-
-  it('rejects ai_prompt (ephemeral, not a knowledge category)', () => {
-    expect(isValidKnowledgeCategory('ai_prompt')).toBe(false);
-  });
-
-  it('rejects non-strings', () => {
-    expect(isValidKnowledgeCategory(42)).toBe(false);
-    expect(isValidKnowledgeCategory(undefined)).toBe(false);
   });
 });

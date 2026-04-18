@@ -1,8 +1,8 @@
 /**
- * Knowledge-first categories. These describe properties of the code itself
+ * Annotation categories describe properties of the code itself
  * (behavior, constraints, hazards) rather than workflow state.
  */
-export const KNOWLEDGE_CATEGORIES = [
+export const ANNOTATION_CATEGORIES = [
   'behavior',
   'rationale',
   'constraint',
@@ -12,14 +12,6 @@ export const KNOWLEDGE_CATEGORIES = [
   'security',
   'human_note',
 ] as const;
-
-export const ANNOTATION_CATEGORIES = [
-  ...KNOWLEDGE_CATEGORIES,
-  'ai_prompt',
-] as const;
-
-/** Categories excluded from PR export — ephemeral working notes */
-export const EPHEMERAL_CATEGORIES: ReadonlySet<AnnotationCategory> = new Set(['ai_prompt']);
 
 export type AnnotationCategory = (typeof ANNOTATION_CATEGORIES)[number];
 
@@ -124,11 +116,5 @@ export const CATEGORY_META: Record<AnnotationCategory, { label: string; icon: st
     icon: '$(comment-discussion)',
     color: '#757575',
     description: 'Free-form human commentary — observations, questions, reminders',
-  },
-  ai_prompt: {
-    label: 'AI Prompt',
-    icon: '$(robot)',
-    color: '#00bcd4',
-    description: 'Quick note for AI agent — ephemeral, excluded from export',
   },
 };
