@@ -20,14 +20,12 @@ import { registerComponentCommands } from './commands/component';
 import { registerFilterCommand } from './commands/filter';
 import { LmService } from './ai/lmService';
 import { LoreGenerator } from './ai/loreGenerator';
-import { CriticalDetector } from './ai/criticalDetector';
 import { ComponentProposer } from './ai/componentProposer';
 
 export function activate(context: vscode.ExtensionContext): void {
   const store = new LoreStore();
   const lm = new LmService();
   const loreGenerator = new LoreGenerator(lm, store);
-  const criticalDetector = new CriticalDetector(lm, store);
   const componentProposer = new ComponentProposer(lm, store);
   context.subscriptions.push({ dispose: () => store.dispose() });
 
@@ -88,15 +86,16 @@ export function activate(context: vscode.ExtensionContext): void {
       await lm.changeModel();
     }),
 
-    // Scan commands: file (interactive), component (batch), project (batch)
+    // Scan commands: file (interactive), component (batch), project (batch).
+    // Each scan is a single model call per file that produces both knowledge
+    // annotations and critical flags together.
     vscode.commands.registerCommand('codelore.scanFile', async () => {
       const editor = vscode.window.activeTextEditor;
       if (!editor) {
         vscode.window.showInformationMessage('CodeLore: Open a file first.');
         return;
       }
-      await loreGenerator.scanForKnowledge(editor);
-      await criticalDetector.scanFileContent(editor);
+      await loreGenerator.scanFile(editor);
     }),
 
     vscode.commands.registerCommand('codelore.scanComponent', async () => {
@@ -130,7 +129,6 @@ export function activate(context: vscode.ExtensionContext): void {
         return;
       }
       await loreGenerator.scanFiles(component.files, `component ${component.name}`);
-      await criticalDetector.scanFiles(component.files, `component ${component.name}`);
     }),
 
     vscode.commands.registerCommand('codelore.scanProject', async () => {
@@ -142,8 +140,25 @@ export function activate(context: vscode.ExtensionContext): void {
         vscode.window.showInformationMessage('CodeLore: No source files found in the workspace.');
         return;
       }
+
+      // First-run bootstrap: without components, AI entries land untagged and
+      // the resulting lore is a flat pile. Offer to propose components first
+      // so annotations slot into the right subsystems from the start.
+      if (store.getComponents().length === 0) {
+        const choice = await vscode.window.showInformationMessage(
+          'CodeLore: No components defined yet. Propose components first so new annotations can be tagged into subsystems?',
+          { modal: true },
+          'Propose Components First',
+          'Scan Without Components',
+        );
+        if (choice === undefined) { return; }
+        if (choice === 'Propose Components First') {
+          await componentProposer.propose();
+        }
+      }
+
       const confirm = await vscode.window.showWarningMessage(
-        `CodeLore will scan ${files.length} files with the language model. This makes ${files.length * 2} LLM calls (knowledge + critical) and may incur cost. Continue?`,
+        `CodeLore will scan ${files.length} files with the language model. This makes ${files.length} LLM calls and may incur cost. Continue?`,
         { modal: true },
         'Scan All Files',
       );
@@ -152,7 +167,6 @@ export function activate(context: vscode.ExtensionContext): void {
         .map(uri => vscode.workspace.asRelativePath(uri, false))
         .sort();
       await loreGenerator.scanFiles(relativePaths, `project (${relativePaths.length} files)`);
-      await criticalDetector.scanFiles(relativePaths, `project (${relativePaths.length} files)`);
     }),
   );
 

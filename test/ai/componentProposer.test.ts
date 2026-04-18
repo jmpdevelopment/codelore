@@ -8,6 +8,7 @@ import {
   __clearWorkspace,
   __setConfig,
   __queueQuickPick,
+  __setFindFilesResult,
 } from '../__mocks__/vscode';
 import { ComponentProposer } from '../../src/ai/componentProposer';
 import { LoreStore } from '../../src/storage/loreStore';
@@ -113,7 +114,7 @@ describe('ComponentProposer.parseProposals', () => {
 });
 
 describe('ComponentProposer.gatherCandidateFiles', () => {
-  it('returns uncommitted changes when the repo has any', () => {
+  it('returns uncommitted changes when the repo has any', async () => {
     initRepo();
     writeTracked('src/seed.ts', 'export {};\n');
     execFileSync('git', ['commit', '-qm', 'seed'], { cwd: tmpDir });
@@ -123,12 +124,12 @@ describe('ComponentProposer.gatherCandidateFiles', () => {
 
     const store = new LoreStore();
     const proposer = new ComponentProposer(new LmService(), store);
-    const files = proposer.gatherCandidateFiles();
+    const files = await proposer.gatherCandidateFiles();
     expect(files).toContain('src/new.ts');
     store.dispose();
   });
 
-  it('falls back to files referenced by annotations when no changes exist', () => {
+  it('falls back to files referenced by annotations when no changes exist', async () => {
     initRepo();
     writeTracked('src/a.ts', 'export {};\n');
     execFileSync('git', ['commit', '-qm', 'clean'], { cwd: tmpDir });
@@ -140,7 +141,33 @@ describe('ComponentProposer.gatherCandidateFiles', () => {
       created_at: '2026-04-18T00:00:00Z',
     });
     const proposer = new ComponentProposer(new LmService(), store);
-    expect(proposer.gatherCandidateFiles()).toEqual(['src/a.ts']);
+    expect(await proposer.gatherCandidateFiles()).toEqual(['src/a.ts']);
+    store.dispose();
+  });
+
+  it('falls back to workspace source files on a clean first-run repo', async () => {
+    initRepo();
+    writeTracked('src/billing/calc.ts', 'export {};\n');
+    writeTracked('src/billing/invoice.ts', 'export {};\n');
+    writeTracked('src/reporting/monthly.ts', 'export {};\n');
+    execFileSync('git', ['commit', '-qm', 'init'], { cwd: tmpDir });
+
+    // Simulate what vscode.workspace.findFiles would return. The mock returns
+    // these paths regardless of the include/exclude pattern.
+    __setFindFilesResult([
+      path.join(tmpDir, 'src/billing/calc.ts'),
+      path.join(tmpDir, 'src/billing/invoice.ts'),
+      path.join(tmpDir, 'src/reporting/monthly.ts'),
+    ]);
+
+    const store = new LoreStore();
+    const proposer = new ComponentProposer(new LmService(), store);
+    const files = await proposer.gatherCandidateFiles();
+    expect(files).toEqual([
+      'src/billing/calc.ts',
+      'src/billing/invoice.ts',
+      'src/reporting/monthly.ts',
+    ]);
     store.dispose();
   });
 });

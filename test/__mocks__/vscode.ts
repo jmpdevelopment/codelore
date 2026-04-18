@@ -92,6 +92,7 @@ let _commands = new Map<string, (...args: any[]) => any>();
 let _quickPickQueue: any[] = [];
 let _inputBoxQueue: any[] = [];
 let _executedCommands: Array<{ id: string; args: any[] }> = [];
+let _findFilesResult: Uri[] = [];
 
 /** Test helper: set the mock workspace folder */
 export function __setWorkspaceFolder(fsPath: string): void {
@@ -106,6 +107,12 @@ export function __clearWorkspace(): void {
   _quickPickQueue = [];
   _inputBoxQueue = [];
   _executedCommands = [];
+  _findFilesResult = [];
+}
+
+/** Test helper: set the mock result returned from `workspace.findFiles`. */
+export function __setFindFilesResult(paths: string[]): void {
+  _findFilesResult = paths.map(p => Uri.file(p));
 }
 
 /** Test helper: set config values */
@@ -185,6 +192,12 @@ export const workspace = {
   },
   onDidOpenTextDocument: () => ({ dispose: () => {} }),
   onDidChangeTextDocument: () => ({ dispose: () => {} }),
+  findFiles: async (_include: any, _exclude?: any, maxResults?: number) => {
+    if (maxResults !== undefined && _findFilesResult.length > maxResults) {
+      return _findFilesResult.slice(0, maxResults);
+    }
+    return _findFilesResult;
+  },
 };
 
 export class RelativePattern {

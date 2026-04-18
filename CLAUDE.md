@@ -67,8 +67,8 @@ codelore/
 │   │   └── search.ts             # Search annotations across codebase
 │   ├── ai/
 │   │   ├── lmService.ts          # vscode.lm API wrapper with model picker
-│   │   ├── loreGenerator.ts     # AI knowledge extraction (scanFiles batch over full files)
-│   │   └── criticalDetector.ts   # AI critical region detection (scanFiles batch over full files)
+│   │   ├── componentProposer.ts  # AI component partitioning from file paths
+│   │   └── loreGenerator.ts      # Unified scan: one call per file → annotations + critical flags
 │   └── utils/
 │       ├── anchorEngine.ts       # Content + signature hashing, drift detection, re-anchor search
 │       ├── git.ts                # Changed files, line range parsing
@@ -144,7 +144,7 @@ Annotations can declare dependencies on other files via `FileDependency` entries
 No custom LLM infrastructure. Uses `vscode.lm.selectChatModels()` to leverage whatever language model the user already has installed (GitHub Copilot, Claude, etc.).
 
 - Model picker when multiple models available, remembers selection for session
-- Three scan entry points — `Scan File` (active editor), `Scan Component` (all files tagged into a component), `Scan Project` (every source file in the workspace). All three invoke both the knowledge generator and the critical detector over full file contents in one pass.
+- Three scan entry points — `Scan File` (active editor), `Scan Component` (all files tagged into a component), `Scan Project` (every source file in the workspace). Each entry point makes **one** model call per file that emits both knowledge annotations and critical-flag suggestions together. `Scan Project` on a component-less workspace first offers to propose components so new entries can be tagged into subsystems from the start.
 - AI-authored entries land directly in the store with `source: ai_generated`; the human verifies later via the inline ✓ action.
 - Existing annotations are injected into AI prompts to prevent duplicates.
 - AI features are opt-in; the tool is fully functional with manual-only annotation.

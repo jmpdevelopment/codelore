@@ -23,6 +23,29 @@ export interface ProposedComponent {
   files: string[];
 }
 
+const MAX_WORKSPACE_FILES = 200;
+const SOURCE_INCLUDE_GLOB = '**/*.{ts,tsx,js,jsx,mjs,cjs,py,go,rs,java,kt,swift,rb,php,cs,cpp,cc,c,h,hpp,sh}';
+const SOURCE_EXCLUDE_GLOB = '**/{node_modules,.git,dist,build,out,coverage,.next,.turbo,vendor}/**';
+
+/**
+ * First-run fallback when there are no git changes and no annotations yet.
+ * Capped at MAX_WORKSPACE_FILES because the prompt sends every path; larger
+ * workspaces should partition by folder instead of proposing globally.
+ */
+async function gatherWorkspaceSourceFiles(): Promise<string[]> {
+  const uris = await vscode.workspace.findFiles(SOURCE_INCLUDE_GLOB, SOURCE_EXCLUDE_GLOB, MAX_WORKSPACE_FILES + 1);
+  const paths = uris
+    .map(uri => vscode.workspace.asRelativePath(uri, false))
+    .sort();
+  if (paths.length > MAX_WORKSPACE_FILES) {
+    vscode.window.showWarningMessage(
+      `CodeLore: Workspace has more than ${MAX_WORKSPACE_FILES} source files. Proposing from the first ${MAX_WORKSPACE_FILES} — edit components afterwards, or propose per-folder.`,
+    );
+    return paths.slice(0, MAX_WORKSPACE_FILES);
+  }
+  return paths;
+}
+
 const SYSTEM_PROMPT = `You are CodeLore, proposing component groupings for a codebase. A "component" is a coherent subsystem a developer would recognize as a unit (e.g., "Billing", "Auth", "Search Indexing").
 
 You are given a flat list of source file paths plus the component definitions that already exist (do not duplicate these). Partition the files into 3–10 proposed components. Each file may belong to at most one component; files that do not cleanly fit any subsystem should be left out. Do not invent files that are not in the list.
@@ -42,7 +65,7 @@ export class ComponentProposer {
   ) {}
 
   async propose(): Promise<void> {
-    const files = this.gatherCandidateFiles();
+    const files = await this.gatherCandidateFiles();
     if (files.length === 0) {
       vscode.window.showInformationMessage(
         'CodeLore: No candidate files found. Make some changes or open a workspace with source files.',
@@ -87,11 +110,12 @@ export class ComponentProposer {
   }
 
   /**
-   * Candidate set is the uncommitted changes (most actionable entry point) and,
-   * if there are none, falls back to every file already referenced by at least
-   * one annotation — that's what the team actually cares about mapping.
+   * Candidate set is the uncommitted changes (most actionable entry point); if
+   * there are none, falls back to files already referenced by annotations; if
+   * still empty, falls back to workspace source files (first-run bootstrap,
+   * capped at MAX_WORKSPACE_FILES to keep the prompt small enough to send).
    */
-  gatherCandidateFiles(): string[] {
+  async gatherCandidateFiles(): Promise<string[]> {
     const cwd = getWorkspaceCwd();
     if (!cwd) { return []; }
     const changed = gitChangedFiles(cwd).filter(f => f.trim().length > 0);
@@ -99,7 +123,8 @@ export class ComponentProposer {
     const annotated = new Set<string>();
     for (const a of this.store.getAnnotations()) { annotated.add(a.file); }
     for (const f of this.store.getCriticalFlags()) { annotated.add(f.file); }
-    return [...annotated].sort();
+    if (annotated.size > 0) { return [...annotated].sort(); }
+    return await gatherWorkspaceSourceFiles();
   }
 
   formatExistingComponents(): string {

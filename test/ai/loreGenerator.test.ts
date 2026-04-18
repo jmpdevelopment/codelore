@@ -38,77 +38,123 @@ describe('LoreGenerator parsing', () => {
     const store = new LoreStore();
     const lm = new LmService();
     const generator = new LoreGenerator(lm, store);
-    const parseEntries = (raw: string) =>
-      (generator as any).parseEntries.call(generator, raw);
     const numberLines = (generator as any).numberLines.bind(generator);
-    return { parseEntries, numberLines, store, dispose: () => store.dispose() };
+    return {
+      parseScanOutput: (raw: string) => generator.parseScanOutput(raw),
+      numberLines,
+      store,
+      dispose: () => store.dispose(),
+    };
   }
 
-  describe('parseEntries', () => {
-    it('parses valid JSON array', () => {
-      const { parseEntries, dispose } = getParser();
-      const raw = JSON.stringify([
-        { category: 'behavior', line_start: 10, line_end: 20, text: 'Looks correct' },
-        { category: 'rationale', line_start: 30, line_end: 40, text: 'Check this' },
-      ]);
-      const result = parseEntries(raw);
-      expect(result).toHaveLength(2);
-      expect(result[0].category).toBe('behavior');
-      expect(result[1].text).toBe('Check this');
+  describe('parseScanOutput', () => {
+    it('parses a combined object with both annotations and critical_flags', () => {
+      const { parseScanOutput, dispose } = getParser();
+      const raw = JSON.stringify({
+        annotations: [
+          { category: 'behavior', line_start: 10, line_end: 20, text: 'Looks correct' },
+          { category: 'rationale', line_start: 30, line_end: 40, text: 'Check this' },
+        ],
+        critical_flags: [
+          { line_start: 5, line_end: 9, severity: 'critical', description: 'Token bypass' },
+        ],
+      });
+      const result = parseScanOutput(raw);
+      expect(result.entries).toHaveLength(2);
+      expect(result.entries[0].category).toBe('behavior');
+      expect(result.flags).toHaveLength(1);
+      expect(result.flags[0].severity).toBe('critical');
+      dispose();
+    });
+
+    it('accepts missing fields as empty lists', () => {
+      const { parseScanOutput, dispose } = getParser();
+      expect(parseScanOutput('{}')).toEqual({ entries: [], flags: [] });
+      expect(parseScanOutput(JSON.stringify({ annotations: [] }))).toEqual({ entries: [], flags: [] });
       dispose();
     });
 
     it('strips markdown code fences', () => {
-      const { parseEntries, dispose } = getParser();
-      const raw = '```json\n[{"category":"rationale","line_start":1,"line_end":5,"text":"note"}]\n```';
-      const result = parseEntries(raw);
-      expect(result).toHaveLength(1);
+      const { parseScanOutput, dispose } = getParser();
+      const raw = '```json\n{"annotations":[{"category":"rationale","line_start":1,"line_end":5,"text":"note"}],"critical_flags":[]}\n```';
+      const result = parseScanOutput(raw);
+      expect(result.entries).toHaveLength(1);
       dispose();
     });
 
     it('filters entries missing required fields', () => {
-      const { parseEntries, dispose } = getParser();
-      const raw = JSON.stringify([
-        { category: 'behavior', line_start: 10, text: 'ok' },
-        { line_start: 20, text: 'no category' },
-        { category: 'behavior', text: 'no line_start' },
-        { category: 'behavior', line_start: 30 },
-      ]);
-      const result = parseEntries(raw);
-      expect(result).toHaveLength(1);
-      expect(result[0].line_start).toBe(10);
+      const { parseScanOutput, dispose } = getParser();
+      const raw = JSON.stringify({
+        annotations: [
+          { category: 'behavior', line_start: 10, text: 'ok' },
+          { line_start: 20, text: 'no category' },
+          { category: 'behavior', text: 'no line_start' },
+          { category: 'behavior', line_start: 30 },
+        ],
+        critical_flags: [],
+      });
+      const result = parseScanOutput(raw);
+      expect(result.entries).toHaveLength(1);
+      expect(result.entries[0].line_start).toBe(10);
       dispose();
     });
 
-    it('returns empty array for invalid JSON', () => {
-      const { parseEntries, dispose } = getParser();
-      expect(parseEntries('not json')).toEqual([]);
+    it('filters flags missing required fields', () => {
+      const { parseScanOutput, dispose } = getParser();
+      const raw = JSON.stringify({
+        annotations: [],
+        critical_flags: [
+          { line_start: 1, severity: 'high', description: 'ok' },
+          { severity: 'high', description: 'missing line_start' },
+          { line_start: 5, description: 'missing severity' },
+          { line_start: 5, severity: 'high' },
+        ],
+      });
+      const result = parseScanOutput(raw);
+      expect(result.flags).toHaveLength(1);
+      expect(result.flags[0].line_start).toBe(1);
       dispose();
     });
 
-    it('returns empty array for non-array JSON', () => {
-      const { parseEntries, dispose } = getParser();
-      expect(parseEntries('{"key": "value"}')).toEqual([]);
+    it('uses line_start as line_end when line_end is missing on flags', () => {
+      const { parseScanOutput, dispose } = getParser();
+      const raw = JSON.stringify({
+        annotations: [],
+        critical_flags: [
+          { line_start: 42, severity: 'medium', description: 'single line' },
+        ],
+      });
+      const result = parseScanOutput(raw);
+      expect(result.flags[0].line_end).toBe(42);
       dispose();
     });
 
-    it('returns empty array for empty array', () => {
-      const { parseEntries, dispose } = getParser();
-      expect(parseEntries('[]')).toEqual([]);
+    it('returns empty lists for invalid JSON', () => {
+      const { parseScanOutput, dispose } = getParser();
+      expect(parseScanOutput('not json')).toEqual({ entries: [], flags: [] });
+      dispose();
+    });
+
+    it('returns empty lists when the top level is an array (legacy format)', () => {
+      const { parseScanOutput, dispose } = getParser();
+      expect(parseScanOutput('[]')).toEqual({ entries: [], flags: [] });
       dispose();
     });
 
     it('rejects legacy categories — only knowledge-first categories accepted', () => {
-      const { parseEntries, dispose } = getParser();
-      const raw = JSON.stringify([
-        { category: 'verified', line_start: 1, line_end: 5, text: 'legacy' },
-        { category: 'needs_review', line_start: 6, line_end: 10, text: 'legacy' },
-        { category: 'hallucination', line_start: 11, line_end: 15, text: 'legacy' },
-        { category: 'behavior', line_start: 16, line_end: 20, text: 'knowledge-first' },
-      ]);
-      const result = parseEntries(raw);
-      expect(result).toHaveLength(1);
-      expect(result[0].category).toBe('behavior');
+      const { parseScanOutput, dispose } = getParser();
+      const raw = JSON.stringify({
+        annotations: [
+          { category: 'verified', line_start: 1, line_end: 5, text: 'legacy' },
+          { category: 'needs_review', line_start: 6, line_end: 10, text: 'legacy' },
+          { category: 'hallucination', line_start: 11, line_end: 15, text: 'legacy' },
+          { category: 'behavior', line_start: 16, line_end: 20, text: 'knowledge-first' },
+        ],
+        critical_flags: [],
+      });
+      const result = parseScanOutput(raw);
+      expect(result.entries).toHaveLength(1);
+      expect(result.entries[0].category).toBe('behavior');
       dispose();
     });
   });
@@ -136,60 +182,69 @@ describe('LoreGenerator parsing', () => {
 
   describe('parseDependencies security', () => {
     it('rejects absolute paths in dependencies', () => {
-      const { parseEntries, dispose } = getParser();
-      const raw = JSON.stringify([
-        {
-          category: 'behavior', line_start: 1, line_end: 5, text: 'note',
-          dependencies: [{ file: '/etc/passwd', relationship: 'reads' }],
-        },
-      ]);
-      const result = parseEntries(raw);
-      expect(result).toHaveLength(1);
-      expect(result[0].dependencies).toBeUndefined();
+      const { parseScanOutput, dispose } = getParser();
+      const raw = JSON.stringify({
+        annotations: [
+          {
+            category: 'behavior', line_start: 1, line_end: 5, text: 'note',
+            dependencies: [{ file: '/etc/passwd', relationship: 'reads' }],
+          },
+        ],
+        critical_flags: [],
+      });
+      const result = parseScanOutput(raw);
+      expect(result.entries).toHaveLength(1);
+      expect(result.entries[0].dependencies).toBeUndefined();
       dispose();
     });
 
     it('rejects path traversal in dependencies', () => {
-      const { parseEntries, dispose } = getParser();
-      const raw = JSON.stringify([
-        {
-          category: 'behavior', line_start: 1, line_end: 5, text: 'note',
-          dependencies: [{ file: '../../../etc/passwd', relationship: 'reads' }],
-        },
-      ]);
-      const result = parseEntries(raw);
-      expect(result).toHaveLength(1);
-      expect(result[0].dependencies).toBeUndefined();
+      const { parseScanOutput, dispose } = getParser();
+      const raw = JSON.stringify({
+        annotations: [
+          {
+            category: 'behavior', line_start: 1, line_end: 5, text: 'note',
+            dependencies: [{ file: '../../../etc/passwd', relationship: 'reads' }],
+          },
+        ],
+        critical_flags: [],
+      });
+      const result = parseScanOutput(raw);
+      expect(result.entries).toHaveLength(1);
+      expect(result.entries[0].dependencies).toBeUndefined();
       dispose();
     });
 
     it('accepts valid dependency paths', () => {
-      const { parseEntries, dispose } = getParser();
-      const raw = JSON.stringify([
-        {
-          category: 'behavior', line_start: 1, line_end: 5, text: 'note',
-          dependencies: [{ file: 'src/billing/calc.py', relationship: 'must stay in sync' }],
-        },
-      ]);
-      const result = parseEntries(raw);
-      expect(result).toHaveLength(1);
-      expect(result[0].dependencies).toHaveLength(1);
-      expect(result[0].dependencies![0].file).toBe('src/billing/calc.py');
+      const { parseScanOutput, dispose } = getParser();
+      const raw = JSON.stringify({
+        annotations: [
+          {
+            category: 'behavior', line_start: 1, line_end: 5, text: 'note',
+            dependencies: [{ file: 'src/billing/calc.py', relationship: 'must stay in sync' }],
+          },
+        ],
+        critical_flags: [],
+      });
+      const result = parseScanOutput(raw);
+      expect(result.entries[0].dependencies).toHaveLength(1);
+      expect(result.entries[0].dependencies![0].file).toBe('src/billing/calc.py');
       dispose();
     });
 
     it('validates dependency line ranges', () => {
-      const { parseEntries, dispose } = getParser();
-      const raw = JSON.stringify([
-        {
-          category: 'behavior', line_start: 1, line_end: 5, text: 'note',
-          dependencies: [{ file: 'src/foo.ts', relationship: 'related', line_start: -1, line_end: 10 }],
-        },
-      ]);
-      const result = parseEntries(raw);
-      expect(result).toHaveLength(1);
-      // Invalid line range should be dropped
-      expect(result[0].dependencies![0].line_start).toBeUndefined();
+      const { parseScanOutput, dispose } = getParser();
+      const raw = JSON.stringify({
+        annotations: [
+          {
+            category: 'behavior', line_start: 1, line_end: 5, text: 'note',
+            dependencies: [{ file: 'src/foo.ts', relationship: 'related', line_start: -1, line_end: 10 }],
+          },
+        ],
+        critical_flags: [],
+      });
+      const result = parseScanOutput(raw);
+      expect(result.entries[0].dependencies![0].line_start).toBeUndefined();
       dispose();
     });
   });
@@ -341,7 +396,7 @@ describe('LoreGenerator parsing', () => {
       store.dispose();
     });
 
-    it('scanForKnowledge sends a full-file prompt (no diff) and persists accepted entries', async () => {
+    it('scanFile sends a full-file prompt and persists accepted entries and flags in one pass', async () => {
       writeComponent(tmpDir, 'billing', {
         id: 'billing', name: 'Billing',
         files: ['src/foo.ts'],
@@ -356,12 +411,19 @@ describe('LoreGenerator parsing', () => {
       const store = new LoreStore();
       const lm = new LmService();
       let capturedPrompt = '';
+      let calls = 0;
       (lm as any).generate = async (_system: string, user: string) => {
         capturedPrompt = user;
+        calls++;
         return {
-          text: JSON.stringify([
-            { category: 'behavior', line_start: 1, line_end: 3, text: 'charge returns a fixed amount', components: ['billing'] },
-          ]),
+          text: JSON.stringify({
+            annotations: [
+              { category: 'behavior', line_start: 1, line_end: 3, text: 'charge returns a fixed amount', components: ['billing'] },
+            ],
+            critical_flags: [
+              { line_start: 2, line_end: 2, severity: 'medium', description: 'hardcoded value' },
+            ],
+          }),
           modelName: 'stub/model',
         };
       };
@@ -375,30 +437,41 @@ describe('LoreGenerator parsing', () => {
       };
       __setActiveTextEditor(editor);
 
-      // presentSuggestions calls showQuickPick with the items; our mock returns
-      // a canned array representing the user's selection.
-      __queueQuickPick([
-        {
-          entry: { category: 'behavior', line_start: 1, line_end: 3, text: 'charge returns a fixed amount', components: ['billing'] },
-          overlapping: [],
-        },
-      ]);
+      // Two sequential quick picks: first the annotation items, then the flag items.
+      __queueQuickPick(
+        [
+          {
+            entry: { category: 'behavior', line_start: 1, line_end: 3, text: 'charge returns a fixed amount', components: ['billing'] },
+            overlapping: [],
+          },
+        ],
+        [
+          {
+            region: { line_start: 2, line_end: 2, severity: 'medium', description: 'hardcoded value' },
+          },
+        ],
+      );
 
-      await generator.scanForKnowledge(editor as any);
+      await generator.scanFile(editor as any);
 
-      expect(capturedPrompt).toContain('<scope>full-file knowledge scan');
-      expect(capturedPrompt).not.toContain('<diff>');
+      expect(calls).toBe(1);
+      expect(capturedPrompt).toContain('<scope>full-file scan');
       expect(capturedPrompt).toContain('1: function charge()');
       expect(capturedPrompt).toContain('<components>');
 
-      const stored = store.getAnnotationsForFile('src/foo.ts');
-      expect(stored).toHaveLength(1);
-      expect(stored[0].source).toBe('ai_generated');
-      expect(stored[0].components).toEqual(['billing']);
+      const storedAnnotations = store.getAnnotationsForFile('src/foo.ts');
+      expect(storedAnnotations).toHaveLength(1);
+      expect(storedAnnotations[0].source).toBe('ai_generated');
+      expect(storedAnnotations[0].components).toEqual(['billing']);
+
+      const storedFlags = store.getCriticalFlagsForFile('src/foo.ts');
+      expect(storedFlags).toHaveLength(1);
+      expect(storedFlags[0].severity).toBe('medium');
+      expect(storedFlags[0].human_reviewed).toBe(false);
       store.dispose();
     });
 
-    it('parseEntries keeps valid component ids and drops unknown ones', () => {
+    it('parseScanOutput keeps valid component ids and drops unknown ones', () => {
       writeComponent(tmpDir, 'billing', {
         id: 'billing', name: 'Billing', files: [],
         source: 'human_authored',
@@ -406,25 +479,28 @@ describe('LoreGenerator parsing', () => {
       });
       const store = new LoreStore();
       const generator = new LoreGenerator(new LmService(), store);
-      const raw = JSON.stringify([
-        {
-          category: 'behavior', line_start: 1, line_end: 5, text: 'ok',
-          components: ['billing', 'does-not-exist', 'billing'],
-        },
-        {
-          category: 'rationale', line_start: 6, line_end: 10, text: 'untagged',
-          components: [],
-        },
-      ]);
-      const result = (generator as any).parseEntries(raw);
-      expect(result[0].components).toEqual(['billing']);
-      expect(result[1].components).toBeUndefined();
+      const raw = JSON.stringify({
+        annotations: [
+          {
+            category: 'behavior', line_start: 1, line_end: 5, text: 'ok',
+            components: ['billing', 'does-not-exist', 'billing'],
+          },
+          {
+            category: 'rationale', line_start: 6, line_end: 10, text: 'untagged',
+            components: [],
+          },
+        ],
+        critical_flags: [],
+      });
+      const result = generator.parseScanOutput(raw);
+      expect(result.entries[0].components).toEqual(['billing']);
+      expect(result.entries[1].components).toBeUndefined();
       store.dispose();
     });
   });
 
   describe('scanFiles batch mode', () => {
-    it('iterates files, auto-accepts every parsed entry as ai_generated', async () => {
+    it('iterates files once and auto-persists both annotations and flags per file', async () => {
       fs.mkdirSync(path.join(tmpDir, 'src'), { recursive: true });
       fs.writeFileSync(path.join(tmpDir, 'src/a.ts'), 'export const A = 1;\n', 'utf8');
       fs.writeFileSync(path.join(tmpDir, 'src/b.ts'), 'export const B = 2;\n', 'utf8');
@@ -437,9 +513,14 @@ describe('LoreGenerator parsing', () => {
         const filePath = match ? match[1] : '';
         seenPaths.push(filePath);
         return {
-          text: JSON.stringify([
-            { category: 'behavior', line_start: 1, line_end: 1, text: `note for ${filePath}` },
-          ]),
+          text: JSON.stringify({
+            annotations: [
+              { category: 'behavior', line_start: 1, line_end: 1, text: `note for ${filePath}` },
+            ],
+            critical_flags: [
+              { line_start: 1, line_end: 1, severity: 'high', description: `risk in ${filePath}` },
+            ],
+          }),
           modelName: 'stub/model',
         };
       };
@@ -447,6 +528,7 @@ describe('LoreGenerator parsing', () => {
 
       await generator.scanFiles(['src/a.ts', 'src/b.ts'], 'test scope');
 
+      // One LLM call per file — not two.
       expect(seenPaths).toEqual(['src/a.ts', 'src/b.ts']);
       const a = store.getAnnotationsForFile('src/a.ts');
       const b = store.getAnnotationsForFile('src/b.ts');
@@ -454,6 +536,13 @@ describe('LoreGenerator parsing', () => {
       expect(b).toHaveLength(1);
       expect(a[0].source).toBe('ai_generated');
       expect(a[0].text).toContain('src/a.ts');
+
+      const aFlags = store.getCriticalFlagsForFile('src/a.ts');
+      const bFlags = store.getCriticalFlagsForFile('src/b.ts');
+      expect(aFlags).toHaveLength(1);
+      expect(bFlags).toHaveLength(1);
+      expect(aFlags[0].severity).toBe('high');
+      expect(aFlags[0].human_reviewed).toBe(false);
       store.dispose();
     });
 
@@ -466,7 +555,7 @@ describe('LoreGenerator parsing', () => {
       let calls = 0;
       (lm as any).generate = async () => {
         calls++;
-        return { text: '[]', modelName: 'stub/model' };
+        return { text: '{"annotations":[],"critical_flags":[]}', modelName: 'stub/model' };
       };
       const generator = new LoreGenerator(lm, store);
 
@@ -485,7 +574,7 @@ describe('LoreGenerator parsing', () => {
       let calls = 0;
       (lm as any).generate = async () => {
         calls++;
-        return { text: '[]', modelName: 'stub/model' };
+        return { text: '{"annotations":[],"critical_flags":[]}', modelName: 'stub/model' };
       };
       const generator = new LoreGenerator(lm, store);
 
@@ -506,7 +595,10 @@ describe('LoreGenerator parsing', () => {
       (lm as any).generate = async () => {
         if (i++ === 0) { throw new Error('boom'); }
         return {
-          text: JSON.stringify([{ category: 'behavior', line_start: 1, line_end: 1, text: 'ok' }]),
+          text: JSON.stringify({
+            annotations: [{ category: 'behavior', line_start: 1, line_end: 1, text: 'ok' }],
+            critical_flags: [],
+          }),
           modelName: 'stub/model',
         };
       };
