@@ -85,6 +85,7 @@ export class ChangePlanProvider implements vscode.TreeDataProvider<TreeItem> {
 
   private filterCategory: AnnotationCategory | undefined;
   private filterPath: string | undefined;
+  private filterComponent: string | undefined;
 
   constructor(private store: DiaryStore) {
     store.onDidChange(() => this.refresh());
@@ -104,8 +105,13 @@ export class ChangePlanProvider implements vscode.TreeDataProvider<TreeItem> {
     this.refresh();
   }
 
-  getActiveFilters(): { category?: AnnotationCategory; path?: string } {
-    return { category: this.filterCategory, path: this.filterPath };
+  setComponentFilter(componentId: string | undefined): void {
+    this.filterComponent = componentId;
+    this.refresh();
+  }
+
+  getActiveFilters(): { category?: AnnotationCategory; path?: string; component?: string } {
+    return { category: this.filterCategory, path: this.filterPath, component: this.filterComponent };
   }
 
   getTreeItem(element: TreeItem): vscode.TreeItem {
@@ -122,6 +128,15 @@ export class ChangePlanProvider implements vscode.TreeDataProvider<TreeItem> {
       if (this.filterPath) {
         const pathLower = this.filterPath.toLowerCase();
         annotations = annotations.filter(a => a.file.toLowerCase().includes(pathLower));
+      }
+      if (this.filterComponent) {
+        // Match either explicit per-annotation tag OR file-level membership.
+        // Mirrors DiaryStore.search so the two surfaces feel consistent.
+        const componentFiles = new Set(this.store.getComponent(this.filterComponent)?.files ?? []);
+        const componentId = this.filterComponent;
+        annotations = annotations.filter(a =>
+          a.components?.includes(componentId) || componentFiles.has(a.file),
+        );
       }
 
       const byFile = new Map<string, Annotation[]>();

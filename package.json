@@ -103,6 +103,11 @@
         "icon": "$(filter)"
       },
       {
+        "command": "codediary.filterByComponent",
+        "title": "CodeDiary: Filter by Component",
+        "icon": "$(symbol-namespace)"
+      },
+      {
         "command": "codediary.refreshSidebar",
         "title": "CodeDiary: Refresh",
         "icon": "$(refresh)"
@@ -282,6 +287,11 @@
       "view/title": [
         {
           "command": "codediary.filterByCategory",
+          "when": "view == codediary.changePlan",
+          "group": "navigation@2"
+        },
+        {
+          "command": "codediary.filterByComponent",
           "when": "view == codediary.changePlan",
           "group": "navigation@2"
         },

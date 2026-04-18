@@ -116,9 +116,34 @@ export function activate(context: vscode.ExtensionContext): void {
       }
     }),
 
+    vscode.commands.registerCommand('codediary.filterByComponent', async () => {
+      const components = store.getComponents();
+      if (components.length === 0) {
+        vscode.window.showInformationMessage(
+          'CodeDiary: No components defined yet. Tag a file to create one.',
+        );
+        return;
+      }
+      const items: Array<{ label: string; description?: string; id: string | undefined }> = [
+        { label: '$(close) Clear Filter', id: undefined },
+        ...components.map(c => ({
+          label: `$(symbol-namespace) ${c.name}`,
+          description: `${c.id} · ${c.files.length} file${c.files.length === 1 ? '' : 's'}`,
+          id: c.id as string | undefined,
+        })),
+      ];
+      const picked = await vscode.window.showQuickPick(items, {
+        placeHolder: 'Filter annotations by component',
+      });
+      if (picked !== undefined) {
+        changePlanProvider.setComponentFilter(picked.id);
+      }
+    }),
+
     vscode.commands.registerCommand('codediary.clearFilters', () => {
       changePlanProvider.setFilter(undefined);
       changePlanProvider.setPathFilter(undefined);
+      changePlanProvider.setComponentFilter(undefined);
       criticalQueueProvider.setPathFilter(undefined);
       criticalQueueProvider.setSeverityFilter(undefined);
       vscode.window.showInformationMessage('CodeDiary: All filters cleared');

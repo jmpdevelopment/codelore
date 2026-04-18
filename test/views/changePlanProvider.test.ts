@@ -223,6 +223,80 @@ describe('ChangePlanProvider', () => {
     store.dispose();
   });
 
+  describe('component filter', () => {
+    function seedComponent(id: string, name: string, files: string[]): void {
+      const yaml = require('js-yaml');
+      const file = path.join(tmpDir, '.codediary', 'components', `${id}.yaml`);
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      fs.writeFileSync(file, yaml.dump({
+        version: 2, id, name, files,
+        source: 'human_authored',
+        created_at: '2026-04-18T00:00:00Z',
+        updated_at: '2026-04-18T00:00:00Z',
+      }), 'utf8');
+    }
+
+    it('limits annotations to files belonging to the component', () => {
+      seedComponent('billing', 'Billing', ['src/billing/calc.ts']);
+      const store = new DiaryStore();
+      store.addAnnotation(makeAnnotation({ id: 'a1', file: 'src/billing/calc.ts' }));
+      store.addAnnotation(makeAnnotation({ id: 'a2', file: 'src/auth/login.ts' }));
+
+      const provider = new ChangePlanProvider(store);
+      provider.setComponentFilter('billing');
+      const files = provider.getChildren().map((c: any) => c.filePath);
+      expect(files).toEqual(['src/billing/calc.ts']);
+      store.dispose();
+    });
+
+    it('also matches annotations explicitly tagged with the component on untagged files', () => {
+      seedComponent('billing', 'Billing', []);
+      const store = new DiaryStore();
+      store.addAnnotation(makeAnnotation({ id: 'a1', file: 'src/anywhere.ts', components: ['billing'] }));
+      store.addAnnotation(makeAnnotation({ id: 'a2', file: 'src/anywhere.ts' }));
+
+      const provider = new ChangePlanProvider(store);
+      provider.setComponentFilter('billing');
+      const fileNodes = provider.getChildren();
+      expect(fileNodes).toHaveLength(1);
+      const annNodes = provider.getChildren(fileNodes[0]);
+      expect(annNodes).toHaveLength(1);
+      store.dispose();
+    });
+
+    it('clearing the component filter restores all annotations', () => {
+      seedComponent('billing', 'Billing', ['src/billing/calc.ts']);
+      const store = new DiaryStore();
+      store.addAnnotation(makeAnnotation({ id: 'a1', file: 'src/billing/calc.ts' }));
+      store.addAnnotation(makeAnnotation({ id: 'a2', file: 'src/auth/login.ts' }));
+
+      const provider = new ChangePlanProvider(store);
+      provider.setComponentFilter('billing');
+      expect(provider.getChildren()).toHaveLength(1);
+      provider.setComponentFilter(undefined);
+      expect(provider.getChildren()).toHaveLength(2);
+      store.dispose();
+    });
+
+    it('returns nothing when filtering by a component that does not exist', () => {
+      const store = new DiaryStore();
+      store.addAnnotation(makeAnnotation({ id: 'a1', file: 'src/foo.ts' }));
+
+      const provider = new ChangePlanProvider(store);
+      provider.setComponentFilter('nonexistent');
+      expect(provider.getChildren()).toEqual([]);
+      store.dispose();
+    });
+
+    it('getActiveFilters reports the component filter', () => {
+      const store = new DiaryStore();
+      const provider = new ChangePlanProvider(store);
+      provider.setComponentFilter('billing');
+      expect(provider.getActiveFilters().component).toBe('billing');
+      store.dispose();
+    });
+  });
+
   it('annotation nodes cover all category color mappings', () => {
     const store = new DiaryStore();
     const categories = ['verified', 'needs_review', 'modified', 'confused', 'hallucination', 'intent', 'accepted'] as const;
