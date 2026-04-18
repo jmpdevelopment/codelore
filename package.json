@@ -44,6 +44,11 @@
         "icon": "$(trash)"
       },
       {
+        "command": "codediary.verifyAnnotation",
+        "title": "CodeDiary: Verify AI Annotation",
+        "icon": "$(verified)"
+      },
+      {
         "command": "codediary.markReviewed",
         "title": "CodeDiary: Mark as Reviewed",
         "icon": "$(check)"
@@ -323,13 +328,18 @@
           "group": "inline@2"
         },
         {
+          "command": "codediary.verifyAnnotation",
+          "when": "view == codediary.changePlan && viewItem == annotation-ai-generated",
+          "group": "inline@0"
+        },
+        {
           "command": "codediary.editAnnotation",
-          "when": "view == codediary.changePlan && viewItem == annotation",
+          "when": "view == codediary.changePlan && viewItem =~ /^annotation/",
           "group": "inline@1"
         },
         {
           "command": "codediary.deleteAnnotation",
-          "when": "view == codediary.changePlan && viewItem == annotation",
+          "when": "view == codediary.changePlan && viewItem =~ /^annotation/",
           "group": "inline@2"
         },
         {

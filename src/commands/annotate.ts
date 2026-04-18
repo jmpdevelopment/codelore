@@ -189,6 +189,67 @@ export function registerAnnotateCommands(context: vscode.ExtensionContext, store
       store.updateAnnotation(annotationId, { text: newText });
     }),
 
+    vscode.commands.registerCommand('codediary.verifyAnnotation', async (arg?: string | { annotation?: { id: string } }) => {
+      // Flips an ai_generated annotation to ai_verified + stamps verified_by/at.
+      // The button only surfaces for ai_generated rows in the sidebar, but the
+      // command is also reachable from the palette, so revalidate source here.
+      let annotationId: string | undefined;
+      if (typeof arg === 'string') {
+        annotationId = arg;
+      } else if (arg && typeof arg === 'object' && 'annotation' in arg) {
+        annotationId = arg.annotation?.id;
+      }
+      if (!annotationId) {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) { return; }
+        const filePath = getRelativePath(editor.document.uri);
+        if (!filePath) { return; }
+        const line = editor.selection.active.line + 1;
+        const candidates = store.getAnnotationsForFile(filePath)
+          .filter(a => line >= a.line_start && line <= a.line_end && a.source === 'ai_generated');
+        if (candidates.length === 0) {
+          vscode.window.showInformationMessage('CodeDiary: No unverified AI annotation at cursor.');
+          return;
+        }
+        if (candidates.length === 1) {
+          annotationId = candidates[0].id;
+        } else {
+          const pick = await vscode.window.showQuickPick(
+            candidates.map(a => ({
+              label: `${CATEGORY_META[a.category].label}: ${truncateText(a.text, 60)}`,
+              id: a.id,
+            })),
+            { placeHolder: 'Verify which annotation?' },
+          );
+          if (!pick) { return; }
+          annotationId = pick.id;
+        }
+      }
+
+      const annotation = store.getAnnotations().find(a => a.id === annotationId);
+      if (!annotation) { return; }
+
+      if (annotation.source === 'ai_verified') {
+        vscode.window.showInformationMessage(
+          `CodeDiary: Already verified${annotation.verified_by ? ` by ${annotation.verified_by}` : ''}.`,
+        );
+        return;
+      }
+      if (annotation.source === 'human_authored') {
+        vscode.window.showInformationMessage(
+          'CodeDiary: Human-authored annotations do not need verification.',
+        );
+        return;
+      }
+
+      store.updateAnnotation(annotationId, {
+        source: 'ai_verified',
+        verified_by: getGitUser(),
+        verified_at: new Date().toISOString(),
+      });
+      vscode.window.showInformationMessage('CodeDiary: Annotation verified.');
+    }),
+
     vscode.commands.registerCommand('codediary.deleteAnnotation', async (arg?: string | { annotation?: { id: string } }) => {
       // When called from sidebar inline button, arg is the AnnotationNode tree item
       let annotationId: string | undefined;

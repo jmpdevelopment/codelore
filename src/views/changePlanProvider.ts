@@ -34,7 +34,9 @@ class AnnotationNode extends vscode.TreeItem {
       meta.icon.replace('$(', '').replace(')', ''),
       new vscode.ThemeColor(this.getColorId(annotation.category)),
     );
-    this.contextValue = 'annotation';
+    // ai_generated rows get their own contextValue so the verify action only
+    // surfaces where it makes sense — see view/item/context in package.json.
+    this.contextValue = annotation.source === 'ai_generated' ? 'annotation-ai-generated' : 'annotation';
 
     // Only create navigation command for safe relative paths
     const wsFolder = vscode.workspace.workspaceFolders?.[0];
