@@ -304,6 +304,20 @@
         }
       ]
     },
+    "viewsWelcome": [
+      {
+        "view": "codelore.components",
+        "contents": "No components defined yet. Components group related files into subsystems so annotations can be scanned and browsed by area.\n[Propose Components (AI)](command:codelore.proposeComponent)\n[Scan Project](command:codelore.scanProject)\nOr tag the active file manually:\n[Manage Components for File](command:codelore.manageComponentsForFile)"
+      },
+      {
+        "view": "codelore.changePlan",
+        "contents": "No annotations yet. Capture what you learn about the code \u2014 decisions, gotchas, constraints \u2014 so it survives turnover and feeds AI agents.\n[Add Annotation](command:codelore.addAnnotation)\n[Scan Current File](command:codelore.scanFile)\nWire your AI agents to read annotations as context:\n[Generate Agent Instruction Files](command:codelore.generateAgentInstructions)"
+      },
+      {
+        "view": "codelore.criticalQueue",
+        "contents": "No critical flags. Use Mark as Critical on a risky region to track it here, or let Scan Current File propose flags from code."
+      }
+    ],
     "configuration": {
       "title": "CodeLore",
       "properties": {
