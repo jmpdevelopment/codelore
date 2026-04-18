@@ -56,8 +56,16 @@ class AnnotationNode extends vscode.TreeItem {
   }
 
   private getColorId(category: AnnotationCategory): string {
-    // Map to built-in theme colors
     switch (category) {
+      case 'behavior': return 'charts.blue';
+      case 'rationale': return 'charts.yellow';
+      case 'constraint': return 'descriptionForeground';
+      case 'gotcha': return 'list.warningForeground';
+      case 'performance': return 'charts.green';
+      case 'security': return 'list.errorForeground';
+      case 'human_note': return 'descriptionForeground';
+      case 'business_rule': return 'list.errorForeground';
+      case 'ai_prompt': return 'editorInfo.foreground';
       case 'verified': return 'testing.iconPassed';
       case 'needs_review': return 'list.warningForeground';
       case 'modified': return 'editorInfo.foreground';
@@ -65,8 +73,6 @@ class AnnotationNode extends vscode.TreeItem {
       case 'hallucination': return 'list.errorForeground';
       case 'intent': return 'charts.purple';
       case 'accepted': return 'disabledForeground';
-      case 'business_rule': return 'list.errorForeground';
-      case 'ai_prompt': return 'editorInfo.foreground';
     }
   }
 }

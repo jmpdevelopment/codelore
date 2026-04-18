@@ -1,4 +1,25 @@
-export const ANNOTATION_CATEGORIES = [
+/**
+ * Knowledge-first categories introduced by the 2026-04-18 pivot. These describe
+ * properties of the code itself (behavior, constraints, hazards) rather than
+ * workflow state (reviewed, accepted). Surfaced in new annotation pickers.
+ */
+export const KNOWLEDGE_CATEGORIES = [
+  'behavior',
+  'rationale',
+  'constraint',
+  'gotcha',
+  'business_rule',
+  'performance',
+  'security',
+  'human_note',
+] as const;
+
+/**
+ * Pre-pivot review-workflow categories. Kept in the type + metadata so legacy
+ * YAML still renders, but filtered out of new-annotation flows (see commit 1.7).
+ * Migration in commit 1.6 rewrites them into {@link KNOWLEDGE_CATEGORIES}.
+ */
+export const LEGACY_CATEGORIES = [
   'verified',
   'needs_review',
   'modified',
@@ -6,7 +27,11 @@ export const ANNOTATION_CATEGORIES = [
   'hallucination',
   'intent',
   'accepted',
-  'business_rule',
+] as const;
+
+export const ANNOTATION_CATEGORIES = [
+  ...KNOWLEDGE_CATEGORIES,
+  ...LEGACY_CATEGORIES,
   'ai_prompt',
 ] as const;
 
@@ -82,58 +107,100 @@ export interface Annotation {
 }
 
 export const CATEGORY_META: Record<AnnotationCategory, { label: string; icon: string; color: string; description: string }> = {
-  verified: {
-    label: 'Verified',
-    icon: '$(check)',
-    color: '#4caf50',
-    description: 'I reviewed this change and it looks correct',
+  behavior: {
+    label: 'Behavior',
+    icon: '$(book)',
+    color: '#3f51b5',
+    description: 'What this code does — especially non-obvious behavior a reader would otherwise miss',
   },
-  needs_review: {
-    label: 'Needs Review',
-    icon: '$(search)',
-    color: '#ff9800',
-    description: "I haven't fully verified this—reviewer should check",
+  rationale: {
+    label: 'Rationale',
+    icon: '$(lightbulb)',
+    color: '#ffc107',
+    description: 'Why it was built this way — decisions, rejected alternatives, historical context',
   },
-  modified: {
-    label: 'Modified',
-    icon: '$(edit)',
-    color: '#2196f3',
-    description: "I changed the AI's output manually",
+  constraint: {
+    label: 'Constraint',
+    icon: '$(symbol-rule)',
+    color: '#607d8b',
+    description: 'Invariant, precondition, or postcondition that must hold for correctness',
   },
-  confused: {
-    label: "Don't Understand",
-    icon: '$(question)',
-    color: '#ffeb3b',
-    description: "I don't understand why the AI did this",
-  },
-  hallucination: {
-    label: 'Potential Hallucination',
+  gotcha: {
+    label: 'Gotcha',
     icon: '$(warning)',
-    color: '#f44336',
-    description: 'This may reference non-existent APIs, methods, or patterns',
-  },
-  intent: {
-    label: 'Intent Note',
-    icon: '$(comment)',
-    color: '#9c27b0',
-    description: 'Context about what I asked the AI to do here',
-  },
-  accepted: {
-    label: 'Accepted As-Is',
-    icon: '$(thumbsup)',
-    color: '#9e9e9e',
-    description: 'Reviewed, acceptable without changes',
+    color: '#ff5722',
+    description: 'Footgun, counterintuitive quirk, or known hazard — proceed with care',
   },
   business_rule: {
     label: 'Business Rule',
     icon: '$(law)',
     color: '#e91e63',
-    description: 'Documents a business rule or domain constraint — don\'t change without stakeholder sign-off',
+    description: 'Documents a business rule or domain constraint — do not change without stakeholder sign-off',
+  },
+  performance: {
+    label: 'Performance',
+    icon: '$(dashboard)',
+    color: '#8bc34a',
+    description: 'Hot path, complexity assumption, or benchmark-sensitive region',
+  },
+  security: {
+    label: 'Security',
+    icon: '$(lock)',
+    color: '#b71c1c',
+    description: 'Trust boundary, auth assumption, sanitization requirement',
+  },
+  human_note: {
+    label: 'Human Note',
+    icon: '$(comment-discussion)',
+    color: '#757575',
+    description: 'Free-form human commentary — observations, questions, reminders',
   },
   ai_prompt: {
     label: 'AI Prompt',
     icon: '$(robot)',
     color: '#00bcd4',
     description: 'Quick note for AI agent — ephemeral, excluded from export',
+  },
+  verified: {
+    label: 'Verified',
+    icon: '$(check)',
+    color: '#4caf50',
+    description: 'Legacy — review-workflow category; migrated to human_note or rationale',
+  },
+  needs_review: {
+    label: 'Needs Review',
+    icon: '$(search)',
+    color: '#ff9800',
+    description: 'Legacy — review-workflow category; migrated to human_note',
+  },
+  modified: {
+    label: 'Modified',
+    icon: '$(edit)',
+    color: '#2196f3',
+    description: 'Legacy — review-workflow category; migrated to human_note',
+  },
+  confused: {
+    label: "Don't Understand",
+    icon: '$(question)',
+    color: '#ffeb3b',
+    description: 'Legacy — review-workflow category; migrated to human_note',
+  },
+  hallucination: {
+    label: 'Potential Hallucination',
+    icon: '$(warning)',
+    color: '#f44336',
+    description: 'Legacy — review-workflow category; migrated to gotcha',
+  },
+  intent: {
+    label: 'Intent Note',
+    icon: '$(comment)',
+    color: '#9c27b0',
+    description: 'Legacy — review-workflow category; migrated to rationale or human_note',
+  },
+  accepted: {
+    label: 'Accepted As-Is',
+    icon: '$(thumbsup)',
+    color: '#9e9e9e',
+    description: 'Legacy — review-workflow category; migrated to human_note',
   },
 };

@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
   ANNOTATION_CATEGORIES,
   CATEGORY_META,
+  KNOWLEDGE_CATEGORIES,
+  LEGACY_CATEGORIES,
   normalizeSource,
   type AnnotationCategory,
   type AnnotationSource,
@@ -12,8 +14,10 @@ import { type ReviewMarker, mergeReviewMarkers } from '../../src/models/reviewMa
 import type { CriticalFlag, CriticalSeverity } from '../../src/models/criticalFlag';
 
 describe('Annotation model', () => {
-  it('has exactly 9 categories', () => {
-    expect(ANNOTATION_CATEGORIES).toHaveLength(9);
+  it('exposes 8 knowledge categories + 7 legacy + ai_prompt = 16 total', () => {
+    expect(KNOWLEDGE_CATEGORIES).toHaveLength(8);
+    expect(LEGACY_CATEGORIES).toHaveLength(7);
+    expect(ANNOTATION_CATEGORIES).toHaveLength(16);
   });
 
   it('all categories have metadata', () => {
@@ -27,11 +31,23 @@ describe('Annotation model', () => {
     }
   });
 
-  it('categories are the expected set', () => {
-    expect(ANNOTATION_CATEGORIES).toEqual([
-      'verified', 'needs_review', 'modified', 'confused',
-      'hallucination', 'intent', 'accepted', 'business_rule', 'ai_prompt',
+  it('knowledge categories are the post-pivot set', () => {
+    expect([...KNOWLEDGE_CATEGORIES]).toEqual([
+      'behavior', 'rationale', 'constraint', 'gotcha',
+      'business_rule', 'performance', 'security', 'human_note',
     ]);
+  });
+
+  it('legacy categories are marked as such in their metadata description', () => {
+    for (const cat of LEGACY_CATEGORIES) {
+      expect(CATEGORY_META[cat].description).toMatch(/^Legacy/);
+    }
+  });
+
+  it('knowledge categories are never marked as legacy', () => {
+    for (const cat of KNOWLEDGE_CATEGORIES) {
+      expect(CATEGORY_META[cat].description).not.toMatch(/^Legacy/);
+    }
   });
 
   it('business_rule category has metadata', () => {
