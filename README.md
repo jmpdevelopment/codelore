@@ -4,6 +4,8 @@
 
 > Know what changed and why.
 
+![CodeLore demo](https://raw.githubusercontent.com/jmpdevelopment/codelore/main/assets/CodeLoreDemo.gif)
+
 ## What it is
 
 On large, mature codebases, the bottleneck isn't writing code — it's comprehension. AI agents modify modules last touched years ago. The knowledge a developer gains while working through unfamiliar code with AI assistance — what a module actually does, why a quirk exists, which regions are dangerous — dies in Slack threads or walks out the door.

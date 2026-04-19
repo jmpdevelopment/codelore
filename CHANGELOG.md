@@ -2,6 +2,26 @@
 
 All notable changes to the CodeLore extension are documented here. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] — 2026-04-19
+
+Marketplace discoverability pass.
+
+### Added
+
+- **Demo GIF** at the top of the README so the Marketplace listing
+  shows the extension in action above the fold.
+
+### Changed
+
+- **Marketplace category** moved from `Other` to `AI` so the extension
+  surfaces alongside other agent tooling.
+- **Marketplace short description** rewritten to name Claude Code,
+  Cursor, and Copilot explicitly — the three AI agents this extension
+  is designed to feed context to.
+- **Keywords** retargeted around AI agent terms (`claude code`,
+  `cursor`, `copilot`, `agents`, `agents.md`, `context`) to match how
+  users search the Marketplace for this kind of tool.
+
 ## [0.2.0] — 2026-04-18
 
 Onboarding, diagnostics, and a unified scan pipeline. Follow-up to the

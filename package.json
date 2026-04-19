@@ -1,8 +1,8 @@
 {
   "name": "codelore",
   "displayName": "CodeLore",
-  "description": "Institutional knowledge capture for large codebases undergoing AI-accelerated development. Annotate, review, and build shared understanding as AI agents modify your code.",
-  "version": "0.2.0",
+  "description": "Persistent context for Claude Code, Cursor, and Copilot. Capture decisions, gotchas, and critical regions as AI agents modify your codebase — so knowledge survives across PRs and teammates.",
+  "version": "0.2.1",
   "publisher": "jmpdevelopment",
   "license": "MIT",
   "icon": "icon.png",
@@ -18,18 +18,21 @@
     "vscode": "^1.95.0"
   },
   "categories": [
-    "Other"
+    "AI"
   ],
   "keywords": [
-    "code knowledge",
-    "AI code review",
-    "code annotation",
-    "legacy codebase",
-    "institutional knowledge",
-    "code documentation",
-    "AI development",
-    "team knowledge sharing",
-    "code lore"
+    "ai",
+    "claude",
+    "claude code",
+    "copilot",
+    "cursor",
+    "agents",
+    "agents.md",
+    "context",
+    "documentation",
+    "annotations",
+    "knowledge",
+    "codebase"
   ],
   "activationEvents": [
     "onStartupFinished"
