@@ -66,6 +66,14 @@ export class LoreStore {
     });
   }
 
+  /** Force all three stores to rescan from disk. Used by refreshSidebar. */
+  reload(): void {
+    this.personal.reload();
+    this.shared.reload();
+    this.components.reload();
+    this.fileComponentsIndex = null;
+  }
+
   // --- Components (facade over ComponentStore + derived file index) ---
 
   getComponents(): Component[] {

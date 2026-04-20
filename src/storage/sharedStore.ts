@@ -42,18 +42,19 @@ export class SharedStore {
   readonly onDidChange = this._onDidChange.event;
 
   private basePath: string | undefined;
+  private workspaceFolder: vscode.WorkspaceFolder | undefined;
   private watcher: vscode.FileSystemWatcher | undefined;
   private cache = new Map<string, FileData>();
 
   constructor() {
-    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-    if (!workspaceFolder) { return; }
-    const candidatePath = path.join(workspaceFolder.uri.fsPath, '.codelore');
+    this.workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+    if (!this.workspaceFolder) { return; }
+    const candidatePath = path.join(this.workspaceFolder.uri.fsPath, '.codelore');
     // Resolve symlinks to prevent writing outside workspace
     if (fs.existsSync(candidatePath)) {
       try {
         const realPath = fs.realpathSync(candidatePath);
-        const realWorkspace = fs.realpathSync(workspaceFolder.uri.fsPath);
+        const realWorkspace = fs.realpathSync(this.workspaceFolder.uri.fsPath);
         if (!realPath.startsWith(realWorkspace + path.sep) && realPath !== realWorkspace) {
           return; // .codelore is a symlink pointing outside workspace
         }
@@ -64,9 +65,18 @@ export class SharedStore {
     this.setupWatcher();
   }
 
-  private setupWatcher(): void {
+  /** Force a full rescan from disk. Used by refreshSidebar and tests. */
+  reload(): void {
     if (!this.basePath) { return; }
-    const pattern = new vscode.RelativePattern(this.basePath, '**/*.yaml');
+    this.loadAll();
+    this._onDidChange.fire();
+  }
+
+  private setupWatcher(): void {
+    if (!this.workspaceFolder) { return; }
+    // Pattern rooted at the workspace (not basePath) so the watcher fires
+    // even if .codelore/ didn't exist at construction time.
+    const pattern = new vscode.RelativePattern(this.workspaceFolder, '.codelore/**/*.yaml');
     this.watcher = vscode.workspace.createFileSystemWatcher(pattern);
     const reload = () => {
       this.loadAll();
@@ -92,7 +102,7 @@ export class SharedStore {
     if (!fs.existsSync(filePath)) { return {}; }
     try {
       const raw = fs.readFileSync(filePath, 'utf8');
-      return parseFileData(yaml.load(raw), filePath);
+      return parseFileData(yaml.load(raw, { schema: yaml.JSON_SCHEMA }), filePath);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       vscode.window.showErrorMessage(`CodeLore: ${message}`);
@@ -168,7 +178,7 @@ export class SharedStore {
         const sourceFile = relative.replace(/\.yaml$/, '');
         try {
           const raw = fs.readFileSync(fullPath, 'utf8');
-          this.cache.set(sourceFile, parseFileData(yaml.load(raw), fullPath));
+          this.cache.set(sourceFile, parseFileData(yaml.load(raw, { schema: yaml.JSON_SCHEMA }), fullPath));
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err);
           vscode.window.showErrorMessage(`CodeLore: ${message}`);

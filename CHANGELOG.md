@@ -2,6 +2,37 @@
 
 All notable changes to the CodeLore extension are documented here. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.3] — 2026-04-20
+
+Agent-authored annotations were silently dropped. This release fixes the root cause and tells agents how to write correct files.
+
+### Fixed
+
+- **Component and annotation files with bare ISO timestamps load correctly.**
+  js-yaml was auto-converting `created_at: 2026-04-20T00:00:00Z` into a
+  `Date` object, which the schema validator rejected (`typeof !== 'string'`).
+  All YAML loads now use `JSON_SCHEMA`, which keeps ISO-8601 strings as
+  strings. Agent-authored files that looked correct but didn't appear in
+  the sidebar will now load.
+- **Silent rejection of invalid component files is gone.** When
+  `normalizeComponent` drops a file for missing required fields, the
+  extension now surfaces a warning instead of failing quietly.
+- **`Refresh` command actually rescans disk.** The palette's
+  `codelore.refreshSidebar` now forces all three stores to reload
+  from disk before refreshing tree views, so files created while the
+  extension is running appear without a window reload.
+- **FileSystemWatcher cold-start.** Watchers are now rooted at the
+  workspace folder rather than `.codelore/`, so they fire for files
+  created before the `.codelore/` directory exists.
+
+### Changed
+
+- **Agent instruction template documents the v2 on-disk schema.** The
+  generated CLAUDE.md / .cursorrules / AGENTS.md etc. now include the
+  `version: 2` requirement, complete YAML envelopes for annotation and
+  component files, and the path-mirror rule — so AI agents writing
+  `.codelore/` files directly produce loadable output.
+
 ## [0.2.2] — 2026-04-19
 
 ### Changed

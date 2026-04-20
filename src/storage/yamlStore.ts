@@ -69,6 +69,12 @@ export class YamlStore {
     });
   }
 
+  /** Force a full rescan from disk. Used by refreshSidebar and tests. */
+  reload(): void {
+    this.load();
+    this._onDidChange.fire();
+  }
+
   load(): void {
     if (!this.filePath || !fs.existsSync(this.filePath)) {
       this.data = { annotations: [], critical_flags: [] };
@@ -76,7 +82,7 @@ export class YamlStore {
     }
     try {
       const raw = fs.readFileSync(this.filePath, 'utf8');
-      const parsed = yaml.load(raw) as Partial<LoreData> | null;
+      const parsed = yaml.load(raw, { schema: yaml.JSON_SCHEMA }) as Partial<LoreData> | null;
       assertSupportedVersion(parsed, this.filePath);
       this.data = {
         annotations: (parsed?.annotations ?? []).map(a => ({ ...a, source: coerceSource(a.source) })),

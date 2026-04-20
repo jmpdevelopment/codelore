@@ -58,6 +58,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
   context.subscriptions.push(
     vscode.commands.registerCommand('codelore.refreshSidebar', () => {
+      store.reload();
       changePlanProvider.refresh();
       criticalQueueProvider.refresh();
       componentsProvider.refresh();

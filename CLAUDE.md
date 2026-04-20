@@ -261,15 +261,93 @@ Press `F5` in VSCode to launch the Extension Development Host for manual testing
 
 # CodeLore Integration
 
-When modifying files in this project, check for CodeLore annotations before making changes:
+CodeLore is this project's institutional knowledge layer. Read it before modifying code, and write back to it when you learn something.
 
-1. Look for `.codelore/` directory at the project root — it contains per-file YAML annotations committed by the team.
-2. For a file like `src/auth/middleware.ts`, check `.codelore/src/auth/middleware.ts.yaml` for existing annotations.
-3. Each annotation has: line range, category (`behavior`, `rationale`, `constraint`, `gotcha`, `business_rule`, `performance`, `security`, `human_note`), text, and `source` (`ai_generated | ai_verified | human_authored`). Treat `ai_verified` and `human_authored` entries as authoritative; `ai_generated` entries are drafts pending review.
-4. Annotations may include `dependencies` — cross-file links to related code. When modifying linked files, check the annotations that reference them.
-5. Critical flags mark security-sensitive or high-risk regions — respect these and do not modify flagged code without explicit instruction.
-6. If you add or change code in an annotated region, mention the existing annotation context in your response.
-7. **Re-anchoring**: When you move, rename, or refactor code that has annotations, update the `line_start` and `line_end` fields in the corresponding `.codelore/` YAML file to match the new line positions. Also update `anchor.content_hash` if you change the content — the hash is a truncated SHA-256 of the trimmed non-empty lines joined by newlines. If the annotation has a `signature_hash`, update it based on the function/class signature line.
-8. After making changes, suggest the developer add CodeLore annotations for the modified regions.
+## Reading knowledge
+
+1. `.codelore/` at the repo root holds per-file YAML annotations. For a file like `src/auth/middleware.ts`, read `.codelore/src/auth/middleware.ts.yaml` before changing it.
+2. `.codelore/components/*.yaml` groups files into logical subsystems. Each component lists `files`, a `description`, and `owners`. When you touch a file in a component, you are acting on the whole component — honor its stated purpose.
+3. Each annotation has `file`, `line_start`, `line_end`, `category`, `source`, and `text`. The 8 knowledge categories are:
+   - `behavior` — What this code does — especially non-obvious behavior a reader would otherwise miss
+   - `rationale` — Why it was built this way — decisions, rejected alternatives, historical context
+   - `constraint` — Invariant, precondition, or postcondition that must hold for correctness
+   - `gotcha` — Footgun, counterintuitive quirk, or known hazard — proceed with care
+   - `business_rule` — Documents a business rule or domain constraint — do not change without stakeholder sign-off
+   - `performance` — Hot path, complexity assumption, or benchmark-sensitive region
+   - `security` — Trust boundary, auth assumption, sanitization requirement
+   - `human_note` — Free-form human commentary — observations, questions, reminders
+4. `dependencies` on an annotation list cross-file links. When you modify a file that another annotation depends on, surface that upstream annotation in your response.
+5. Critical flags in `.codelore/<path>.yaml` mark high-risk regions. Do not modify flagged code without explicit instruction.
+6. Annotations whose `source` is `ai_generated` have not been human-verified — treat them as hypotheses, not ground truth. `ai_verified` and `human_authored` are trusted.
+
+## On-disk schema (v2 — non-negotiable)
+
+Every YAML file CodeLore reads MUST begin with `version: 2` at the top level. Files without this marker are rejected outright (the loader throws "CodeLore v1 schema is not supported"). There is no migration path — v2 is the only supported version.
+
+**Annotation file** — `.codelore/<source-path>.yaml` (one per annotated source file, path mirrors the source tree):
+
+```yaml
+version: 2
+annotations:
+  - id: <uuid v4>
+    file: src/auth/middleware.ts     # same relative path as the yaml filename
+    line_start: 42
+    line_end: 58
+    category: gotcha                 # one of the 8 categories above
+    text: |
+      Off-by-one is intentional — billing loop requires inclusive upper bound.
+    source: ai_generated             # ai_generated | ai_verified | human_authored
+    created_at: 2026-04-20T12:00:00Z # ISO 8601 UTC
+    anchor:
+      content_hash: <sha256-trimmed-nonempty-lines>
+      signature_hash: <sha256-of-signature-line>   # optional, for function/class/method regions
+      stale: false
+    dependencies:                    # optional
+      - file: src/billing/calc.ts
+        relationship: must stay in sync with invoice rounding
+critical_flags:                      # optional; same file, sibling list
+  - id: <uuid v4>
+    file: src/auth/middleware.ts
+    line_start: 42
+    line_end: 58
+    severity: high                   # low | medium | high | critical
+    reason: Handles auth token validation.
+    source: ai_generated
+    created_at: 2026-04-20T12:00:00Z
+    resolved: false
+```
+
+**Component file** — `.codelore/components/<slug>.yaml` (one per component):
+
+```yaml
+version: 2
+id: <slug>                           # must match filename stem
+name: Engine
+description: Core execution pipeline.
+files:
+  - src/engine/runner.ts
+  - src/engine/scheduler.ts
+owners: [alice, bob]                 # optional
+source: ai_generated
+created_at: 2026-04-20T12:00:00Z
+updated_at: 2026-04-20T12:00:00Z
+```
+
+Key rules:
+- `version: 2` is required at the top of every file, including component files.
+- Annotation files are keyed by source path — `.codelore/src/foo.ts.yaml` holds annotations for `src/foo.ts` and nothing else. Do not dump cross-file annotations into a single file.
+- Never invent fields. Never use legacy category names. Never omit `version: 2`.
+
+## Writing knowledge (you are expected to author)
+
+CodeLore expects AI agents to *author* annotations, not just consume them. After making non-trivial changes or discovering something non-obvious about the code, write annotations for what you learned.
+
+7. Append new annotations to the relevant `.codelore/<path>.yaml` file (create it if missing). When creating a new file, emit `version: 2` before the `annotations:` list. Required annotation fields: `id` (uuid v4), `file`, `line_start`, `line_end`, `category`, `text`, `source: ai_generated`, `created_at` (ISO 8601).
+8. If files form a cohesive subsystem that isn't already a component, propose one at `.codelore/components/<slug>.yaml` with `version: 2`, `id`, `name`, `description`, `files`, `source: ai_generated`, `created_at`, `updated_at`.
+9. Do not fabricate. If you don't know, write nothing. Humans and other agents will read your annotations as the project's memory.
+
+## Re-anchoring on refactor
+
+10. When you move, rename, or refactor annotated code, update `line_start` and `line_end` in the corresponding `.codelore/` YAML. Also update `anchor.content_hash` (truncated SHA-256 of the trimmed non-empty lines joined by `\n`) and `anchor.signature_hash` if present (hash of the function/class signature line). Silent drift causes false "stale" warnings and lost context.
 
 # End CodeLore Integration

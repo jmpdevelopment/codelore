@@ -50,14 +50,16 @@ export class ComponentStore {
   private watcher: vscode.FileSystemWatcher | undefined;
   private cache = new Map<string, Component>();
 
+  private workspaceFolder: vscode.WorkspaceFolder | undefined;
+
   constructor() {
-    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-    if (!workspaceFolder) { return; }
-    const candidatePath = path.join(workspaceFolder.uri.fsPath, '.codelore', COMPONENTS_DIR);
+    this.workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+    if (!this.workspaceFolder) { return; }
+    const candidatePath = path.join(this.workspaceFolder.uri.fsPath, '.codelore', COMPONENTS_DIR);
     if (fs.existsSync(candidatePath)) {
       try {
         const realPath = fs.realpathSync(candidatePath);
-        const realWorkspace = fs.realpathSync(workspaceFolder.uri.fsPath);
+        const realWorkspace = fs.realpathSync(this.workspaceFolder.uri.fsPath);
         if (!realPath.startsWith(realWorkspace + path.sep) && realPath !== realWorkspace) {
           return; // symlink escapes workspace
         }
@@ -68,9 +70,22 @@ export class ComponentStore {
     this.setupWatcher();
   }
 
-  private setupWatcher(): void {
+  /** Force a full rescan from disk. Used by refreshSidebar and tests. */
+  reload(): void {
     if (!this.basePath) { return; }
-    const pattern = new vscode.RelativePattern(this.basePath, '*.yaml');
+    this.loadAll();
+    this._onDidChange.fire();
+  }
+
+  private setupWatcher(): void {
+    if (!this.workspaceFolder) { return; }
+    // Pattern relative to the workspace root, not basePath — so the watcher
+    // fires even if .codelore/components/ doesn't exist at construction time
+    // (VSCode's FileSystemWatcher requires the pattern's root to exist).
+    const pattern = new vscode.RelativePattern(
+      this.workspaceFolder,
+      `.codelore/${COMPONENTS_DIR}/*.yaml`,
+    );
     this.watcher = vscode.workspace.createFileSystemWatcher(pattern);
     const reload = () => {
       this.loadAll();
@@ -100,12 +115,19 @@ export class ComponentStore {
       const fullPath = path.join(this.basePath, entry.name);
       try {
         const raw = fs.readFileSync(fullPath, 'utf8');
-        const parsed = yaml.load(raw);
+        // JSON_SCHEMA avoids YAML 1.1 !!timestamp — keeps ISO dates as strings
+        const parsed = yaml.load(raw, { schema: yaml.JSON_SCHEMA });
         if (!parsed || typeof parsed !== 'object') { continue; }
         assertSupportedVersion(parsed, fullPath);
         const { version: _v, ...payload } = parsed as Record<string, unknown>;
         const component = normalizeComponent(payload);
-        if (component) { this.cache.set(component.id, component); }
+        if (component) {
+          this.cache.set(component.id, component);
+        } else {
+          vscode.window.showWarningMessage(
+            `CodeLore: ignoring component file ${fullPath} — missing or invalid required fields (id, name, created_at).`,
+          );
+        }
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         vscode.window.showErrorMessage(`CodeLore: ${message}`);

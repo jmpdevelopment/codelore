@@ -24,12 +24,70 @@ ${categoryBullets()}
 5. Critical flags in \`.codelore/<path>.yaml\` mark high-risk regions. Do not modify flagged code without explicit instruction.
 6. Annotations whose \`source\` is \`ai_generated\` have not been human-verified — treat them as hypotheses, not ground truth. \`ai_verified\` and \`human_authored\` are trusted.
 
+## On-disk schema (v2 — non-negotiable)
+
+Every YAML file CodeLore reads MUST begin with \`version: 2\` at the top level. Files without this marker are rejected outright (the loader throws "CodeLore v1 schema is not supported"). There is no migration path — v2 is the only supported version.
+
+**Annotation file** — \`.codelore/<source-path>.yaml\` (one per annotated source file, path mirrors the source tree):
+
+\`\`\`yaml
+version: 2
+annotations:
+  - id: <uuid v4>
+    file: src/auth/middleware.ts     # same relative path as the yaml filename
+    line_start: 42
+    line_end: 58
+    category: gotcha                 # one of the 8 categories above
+    text: |
+      Off-by-one is intentional — billing loop requires inclusive upper bound.
+    source: ai_generated             # ai_generated | ai_verified | human_authored
+    created_at: 2026-04-20T12:00:00Z # ISO 8601 UTC
+    anchor:
+      content_hash: <sha256-trimmed-nonempty-lines>
+      signature_hash: <sha256-of-signature-line>   # optional, for function/class/method regions
+      stale: false
+    dependencies:                    # optional
+      - file: src/billing/calc.ts
+        relationship: must stay in sync with invoice rounding
+critical_flags:                      # optional; same file, sibling list
+  - id: <uuid v4>
+    file: src/auth/middleware.ts
+    line_start: 42
+    line_end: 58
+    severity: high                   # low | medium | high | critical
+    reason: Handles auth token validation.
+    source: ai_generated
+    created_at: 2026-04-20T12:00:00Z
+    resolved: false
+\`\`\`
+
+**Component file** — \`.codelore/components/<slug>.yaml\` (one per component):
+
+\`\`\`yaml
+version: 2
+id: <slug>                           # must match filename stem
+name: Engine
+description: Core execution pipeline.
+files:
+  - src/engine/runner.ts
+  - src/engine/scheduler.ts
+owners: [alice, bob]                 # optional
+source: ai_generated
+created_at: 2026-04-20T12:00:00Z
+updated_at: 2026-04-20T12:00:00Z
+\`\`\`
+
+Key rules:
+- \`version: 2\` is required at the top of every file, including component files.
+- Annotation files are keyed by source path — \`.codelore/src/foo.ts.yaml\` holds annotations for \`src/foo.ts\` and nothing else. Do not dump cross-file annotations into a single file.
+- Never invent fields. Never use legacy category names. Never omit \`version: 2\`.
+
 ## Writing knowledge (you are expected to author)
 
 CodeLore expects AI agents to *author* annotations, not just consume them. After making non-trivial changes or discovering something non-obvious about the code, write annotations for what you learned.
 
-7. Append new annotations to the relevant \`.codelore/<path>.yaml\` file (create it if missing). Required fields: \`id\` (uuid v4), \`file\`, \`line_start\`, \`line_end\`, \`category\` (one of the 8 above — never legacy), \`text\`, \`source: ai_generated\`, \`created_at\` (ISO 8601).
-8. If files form a cohesive subsystem that isn't already a component, propose one at \`.codelore/components/<slug>.yaml\` with \`id\`, \`name\`, \`description\`, \`files\`, \`source: ai_generated\`, \`created_at\`, \`updated_at\`.
+7. Append new annotations to the relevant \`.codelore/<path>.yaml\` file (create it if missing). When creating a new file, emit \`version: 2\` before the \`annotations:\` list. Required annotation fields: \`id\` (uuid v4), \`file\`, \`line_start\`, \`line_end\`, \`category\`, \`text\`, \`source: ai_generated\`, \`created_at\` (ISO 8601).
+8. If files form a cohesive subsystem that isn't already a component, propose one at \`.codelore/components/<slug>.yaml\` with \`version: 2\`, \`id\`, \`name\`, \`description\`, \`files\`, \`source: ai_generated\`, \`created_at\`, \`updated_at\`.
 9. Do not fabricate. If you don't know, write nothing. Humans and other agents will read your annotations as the project's memory.
 
 ## Re-anchoring on refactor

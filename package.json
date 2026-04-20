@@ -2,7 +2,7 @@
   "name": "codelore",
   "displayName": "CodeLore",
   "description": "Persistent context for Claude Code, Cursor, and Copilot. Capture decisions, gotchas, and critical regions as AI agents modify your codebase — so knowledge survives across PRs and teammates.",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "publisher": "jmpdevelopment",
   "license": "MIT",
   "icon": "icon.png",
